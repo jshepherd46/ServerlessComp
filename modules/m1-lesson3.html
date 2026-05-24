@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M1 · Lesson 3: Identity &amp; access architecture — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+
+/* IAM matrix table */
+.matrix-wrap { overflow-x: auto; margin: 1rem 0 1.5rem; }
+.matrix {
+  width: 100%; border-collapse: collapse; font-size: 12.5px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2);
+}
+.matrix th, .matrix td {
+  padding: 9px 12px; text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.matrix thead th {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text3); font-weight: 500;
+  background: rgba(255,255,255,.02);
+}
+.matrix tbody tr:last-child td { border-bottom: none; }
+.matrix tbody td.persona {
+  font-family: 'Syne', sans-serif; font-weight: 600; color: var(--text);
+  font-size: 13px;
+}
+.matrix tbody td.role {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal);
+}
+.matrix tbody td.scope {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--amber);
+}
+.matrix tbody td.note { color: var(--text2); font-size: 12.5px; }
+
+/* SA card */
+.sa-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .9rem 1.15rem; margin-bottom: 8px;
+}
+.sa-card .sa-name {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--blue); margin-bottom: .3rem;
+}
+.sa-card .sa-purpose {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+}
+.sa-card .sa-roles {
+  font-size: 12.5px; color: var(--text2); line-height: 1.55;
+}
+.sa-card .sa-roles code {
+  color: var(--teal); font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M1 · Lesson 3 of 4</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 1</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 3</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot done" title="Lesson 2"></div>
+      <div class="progress-dot active" title="Lesson 3"></div>
+      <div class="progress-dot" title="Lesson 4"></div>
+      <span class="progress-label">Lesson 3 of 4</span>
+    </div>
+
+    <h1 class="lesson-title">Identity &amp; access<br>architecture</h1>
+    <p class="lesson-sub">Topology decides where things live. Identity decides who can touch them. This lesson is about designing the access matrix on day one so you spend the rest of the year doing research, not chasing IAM tickets. HIPAA-specific controls land in M3 — here we build the patterns those controls bolt onto.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~45 min reading + exercise</span>
+      <span>🔧 IAM, Google Groups, gcloud iam</span>
+      <span>📍 Module 1 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: IAM as a decision system         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The model</div>
+    <h2 class="section-title">IAM is a decision system, not a checklist</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#iam">IAM</a> answers one question every time you call any GCP API: <em>does this caller have permission to do this thing on this resource?</em> Three primitives produce that answer:</p>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">👤</div>
+        <div class="principle-title"><a class="g-term" href="../glossary.html#principal">Principal</a></div>
+        <div class="principle-body">Who is calling. A Google user, a Google Group, a <a class="g-term" href="../glossary.html#service-account">service account</a>, or a federated identity. Every API call runs as exactly one principal.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🎚</div>
+        <div class="principle-title"><a class="g-term" href="../glossary.html#role">Role</a></div>
+        <div class="principle-body">A named bundle of <a class="g-term" href="../glossary.html#permission">permissions</a>. Predefined (per-service, like <code class="code-inline">roles/run.invoker</code>), basic (don't), or custom (write your own).</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">📍</div>
+        <div class="principle-title">Scope (the binding)</div>
+        <div class="principle-body">Where the role is granted: organization, folder, project, or single resource. Grants cascade <em>down</em> the hierarchy — never sideways or up.</div>
+      </div>
+    </div>
+
+    <p style="margin-top: 1.25rem; margin-bottom: 1rem;">The architecture question is not "which permissions does this person need" but <strong>where do I place the binding so the answer to that question is durable as people, studies, and grants come and go?</strong></p>
+
+    <div class="callout">
+      <strong>The cascade rule:</strong> a role granted at the <a class="g-term" href="../glossary.html#folder">folder</a> level is inherited by every <a class="g-term" href="../glossary.html#project">project</a> below it. So <code class="code-inline">roles/viewer</code> on the SRL folder gives every postdoc read access to every SRL project automatically. <a class="g-term" href="../glossary.html#organization">Organization</a>-level grants are even broader — use them only for org admins.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Role-grant matrix                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The design tool</div>
+    <h2 class="section-title">The role-grant matrix</h2>
+    <p style="margin-bottom: 1rem;">Don't grant roles ad hoc. Before you touch the console, write the matrix: rows are <strong>personas</strong> (the kinds of people and workloads that need access), columns are <strong>scopes</strong> (where the binding lives), cells are the role. Here is SRL's actual matrix, abridged:</p>
+
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th style="width:170px;">Persona</th>
+            <th style="width:200px;">Scope</th>
+            <th style="width:220px;">Role</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="persona">PI (J. Shepherd)</td>
+            <td class="scope">folder: srl</td>
+            <td class="role">roles/owner</td>
+            <td class="note">Folder-level owner; cascades to every SRL project. Use sparingly — log every action.</td>
+          </tr>
+          <tr>
+            <td class="persona">Lab postdoc</td>
+            <td class="scope">folder: srl</td>
+            <td class="role">roles/viewer</td>
+            <td class="note">Read-only across all SRL projects. Plus per-project elevated roles below.</td>
+          </tr>
+          <tr>
+            <td class="persona">Lab postdoc</td>
+            <td class="scope">project: srl-makawalu-dev</td>
+            <td class="role">roles/editor</td>
+            <td class="note">Active developer rights only in their study's dev environment.</td>
+          </tr>
+          <tr>
+            <td class="persona">Research coordinator</td>
+            <td class="scope">project: srl-hipimr-prod</td>
+            <td class="role">roles/storage.objectViewer</td>
+            <td class="note">Surgical: read DICOM objects only. No project metadata, no IAM visibility.</td>
+          </tr>
+          <tr>
+            <td class="persona">External collaborator (Queen's)</td>
+            <td class="scope">project: srl-halo-prod</td>
+            <td class="role">roles/bigquery.dataViewer + roles/bigquery.jobUser</td>
+            <td class="note">Query OMOP tables but not create datasets. Conditional binding with time-bound expiry.</td>
+          </tr>
+          <tr>
+            <td class="persona">CI/CD service account</td>
+            <td class="scope">project: srl-makawalu-prod</td>
+            <td class="role">roles/run.developer + roles/iam.serviceAccountUser</td>
+            <td class="note">Deploys Cloud Run revisions only. Cannot read user data.</td>
+          </tr>
+          <tr>
+            <td class="persona">Cloud Run workload SA</td>
+            <td class="scope">project: srl-makawalu-prod</td>
+            <td class="role">roles/secretmanager.secretAccessor + roles/storage.objectViewer</td>
+            <td class="note">Reads its own secrets and the inference bucket. Nothing else.</td>
+          </tr>
+          <tr>
+            <td class="persona">UH ITS auditor</td>
+            <td class="scope">folder: srl</td>
+            <td class="role">roles/iam.securityReviewer</td>
+            <td class="note">Sees every IAM binding, never the data. Read-only governance role.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top: .75rem; font-size:13.5px;">Two things to notice. First, almost every human persona has a <em>broad read role at the folder</em> plus <em>narrow elevated roles at the project</em>. Second, every workload (CI/CD, Cloud Run) is a service account — not a person — with a sharply scoped role on exactly the project it runs in.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Groups, not individuals          -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Delegation discipline</div>
+    <h2 class="section-title">Bind to groups, not to people</h2>
+    <p style="margin-bottom: 1rem;">Every human persona in the matrix above should be a <strong>Google Group</strong>, not a list of email addresses. The role binding targets the group; group membership is the only thing that changes as people join and leave.</p>
+
+    <div class="hier-accordion">
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">📥</span>
+          <div class="hier-label">
+            <div class="hier-label-name">A new postdoc joins SRL</div>
+            <div class="hier-label-desc">One change in one place, not a dozen IAM bindings.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Add them to <code class="code-inline">srl-postdocs@hawaii.edu</code> in Google Workspace. That single group is bound at the SRL folder with <code class="code-inline">roles/viewer</code> and at every <code class="code-inline">*-dev</code> project with <code class="code-inline">roles/editor</code>. The new postdoc immediately has the same access as every other postdoc — no IAM changes touched.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-resource"></div>
+          <span class="hier-icon">📤</span>
+          <div class="hier-label">
+            <div class="hier-label-name">A postdoc leaves</div>
+            <div class="hier-label-desc">Remove from the group. Done.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Their hawaii.edu account is deactivated by UH ITS, which removes them from every group automatically. Even if you forget, every binding evaluates membership at call time — no stale grants.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-project"></div>
+          <span class="hier-icon">🎯</span>
+          <div class="hier-label">
+            <div class="hier-label-name">A study-specific role</div>
+            <div class="hier-label-desc">Don't bind to <code class="code-inline">jshepherd@hawaii.edu</code>; bind to <code class="code-inline">srl-halo-leads@hawaii.edu</code>.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">When the next PI joins HALO, you add them to the group. When you go on sabbatical, the lab does not need IAM gymnastics to keep running.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>The only IAM bindings that should ever target individual email addresses</strong> are emergency break-glass admins (and even those are better as a group with two members). If you find yourself adding a person directly, ask: <em>what is the group this belongs to, and does that group exist?</em>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Service accounts as architecture -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Workload identities</div>
+    <h2 class="section-title">One service account per workload</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#service-account">Service accounts</a> are not a convenience — they are the architectural primitive for everything your code does on GCP. The default discipline: <strong>one service account per workload, scoped to what that workload actually needs, and nothing else.</strong></p>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Naming pattern</h3>
+<pre class="code-block"><span class="ok">&lt;workload&gt;-sa@&lt;project-id&gt;.iam.gserviceaccount.com</span></pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Makawalu-prod's actual service accounts</h3>
+
+    <div class="sa-card">
+      <div class="sa-name">xai-serve-sa@srl-makawalu-prod.iam.gserviceaccount.com</div>
+      <div class="sa-purpose">Cloud Run service running the XAI inference API</div>
+      <div class="sa-roles">Roles: <code>roles/secretmanager.secretAccessor</code> (for the model auth token), <code>roles/storage.objectViewer</code> (on the inference bucket only). No BigQuery, no PHI, no project metadata.</div>
+    </div>
+
+    <div class="sa-card">
+      <div class="sa-name">ingest-job-sa@srl-makawalu-prod.iam.gserviceaccount.com</div>
+      <div class="sa-purpose">Cloud Run Job that pulls Queen's POCUS uploads nightly</div>
+      <div class="sa-roles">Roles: <code>roles/healthcare.dicomEditor</code> on the DICOM store, <code>roles/pubsub.publisher</code> on the ingest topic. Can write to one store, publish one event. Cannot read.</div>
+    </div>
+
+    <div class="sa-card">
+      <div class="sa-name">train-job-sa@srl-makawalu-prod.iam.gserviceaccount.com</div>
+      <div class="sa-purpose">Vertex AI Training jobs (CBM retraining)</div>
+      <div class="sa-roles">Roles: <code>roles/aiplatform.user</code>, <code>roles/storage.objectAdmin</code> on the training bucket, <code>roles/healthcare.dicomViewer</code> on the source store. Reads source, writes outputs to training bucket only.</div>
+    </div>
+
+    <div class="sa-card">
+      <div class="sa-name">cicd-deploy-sa@srl-shared-services.iam.gserviceaccount.com</div>
+      <div class="sa-purpose">Cloud Build pipeline that deploys to Makawalu-prod</div>
+      <div class="sa-roles">Roles in srl-makawalu-prod: <code>roles/run.developer</code>, <code>roles/iam.serviceAccountUser</code> on xai-serve-sa. Can deploy code; cannot touch data, cannot grant itself more.</div>
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">Three rules that are not optional</h3>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">🚫</div>
+        <div class="principle-title">No service account key files</div>
+        <div class="principle-body">Long-lived JSON keys are the #1 cause of GCP credential leaks. Use <a class="g-term" href="../glossary.html#workload-identity">Workload Identity</a> on GKE, attached service accounts on Cloud Run/Functions, and short-lived impersonation tokens for local dev.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🎭</div>
+        <div class="principle-title">Impersonation instead of keys</div>
+        <div class="principle-body"><code class="code-inline">gcloud auth print-access-token --impersonate-service-account=xai-serve-sa@…</code> gives you a one-hour token to act <em>as</em> the SA, fully audited, no key file on disk.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🪞</div>
+        <div class="principle-title">SA = workload, not person</div>
+        <div class="principle-body">Never share a service account between two workloads "just to save a few clicks." Every shared SA is a future blast-radius problem when one workload misbehaves.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🧨</div>
+        <div class="principle-title">Disable the default compute SA</div>
+        <div class="principle-body">Every project ships with <code class="code-inline">[PROJECT_NUMBER]-compute@developer.gserviceaccount.com</code> as Editor. Remove its role binding the first day. Workloads use SAs you create explicitly.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Least-privilege workflow         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The day-to-day discipline</div>
+    <h2 class="section-title">Granting the smallest role that works</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#least-privilege">Least privilege</a> is not a one-time audit; it's the way you grant access every single time. The default workflow:</p>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🎚 The least-privilege grant workflow</div>
+      <ol class="exercise-steps">
+        <li><strong>Start at Viewer.</strong> The first binding for any new persona is <code class="code-inline">roles/viewer</code> at the most appropriate scope. If Viewer is enough, you're done.</li>
+        <li><strong>Add the narrowest predefined role that unblocks them.</strong> Need to deploy Cloud Run? <code class="code-inline">roles/run.developer</code>, not <code class="code-inline">roles/editor</code>. Need to read a bucket? <code class="code-inline">roles/storage.objectViewer</code>, not <code class="code-inline">roles/storage.admin</code>.</li>
+        <li><strong>Avoid the basic roles.</strong> <code class="code-inline">roles/owner</code>, <code class="code-inline">roles/editor</code>, <code class="code-inline">roles/viewer</code> are blunt instruments. Prefer the per-service predefined roles every time.</li>
+        <li><strong>Use IAM Conditions for time-bound access.</strong> External collaborator needs HALO access for the 3-month manuscript revision? Grant the role with <code class="code-inline">request.time &lt; timestamp("2026-09-01T00:00:00Z")</code>. The grant expires automatically.</li>
+        <li><strong>Audit quarterly with the IAM Recommender.</strong> GCP analyses 90 days of usage and tells you which granted permissions a principal hasn't touched. Remove anything dormant.</li>
+      </ol>
+    </div>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Useful audit queries</h3>
+
+<pre class="code-block"><span class="cm"># Every binding that touches a specific user</span>
+gcloud asset search-all-iam-policies \
+  --scope=folders/[SRL_FOLDER_ID] \
+  --query="policy:jshepherd@hawaii.edu"
+
+<span class="cm"># Every binding of a wide role across the lab</span>
+gcloud asset search-all-iam-policies \
+  --scope=folders/[SRL_FOLDER_ID] \
+  --query="policy.role.permissions:roles/owner"
+
+<span class="cm"># Recommender — surfaces over-granted roles</span>
+gcloud recommender recommendations list \
+  --project=srl-makawalu-prod \
+  --recommender=google.iam.policy.Recommender \
+  --location=global</pre>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 1.3</div>
+    <h2 class="section-title">Build the IAM matrix for one of your studies</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📐 Design first, then grant</div>
+      <ol class="exercise-steps">
+        <li><strong>On paper, draw the matrix for one study you actually run.</strong> Rows: PI, postdoc, RA, external collaborator, CI/CD, every workload. Columns: folder + each environment project. Fill cells with the narrowest role that works.</li>
+        <li>Identify which rows should be groups, not individuals. Name the groups (<code class="code-inline">srl-postdocs@</code>, <code class="code-inline">srl-halo-leads@</code>, etc.).</li>
+        <li>List every <em>workload</em> as its own service account row. Name them <code class="code-inline">&lt;workload&gt;-sa</code>.</li>
+        <li>Switch to your sandbox and create three service accounts for a hypothetical pipeline:<br>
+          <code class="code-inline">gcloud iam service-accounts create xai-serve-sa --display-name="XAI inference"</code><br>
+          <code class="code-inline">gcloud iam service-accounts create ingest-job-sa --display-name="Nightly ingest"</code><br>
+          <code class="code-inline">gcloud iam service-accounts create train-job-sa --display-name="Training runs"</code>
+        </li>
+        <li>Grant each one a narrow predefined role (use whatever resources exist in your sandbox):<br>
+          <code class="code-inline">gcloud projects add-iam-policy-binding $PROJECT --member="serviceAccount:xai-serve-sa@$PROJECT.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"</code>
+        </li>
+        <li>Try impersonating one of them — no key file:<br>
+          <code class="code-inline">gcloud auth print-access-token --impersonate-service-account=xai-serve-sa@$PROJECT.iam.gserviceaccount.com</code>
+        </li>
+        <li><strong>Find the default compute service account</strong> in your sandbox project's IAM page. Note its bindings. In M3 you'll remove those — but identify what would break if you did it today.</li>
+        <li>Run the IAM Recommender against your sandbox:<br>
+          <code class="code-inline">gcloud recommender recommendations list --project=$PROJECT --recommender=google.iam.policy.Recommender --location=global</code>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Commands you saw</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud iam service-accounts create</span>
+        <span class="tag">gcloud projects add-iam-policy-binding</span>
+        <span class="tag">gcloud auth print-access-token --impersonate-service-account</span>
+        <span class="tag">gcloud asset search-all-iam-policies</span>
+        <span class="tag">gcloud recommender recommendations list</span>
+        <span class="tag">gcloud iam roles list</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>A new postdoc joins the lab and needs the same access as every other postdoc. You touched zero IAM bindings to make this work. Why?</span>
+        <a href="#" class="check-btn" onclick="alert('Because every postdoc-level role is bound to the srl-postdocs@hawaii.edu group, not to individuals. Adding the new postdoc to the group is one Google Workspace change that propagates through every binding automatically.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your Cloud Run inference service for Makawalu suddenly starts reading the HIPIMR DICOM bucket. What architectural failure made this possible?</span>
+        <a href="#" class="check-btn" onclick="alert('Either the service is running as the default compute service account (Editor on the project), or its dedicated service account was granted overly broad roles (storage.admin instead of storage.objectViewer on a specific bucket). The fix is one-SA-per-workload with narrow predefined roles, and removing the default SA bindings on day one.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why is <code class="code-inline">roles/run.developer</code> a better default than <code class="code-inline">roles/editor</code> for your CI/CD pipeline?</span>
+        <a href="../glossary.html#least-privilege" class="check-btn">See least-privilege →</a>
+      </li>
+      <li class="check-item">
+        <span>A Queen's collaborator needs read access to HALO BigQuery for a 3-month manuscript revision. Describe the binding you would create.</span>
+        <a href="#" class="check-btn" onclick="alert('Add the collaborator to a srl-halo-external-readers@ group. Bind that group to srl-halo-prod with roles/bigquery.dataViewer + roles/bigquery.jobUser, conditioned on request.time &lt; timestamp(\"2026-09-01T00:00:00Z\"). After the date, the grant evaluates to false and the access disappears with no manual cleanup.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m1-lesson2.html" class="btn">← Lesson 1.2: Project topology</a>
+    <a href="m1-lesson4.html" class="btn btn-primary">Lesson 1.4: Operational architecture →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

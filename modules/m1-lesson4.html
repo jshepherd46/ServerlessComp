@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M1 · Lesson 4: Operational architecture — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+
+/* Layered pillars */
+.pillars {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 8px; margin: 1rem 0 1.75rem;
+}
+.pillar {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.1rem;
+  border-top: 3px solid var(--amber);
+}
+.pillar:nth-child(2) { border-top-color: var(--teal); }
+.pillar:nth-child(3) { border-top-color: var(--blue); }
+.pillar:nth-child(4) { border-top-color: var(--green); }
+.pillar h3 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px;
+  font-weight: 600; color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.pillar p { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+@media (max-width: 840px) { .pillars { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .pillars { grid-template-columns: 1fr; } }
+
+/* Flow diagram */
+.flow-diagram {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.7; overflow-x: auto;
+}
+.flow-diagram .src { color: var(--blue); }
+.flow-diagram .arr { color: var(--amber); }
+.flow-diagram .sink { color: var(--teal); }
+.flow-diagram .act { color: var(--coral); }
+.flow-diagram .ann { color: var(--text3); font-style: italic; }
+
+/* Runbook list */
+.runbook {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--purple);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: 1rem 1.5rem; margin: 1rem 0 1.5rem;
+}
+.runbook h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); text-transform: none; letter-spacing: 0; margin-bottom: .5rem;
+}
+.runbook ol {
+  list-style: none; counter-reset: rb;
+  padding-left: 0;
+}
+.runbook li {
+  counter-increment: rb;
+  position: relative; padding: .35rem 0 .35rem 2rem;
+  font-size: 13px; color: var(--text2); line-height: 1.6;
+  border-bottom: 1px solid var(--border);
+}
+.runbook li:last-child { border-bottom: none; }
+.runbook li::before {
+  content: counter(rb);
+  position: absolute; left: 0; top: 7px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(165,168,255,.15); color: var(--purple);
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M1 · Lesson 4 of 4</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 1</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 4</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot done" title="Lesson 2"></div>
+      <div class="progress-dot done" title="Lesson 3"></div>
+      <div class="progress-dot active" title="Lesson 4"></div>
+      <span class="progress-label">Lesson 4 of 4</span>
+    </div>
+
+    <h1 class="lesson-title">Operational<br>architecture</h1>
+    <p class="lesson-sub">Topology and identity tell you what to build and who can touch it. Operations tell you whether it's working, what it cost, and what to do when it isn't. This is the layer that turns a working setup into a sustainable lab.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~45 min reading + exercise</span>
+      <span>🔧 Cloud Billing, Logging, Monitoring, Cloud Functions</span>
+      <span>📍 Module 1 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: The four operational pillars     -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The framing</div>
+    <h2 class="section-title">Four pillars hold up a working lab</h2>
+    <p style="margin-bottom: 1rem;">Researchers who stand up a beautiful GCP topology and watch it collapse three months later usually skipped the same four things. Treat these as non-negotiable from day one — and decide deliberately for each pillar what "good enough" looks like in your context.</p>
+
+    <div class="pillars">
+      <div class="pillar">
+        <h3>💸 Cost</h3>
+        <p>You know what each grant spends, what each study spends, and what is about to spend more than it should.</p>
+      </div>
+      <div class="pillar">
+        <h3>🪵 Audit</h3>
+        <p>Every administrative action and every PHI read is recorded somewhere you can query — and that you actually keep.</p>
+      </div>
+      <div class="pillar">
+        <h3>📡 Observability</h3>
+        <p>You see latency, errors, and throughput for the things you serve, and you get paged when they break.</p>
+      </div>
+      <div class="pillar">
+        <h3>📖 Runbook</h3>
+        <p>The lab has a single written document that says: how to onboard, how to launch a study, how to respond to an incident, how to close out.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>The honest framing:</strong> most research labs do pillar 1 and 4 badly, pillar 3 never, and pillar 2 only after an incident. The point of this lesson is to do all four lightly so none of them becomes a crisis.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Cost discipline                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Pillar 1 — Cost</div>
+    <h2 class="section-title">Cost discipline: labels, exports, kill-switches</h2>
+    <p style="margin-bottom: 1rem;">Three layers, ordered from cheapest to most defensive. Do at least the first two on every project; add the third anywhere the spend ceiling matters.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Layer 1 — Labels (you already did this in L2)</h3>
+    <p style="margin-bottom:.75rem;">Every project carries <code class="code-inline">lab</code>, <code class="code-inline">study</code>, <code class="code-inline">env</code>, <code class="code-inline">grant</code>, <code class="code-inline">phi</code>. Most resources inherit project-level cost labels automatically. The ones that don't (BigQuery, Cloud Run, GKE workloads) take resource-level labels of their own. Use the same keys.</p>
+
+<pre class="code-block">gcloud run services update xai-serve \
+  --update-labels=<span class="am">study=makawalu</span>,<span class="am">env=prod</span>,<span class="am">workload=inference</span> \
+  --region=us-west1</pre>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">Layer 2 — BigQuery billing export</h3>
+    <p style="margin-bottom:.75rem;">Enable the <strong>standard billing export</strong> from your billing account to a BigQuery dataset in <code class="code-inline">srl-shared-services</code>. Within hours you have a queryable, labelled cost stream:</p>
+
+<pre class="code-block"><span class="cm">-- Last month's spend by study, in your shared services BQ</span>
+<span class="kw">SELECT</span>
+  labels.value <span class="kw">AS</span> study,
+  <span class="kw">ROUND</span>(<span class="kw">SUM</span>(cost), 2) <span class="kw">AS</span> usd
+<span class="kw">FROM</span> `srl-shared-services.billing.gcp_billing_export_v1_XXXX`,
+     <span class="kw">UNNEST</span>(labels) <span class="kw">AS</span> labels
+<span class="kw">WHERE</span> labels.key = <span class="ok">'study'</span>
+  <span class="kw">AND</span> usage_start_time <span class="kw">BETWEEN</span> <span class="ok">'2026-04-01'</span> <span class="kw">AND</span> <span class="ok">'2026-05-01'</span>
+<span class="kw">GROUP BY</span> study
+<span class="kw">ORDER BY</span> usd <span class="kw">DESC</span>;</pre>
+
+    <p style="font-size:13.5px;">This is the query you run on the first of every month, screenshot, and paste into the lab's monthly update. Five minutes of work; complete clarity on where the money went.</p>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">Layer 3 — Budget alerts that actually do something</h3>
+    <p style="margin-bottom:.75rem;">A <a class="g-term" href="../glossary.html#budget-alert">budget alert</a> on its own only emails. To make it enforce, wire the alert through Pub/Sub into a Cloud Function that disables billing on the project. The full pattern:</p>
+
+    <div class="flow-diagram">
+<span class="src">Cloud Billing</span> <span class="arr">─[hits 100% of budget]─▶</span> <span class="sink">Pub/Sub topic</span>
+                                              <span class="arr">│</span>
+                                              <span class="arr">▼</span>
+                              <span class="src">Cloud Function</span> <span class="act">(kill-switch)</span>
+                                              <span class="arr">│</span>
+                                              <span class="arr">▼</span>
+                       <span class="sink">billing.projects.updateBillingInfo</span> <span class="ann"># unlinks billing</span>
+    </div>
+
+    <p style="font-size:13.5px;margin-bottom:.5rem;">A sketch of the Cloud Function (Python, &lt;25 lines):</p>
+
+<pre class="code-block"><span class="kw">import</span> base64, json
+<span class="kw">from</span> google.cloud <span class="kw">import</span> billing_v1
+
+PROJECT_ID = <span class="ok">"srl-makawalu-dev"</span>
+client = billing_v1.CloudBillingClient()
+
+<span class="kw">def</span> kill_switch(event, context):
+    msg = json.loads(base64.b64decode(event[<span class="ok">"data"</span>]))
+    <span class="kw">if</span> msg.get(<span class="ok">"costAmount"</span>, 0) &lt; msg.get(<span class="ok">"budgetAmount"</span>, 1):
+        <span class="kw">return</span>  <span class="cm"># not over budget yet</span>
+    name = <span class="ok">f"projects/{PROJECT_ID}"</span>
+    info = billing_v1.ProjectBillingInfo(billing_account_name=<span class="ok">""</span>)
+    client.update_project_billing_info(name=name, project_billing_info=info)
+    <span class="kw">print</span>(<span class="ok">f"Disabled billing on {PROJECT_ID}"</span>)</pre>
+
+    <div class="callout">
+      <strong>Where to use this:</strong> always on sandboxes and student-accessible dev projects. Probably not on a prod ingest pipeline — disabling billing there could break PHI workflows mid-run. The right answer is project-specific.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Audit log architecture           -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Pillar 2 — Audit</div>
+    <h2 class="section-title">A single audit sink for the whole lab</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#audit-logs">Cloud Audit Logs</a> answer the only question that matters when something goes wrong: <em>who did what, when, on which resource?</em> Three kinds:</p>
+
+    <div class="hier-accordion">
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">⚙️</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Admin Activity logs</div>
+            <div class="hier-label-desc">Configuration changes: IAM grants, project creation, firewall edits. Always on, free, retained 400 days.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">You don't enable these — they're on for every project by default. You just have to make sure you keep them somewhere you can query, because the 400-day default may not satisfy your IRB or grant retention.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-project"></div>
+          <span class="hier-icon">📖</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Data Access logs</div>
+            <div class="hier-label-desc">Every read of a PHI object — GCS gets, BigQuery queries, DICOM exports. Off by default; you must enable.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">For any project labelled <code class="code-inline">phi=yes</code>, turn on Data Access logging for the relevant services (Cloud Storage, BigQuery, Healthcare API). This is what auditors and the IRB will ask for. Without it, you cannot answer "who read patient 12345's mammogram?"</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-resource"></div>
+          <span class="hier-icon">⚡</span>
+          <div class="hier-label">
+            <div class="hier-label-name">System Event logs</div>
+            <div class="hier-label-desc">GCP itself acting: live migrations, automatic maintenance. Always on. Mostly background noise; useful when investigating odd downtime.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Rarely the log you start with, but include in the sink so you have it when you need it.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">The sink architecture</h3>
+    <p style="margin-bottom:.75rem;">Per-project log retention is a trap — you cannot query across studies, you lose logs when a project is deleted, and quotas surprise you mid-investigation. The architecture: a single <strong>aggregated log sink at the SRL folder</strong> that exports every project's audit logs into a BigQuery dataset in <code class="code-inline">srl-shared-services</code>.</p>
+
+    <div class="flow-diagram">
+<span class="src">Every SRL project</span> <span class="arr">─▶</span> <span class="sink">Folder-level aggregated sink</span> <span class="arr">─▶</span> <span class="sink">srl-shared-services.audit.logs</span>
+                                                                   <span class="ann"># BigQuery dataset, partitioned by day</span>
+    </div>
+
+<pre class="code-block">gcloud logging sinks create srl-audit-sink \
+  bigquery.googleapis.com/projects/srl-shared-services/datasets/audit \
+  --folder=[SRL_FOLDER_ID] \
+  --include-children \
+  --log-filter=<span class="ok">'logName:"cloudaudit.googleapis.com"'</span></pre>
+
+    <p style="font-size:13.5px;">From here, every "who touched that bucket?" question is one SQL query. The dataset can hold years. Cost is trivial for a research lab.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Observability                    -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Pillar 3 — Observability</div>
+    <h2 class="section-title">Just enough monitoring</h2>
+    <p style="margin-bottom: 1rem;">Full SRE-grade observability is overkill for most research labs. The minimum that pays for itself: <strong>logs you can search, golden signals on what you serve, and a notification channel that reaches you</strong>.</p>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">🔍</div>
+        <div class="principle-title">Cloud Logging Explorer</div>
+        <div class="principle-body">Already collecting everything from Cloud Run, GKE, Functions, Vertex. Learn one query pattern: <code class="code-inline">resource.type=&quot;cloud_run_revision&quot; AND severity&gt;=ERROR</code>. Bookmark it per service.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">📈</div>
+        <div class="principle-title">Four golden signals per serving workload</div>
+        <div class="principle-body">Latency, traffic, error rate, saturation. Cloud Run and GKE surface them automatically; just create a dashboard per service so you can glance.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">📟</div>
+        <div class="principle-title">Alerting policies that route somewhere real</div>
+        <div class="principle-body">Use Cloud Monitoring alerting → notification channel = email group + Slack webhook. Don't page individuals; page the team's channel and the on-call group.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🧪</div>
+        <div class="principle-title">Synthetic checks for PHI-facing APIs</div>
+        <div class="principle-body">Uptime Checks ping your XAI endpoint every minute with a non-PHI test payload. If it fails twice in five minutes, the alert fires.</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>What to skip until you need it:</strong> custom Prometheus stacks, OpenTelemetry collectors, traces across every span, full Grafana setups. They are great. They are also a research project of their own. Start with the four bullets above and add the rest only when a specific gap forces you to.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: The lab runbook                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Pillar 4 — The runbook</div>
+    <h2 class="section-title">The single document that ties it all together</h2>
+    <p style="margin-bottom: 1rem;">Every lab needs one canonical document — Markdown in the lab's private repo is fine — that lives outside any one person's head. New people read it on day one. Returning people read it when they've forgotten. Auditors read it when they ask.</p>
+
+    <div class="runbook">
+      <h4>SRL operations runbook — minimum table of contents</h4>
+      <ol>
+        <li><strong>The topology.</strong> The diagram from M1L2. Update whenever you add a study.</li>
+        <li><strong>The IAM matrix.</strong> The table from M1L3. Update whenever a persona changes.</li>
+        <li><strong>Onboarding a new lab member.</strong> Which Google Groups to add, which dev project to assign, which docs to read (this course's M0 + the lab's data dictionary).</li>
+        <li><strong>Offboarding.</strong> Which groups to remove, which service accounts to rotate ownership of, which projects to leave alone.</li>
+        <li><strong>Launching a new study.</strong> The recipe: create folder structure, three projects, link billing, apply labels, enable APIs, request BAA enrollment.</li>
+        <li><strong>Closing a study.</strong> Archive bucket to lab archival GCS, export final OMOP/BigQuery snapshot, delete projects (30-day undo window).</li>
+        <li><strong>Incident response.</strong> "I think we leaked PHI." Who to call, which audit-log queries to run, what UH ITS expects within 24 hours.</li>
+        <li><strong>Monthly hygiene.</strong> Run the billing query, review IAM Recommender, scan for service accounts with key files, confirm budget alerts fired correctly.</li>
+        <li><strong>Pointers, not duplication.</strong> Every section links to authoritative docs (this course's relevant module, UH ITS's BAA process, GCP's own guides). The runbook is an index, not a textbook.</li>
+      </ol>
+    </div>
+
+    <p style="font-size:13.5px;">If your lab does not have this document, write a thirty-line stub of it tonight. Empty headings count. The act of having the document creates the obligation to fill it in — and the place to put answers when they come up. Without it, the same questions get answered from scratch every six months.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 1.4</div>
+    <h2 class="section-title">Stand up the four pillars in your sandbox</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📐 One pass through all four pillars</div>
+      <ol class="exercise-steps">
+        <li><strong>Cost — billing export.</strong> In your sandbox project (or a shared-services project if you have one), create a BigQuery dataset called <code class="code-inline">billing</code>. Then in <strong>Billing → Billing export</strong>, enable the <em>Standard usage</em> and <em>Detailed usage</em> exports to that dataset. Wait a few hours for data to arrive.</li>
+        <li><strong>Cost — first query.</strong> When data appears, run the by-study query from Section 2 (adjust the table name to match your dataset). Even with only sandbox data, you'll see the pattern.</li>
+        <li><strong>Cost — kill-switch (optional, ~30 min).</strong> Wire up the kill-switch pattern on your sandbox: create a Pub/Sub topic, attach it to the budget alert you set in M0L1, deploy the Cloud Function above. Test by lowering the budget to $1.</li>
+        <li><strong>Audit — enable Data Access logs.</strong> <strong>IAM &amp; Admin → Audit Logs</strong>, find Cloud Storage and BigQuery, enable Data Read + Data Write. (In a real PHI project this is mandatory; here it's practice.)</li>
+        <li><strong>Audit — folder sink.</strong> If you have a folder (sandbox doesn't, but follow the syntax), create an aggregated sink:<br>
+          <code class="code-inline">gcloud logging sinks create srl-audit-sink bigquery.googleapis.com/projects/$PROJECT/datasets/audit --folder=[FOLDER_ID] --include-children --log-filter='logName:"cloudaudit.googleapis.com"'</code>
+        </li>
+        <li><strong>Observability — golden signals.</strong> Open your <code class="code-inline">hello</code> Cloud Run service from M0L1. Click <strong>Metrics</strong>. Note the four panels: request count, latency, container CPU, container memory. That's the dashboard.</li>
+        <li><strong>Observability — alerting policy.</strong> <strong>Monitoring → Alerting → Create Policy</strong>. Trigger when <code class="code-inline">hello</code>'s 5xx error rate &gt; 5% for 5 minutes. Notification channel = your email. Save.</li>
+        <li><strong>Runbook — write the stub.</strong> In your favourite editor, create <code class="code-inline">srl-runbook.md</code> with the nine headings from Section 5. Add a one-line description under each. Commit it to your lab's private repo.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Commands &amp; services touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">BigQuery billing export</span>
+        <span class="tag">gcloud logging sinks create</span>
+        <span class="tag">Audit Logs (Data Access)</span>
+        <span class="tag">Cloud Monitoring Alerting</span>
+        <span class="tag">Cloud Functions (kill-switch)</span>
+        <span class="tag">Pub/Sub (budget alerts)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Your PI asks at faculty meeting: "what did HALO spend on BigQuery last month?" How fast can you answer, and what made it fast (or slow)?</span>
+        <a href="#" class="check-btn" onclick="alert('Fast = 30 seconds, if billing export to BigQuery is on and projects carry consistent labels. One SQL query filtered on study=halo and service=bigquery. Slow = an afternoon of clicking through the billing console with no labels to filter by. The architecture decision was made on day one in L2 (project labels) and confirmed today (billing export).');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>An IRB auditor asks: "show me every person who read DICOM study 0042 in the past 90 days." What had to be true on the day that study landed for you to answer in minutes?</span>
+        <a href="#" class="check-btn" onclick="alert('Data Access logs had to be enabled on the Healthcare API DICOM store, and a folder-level aggregated sink had to be exporting those logs to a queryable BigQuery dataset. With both in place, the query is one SQL statement filtered on protoPayload.resourceName containing the study UID. Without either, you have nothing.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why is a kill-switch via Cloud Function safer on a sandbox than on a prod ingest pipeline?</span>
+        <a href="#" class="check-btn" onclick="alert('On a sandbox, the cost of accidentally disabling billing is "your hello service stops." On a prod PHI ingest, the cost is a mid-run ingest leaving partial data in inconsistent state — possibly worse than the overspend. For prod, prefer high-resolution alerting + a human in the loop, or set the threshold well above expected steady-state with hard quotas underneath.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Of the four pillars (cost, audit, observability, runbook), which one is hardest to retrofit if you skip it for the first year?</span>
+        <a href="#" class="check-btn" onclick="alert('Audit. Cost can be reconstructed later via consolidated billing. Observability is bolt-on. Runbooks can be written backwards from incidents. But audit logs you did not capture are gone — you cannot reconstruct who read what six months ago if Data Access logging was off. Enable it on day one for every PHI project.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Module 1 close                              -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Closing Module 1</div>
+    <h2 class="section-title">You now have the architectural skeleton</h2>
+    <div class="callout">
+      <strong>The arc of M1:</strong> L1 gave you the mental model. L2 turned it into a topology. L3 layered identity onto the topology. L4 turned the whole thing into something a lab can actually run for years. Every module after this — containers, HIPAA, Cloud Run, GKE, ML — bolts onto this skeleton. Keep it visible.
+    </div>
+    <p style="margin-top: 1rem;">Module 2 takes the abstraction down one level: how do you actually package and ship the code that runs inside this topology? Containers, images, registries — the unit of compute the entire serverless stack operates on.</p>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m1-lesson3.html" class="btn">← Lesson 1.3: Identity &amp; access</a>
+    <a href="m2.html" class="btn btn-primary">M2: Containers — from local to cloud →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
