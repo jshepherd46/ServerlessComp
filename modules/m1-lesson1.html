@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M1 · Lesson 1: The GCP Mental Model — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M1 · Lesson 1 of 4</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 1</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <div class="progress-dot" title="Lesson 4"></div>
+      <span class="progress-label">Lesson 1 of 4</span>
+    </div>
+
+    <h1 class="lesson-title">The GCP mental model<br>for research institutions</h1>
+    <p class="lesson-sub">Before you touch the console, you need the mental map. Every mistake I see researchers make on GCP traces back to not having this. Spend 20 minutes here and the rest of the course clicks into place. <span style="color:var(--text3);">(New to GCP terminology? Start with <a href="m0.html" style="color:var(--amber);">M0</a> first.)</span></p>
+    <div class="lesson-meta">
+      <span>⏱ ~45 min reading + exercise</span>
+      <span>🔧 Cloud Shell, gcloud CLI, IAM console</span>
+      <span>📍 Module 1 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- Section 1: Hierarchy -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Core concept</div>
+    <h2 class="section-title">The resource hierarchy</h2>
+    <p style="margin-bottom: 1.25rem;">GCP organizes everything in a four-level tree — <a class="g-term" href="../glossary.html#organization">Organization</a> → <a class="g-term" href="../glossary.html#folder">Folder</a> → <a class="g-term" href="../glossary.html#project">Project</a> → <a class="g-term" href="../glossary.html#resource">Resource</a>. Understanding this tree is not optional — it determines your compliance posture, your billing structure, and the blast radius of any mistake. Click each level to see how it maps to your world.</p>
+
+    <div class="hier-accordion">
+
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-org"></div>
+          <span class="hier-icon">🏛</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Organization</div>
+            <div class="hier-label-desc">Your institution's root — one per domain. Owns everything below.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">Your org</div><div class="detail-cell-val">hawaii.edu</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Who manages it</div><div class="detail-cell-val">UH ITS / cloud team — not you</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">What it controls</div><div class="detail-cell-val">Org-wide policies, billing accounts, domain verification</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Your action</div><div class="detail-cell-val">Request a folder under the org, or use UHCC's existing GCP org</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">📁</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Folder</div>
+            <div class="hier-label-desc">A division or center — UHCC gets a folder. Policies set here cascade down.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">Example folders</div><div class="detail-cell-val">uhcc / shepherd-research-lab</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Key use</div><div class="detail-cell-val">Apply HIPAA org policy to all UHCC projects at once</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Billing</div><div class="detail-cell-val">Each project inside can have its own billing account — per-grant cost tracking</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Nesting</div><div class="detail-cell-val">Folders can nest: UHCC → SRL → Active Grants</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-project"></div>
+          <span class="hier-icon">📦</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Project</div>
+            <div class="hier-label-desc">The unit of work. One per study, grant, or environment. APIs, billing, IAM, and quotas are all project-scoped.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:.75rem;">Project-per-study is the right default pattern. Each study gets isolation, separate billing, and its own VPC perimeter.</p>
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">hipimr-prod</div><div class="detail-cell-val">HIPIMR registry — live PHI data, strict VPC perimeter</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">makawalu-dev</div><div class="detail-cell-val">Makawalu XAI — synthetic DICOM, open for iteration</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">halo-staging</div><div class="detail-cell-val">HALO liver cancer — OMOP on BigQuery, pre-prod</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">pacificfed-infra</div><div class="detail-cell-val">Shared GKE aggregator for the federated network</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-resource"></div>
+          <span class="hier-icon">⚙️</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Resources</div>
+            <div class="hier-label-desc">The actual services — GCS, GKE, Cloud Run, BigQuery, Vertex AI. All live inside a project.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">Compute</div><div class="detail-cell-val">Cloud Run, GKE Autopilot, Vertex AI Training, Compute Engine (rare)</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Storage</div><div class="detail-cell-val">GCS (objects / DICOM), BigQuery (OMOP), Firestore (metadata), Cloud SQL</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Network</div><div class="detail-cell-val">VPC, VPC Service Controls perimeter, Cloud Armor, Private Service Connect</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Identity</div><div class="detail-cell-val">IAM roles, service accounts, Workload Identity, Secret Manager</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Section 2: Principles -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Design principles</div>
+    <h2 class="section-title">Three rules that shape every decision</h2>
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">🔒</div>
+        <div class="principle-title">Separation is free — use it</div>
+        <div class="principle-body">A new GCP project costs nothing until you use resources. Separate HIPIMR from Makawalu from HALO. The blast radius of a misconfiguration stays contained. Per-grant billing just works.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🔑</div>
+        <div class="principle-title">Least privilege from day one</div>
+        <div class="principle-body"><a class="g-term" href="../glossary.html#service-account">Service accounts</a> are non-human identities for your code. A <a class="g-term" href="../glossary.html#cloud-run">Cloud Run</a> service gets a service account with only the roles it actually needs. Never put personal credentials in code — not even temporarily.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🗄️</div>
+        <div class="principle-title">Data has gravity — design around it</div>
+        <div class="principle-body">PHI sits in one place inside the <a class="g-term" href="../glossary.html#vpc-sc">VPC perimeter</a>. Compute comes to the data. Cloud Run, <a class="g-term" href="../glossary.html#gke">GKE</a> pods, and <a class="g-term" href="../glossary.html#vertex-ai">Vertex</a> jobs spin up beside it and terminate. Data does not move.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">⚡</div>
+        <div class="principle-title">Serverless = right-sized compute</div>
+        <div class="principle-body">You don't manage servers. Cloud Run <a class="g-term" href="../glossary.html#scale-to-zero">scales to zero</a> between runs. <a class="g-term" href="../glossary.html#gke-autopilot">GKE Autopilot</a> manages nodes. You pay for what fires — not for capacity sitting idle overnight waiting for a cron job.</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>The key insight:</strong> GCP's resource hierarchy is not an IT concern — it's a research design concern. How you structure projects determines your compliance boundaries, your grant accounting, and how much damage a misconfiguration can do. Get this right now and every module after this is cleaner.
+    </div>
+  </div>
+
+  <!-- Section 3: Managed vs serverless table -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Trade-off map</div>
+    <h2 class="section-title">Managed service vs. serverless vs. self-hosted</h2>
+    <p style="margin-bottom: 1.25rem;">You'll make this choice repeatedly. Here's the framework — most of your research workloads land in the middle column.</p>
+
+    <div style="overflow-x: auto; margin-bottom: 1.5rem;">
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <th style="text-align:left; padding: 10px 12px; color:var(--text2); font-weight:500; font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.05em;">Dimension</th>
+            <th style="text-align:left; padding: 10px 12px; color:var(--infra); font-weight:500; font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.05em;">Self-hosted (GCE)</th>
+            <th style="text-align:left; padding: 10px 12px; color:var(--amber); font-weight:500; font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.05em; background: rgba(240,165,0,.04);">Serverless (Cloud Run / GKE)</th>
+            <th style="text-align:left; padding: 10px 12px; color:var(--teal); font-weight:500; font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.05em;">Fully managed (Vertex AI)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 9px 12px; color:var(--text3); font-family:'IBM Plex Mono',monospace; font-size:11px;">Control</td>
+            <td style="padding: 9px 12px; color:var(--text2);">Full — you own the OS</td>
+            <td style="padding: 9px 12px; color:var(--text2); background: rgba(240,165,0,.03);">Container boundary — you own the code</td>
+            <td style="padding: 9px 12px; color:var(--text2);">Minimal — API surface only</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 9px 12px; color:var(--text3); font-family:'IBM Plex Mono',monospace; font-size:11px;">Ops burden</td>
+            <td style="padding: 9px 12px; color:var(--coral);">High — patches, scaling, HA</td>
+            <td style="padding: 9px 12px; color:var(--green); background: rgba(240,165,0,.03);">Low — GCP handles nodes</td>
+            <td style="padding: 9px 12px; color:var(--green);">Near-zero</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 9px 12px; color:var(--text3); font-family:'IBM Plex Mono',monospace; font-size:11px;">Cost model</td>
+            <td style="padding: 9px 12px; color:var(--text2);">Always-on VM billing</td>
+            <td style="padding: 9px 12px; color:var(--green); background: rgba(240,165,0,.03);">Per-request / per-second</td>
+            <td style="padding: 9px 12px; color:var(--text2);">Per-training-hour + serving</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 9px 12px; color:var(--text3); font-family:'IBM Plex Mono',monospace; font-size:11px;">HIPAA fit</td>
+            <td style="padding: 9px 12px; color:var(--text2);">Possible — more surface to harden</td>
+            <td style="padding: 9px 12px; color:var(--green); background: rgba(240,165,0,.03);">Good — smaller attack surface</td>
+            <td style="padding: 9px 12px; color:var(--green);">Best — Google manages infra security</td>
+          </tr>
+          <tr>
+            <td style="padding: 9px 12px; color:var(--text3); font-family:'IBM Plex Mono',monospace; font-size:11px;">Best for</td>
+            <td style="padding: 9px 12px; color:var(--text2);">Legacy software, special hardware config</td>
+            <td style="padding: 9px 12px; color:var(--amber); font-weight:500; background: rgba(240,165,0,.03);">Most research workloads — this course</td>
+            <td style="padding: 9px 12px; color:var(--text2);">Standard ML pipelines, fast iteration</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Section 4: Exercise -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 1.1</div>
+    <h2 class="section-title">Your first 20 minutes in Cloud Shell</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📟 Guided exercise — Cloud Shell + gcloud CLI</div>
+      <ol class="exercise-steps">
+        <li>Open <strong>console.cloud.google.com</strong> — sign in with your hawaii.edu Google account.</li>
+        <li>
+          Open Cloud Shell (terminal icon, top right). Confirm your identity:<br>
+          <code class="code-inline">gcloud auth list</code>
+        </li>
+        <li>
+          Create your sandbox project:<br>
+          <code class="code-inline">gcloud projects create srl-sandbox-[yourname] --name="SRL Sandbox"</code>
+        </li>
+        <li>
+          Set it as your active project:<br>
+          <code class="code-inline">gcloud config set project srl-sandbox-[yourname]</code>
+        </li>
+        <li>
+          List all your projects:<br>
+          <code class="code-inline">gcloud projects list</code>
+        </li>
+        <li>
+          Explore IAM: go to <strong>IAM &amp; Admin</strong> in the console. What roles does your account have? What can you do — and what's missing?
+        </li>
+        <li>
+          <strong>Sketch on paper:</strong> Draw your UHCC project topology. Where does HIPIMR data live? Where does Makawalu compute run? Draw the boundary between them. This sketch is what we formalize in Lesson 1.2.
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Useful gcloud commands to explore</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud config list</span>
+        <span class="tag">gcloud services list --enabled</span>
+        <span class="tag">gcloud iam roles list</span>
+        <span class="tag">gcloud compute regions list</span>
+        <span class="tag">gcloud projects get-iam-policy [PROJECT_ID]</span>
+        <span class="tag">gcloud help</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: Check your understanding -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <p style="margin-bottom: 1.25rem;">These are not multiple choice — they're architectural thinking prompts. Each connects directly to a decision you'll make in modules 3–6.</p>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Why put HIPIMR and Makawalu in separate GCP projects rather than one? What does that separation buy you?</span>
+        <a href="mailto:?subject=Serverless+Course+Q1&body=Why+separate+GCP+projects+for+HIPIMR+and+Makawalu?" class="check-btn">Discuss</a>
+      </li>
+      <li class="check-item">
+        <span>What is a service account and why should your code never use your personal credentials — even in development?</span>
+        <a href="#" class="check-btn" onclick="alert('Service accounts are non-human identities tied to a specific workload. Personal credentials rotate with your access; service accounts persist, can be tightly scoped, and are auditable independently from your identity.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>What does "data has gravity" mean in practice for a study like HALO or Makawalu?</span>
+        <a href="#" class="check-btn" onclick="alert('Data gravity: PHI lives in one stable location (GCS or BigQuery inside your VPC perimeter). Compute — Cloud Run, Vertex, GKE — is ephemeral and comes to the data. You never export PHI to process it elsewhere.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>For a nightly batch job that runs a CNN training pass on DICOM images — Cloud Run Job, GKE CronJob, or Compute Engine? What factors drive the choice?</span>
+        <a href="modules/m4.html" class="check-btn">Covered in M4 →</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="../index.html" class="btn">← All modules</a>
+    <a href="m1-lesson2.html" class="btn btn-primary">Lesson 1.2: Designing your project topology →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

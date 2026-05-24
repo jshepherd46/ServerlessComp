@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M0 · Lesson 2: The GCP landscape — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+.family-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px; margin-bottom: 1.75rem;
+}
+.family-cell {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.1rem;
+  transition: border-color .15s, background .15s;
+}
+.family-cell:hover { border-color: var(--border2); background: var(--bg3); }
+.family-cell .fc-icon { font-size: 1.3rem; margin-bottom: .35rem; }
+.family-cell .fc-name {
+  font-family: 'Syne', sans-serif; font-weight: 600;
+  font-size: 13.5px; color: var(--text); margin-bottom: .25rem;
+}
+.family-cell .fc-desc {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  color: var(--text3); letter-spacing: .03em; line-height: 1.5;
+}
+.svc-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px; margin-bottom: 1.5rem;
+}
+.svc-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .9rem 1.1rem;
+  transition: border-color .15s;
+}
+.svc-card:hover { border-color: var(--border2); }
+.svc-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; margin-bottom: .4rem;
+}
+.svc-name { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; color: var(--text); }
+.svc-tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 9px;
+  padding: 2px 6px; border-radius: 3px;
+  white-space: nowrap; text-transform: uppercase;
+}
+.svc-desc { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .4rem; }
+.svc-use {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  color: var(--text3); padding-top: .4rem; border-top: 1px solid var(--border);
+}
+.svc-use strong { color: var(--amber); font-weight: 500; }
+.flow {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--amber);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: 1rem 1.25rem; margin: 1rem 0 1.75rem;
+  font-size: 13px; color: var(--text2); line-height: 1.7;
+}
+.flow strong { color: var(--amber); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M0 · Lesson 2 of 2</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <a href="m0.html">Module 0</a>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <span class="progress-label">Lesson 2 of 2</span>
+    </div>
+
+    <h1 class="lesson-title">The GCP landscape</h1>
+    <p class="lesson-sub">There are over 100 services on GCP. You need maybe 25 of them. This lesson sorts the ones that matter into seven families, defines the vocabulary, and gives you the serverless mental model. Every defined term is in the <a href="../glossary.html">glossary</a> for life.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~45 min</span>
+      <span>🔧 Browser tour</span>
+      <span>📍 Prerequisite</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Shape of GCP                     -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The map</div>
+    <h2 class="section-title">Seven families is all you need</h2>
+    <p style="margin-bottom: 1.25rem;">Google publishes a poster with 100+ products. Ignore most of them. For health research and clinical AI, almost everything you'll touch sorts into seven families. Learn the families first; the services snap into place underneath.</p>
+
+    <div class="family-grid">
+      <div class="family-cell"><div class="fc-icon">⚙️</div><div class="fc-name">Compute</div><div class="fc-desc">Where your code runs. VMs, containers, functions, ML training.</div></div>
+      <div class="family-cell"><div class="fc-icon">🗄️</div><div class="fc-name">Storage &amp; data</div><div class="fc-desc">Where your data lives. Objects, tables, documents, DICOM, FHIR.</div></div>
+      <div class="family-cell"><div class="fc-icon">🌐</div><div class="fc-name">Networking</div><div class="fc-desc">How things reach each other. VPCs, subnets, perimeters, NAT.</div></div>
+      <div class="family-cell"><div class="fc-icon">🔒</div><div class="fc-name">Security &amp; compliance</div><div class="fc-desc">Who can do what. IAM, KMS, Secret Manager, DLP, audit logs.</div></div>
+      <div class="family-cell"><div class="fc-icon">⚡</div><div class="fc-name">Eventing &amp; glue</div><div class="fc-desc">How services trigger each other. Pub/Sub, Eventarc, Scheduler.</div></div>
+      <div class="family-cell"><div class="fc-icon">🧠</div><div class="fc-name">ML &amp; analytics</div><div class="fc-desc">Vertex AI, BigQuery, Healthcare API — the research-specific stack.</div></div>
+      <div class="family-cell"><div class="fc-icon">🛠</div><div class="fc-name">Dev tooling</div><div class="fc-desc">Cloud Build, Artifact Registry, Cloud Code, Cloud Shell.</div></div>
+    </div>
+
+    <div class="callout">
+      <strong>Mental model:</strong> when you read a GCP service name you've never heard, your first move is to ask <em>which family</em>. "Datastream" → eventing/glue. "AlloyDB" → storage. "Filestore" → storage. The family tells you what kind of decision it serves and whether you actually need to learn it now.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Compute                          -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="compute">
+    <div class="section-eyebrow">Family 1 / 6</div>
+    <h2 class="section-title">Compute: where your code runs</h2>
+    <p style="margin-bottom: 1rem;">Six services, ordered from most-control-most-burden to least-control-least-burden. The right answer for most research workloads sits in the middle.</p>
+
+    <div class="svc-grid">
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#compute-engine">Compute Engine (GCE)</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Raw VMs. You manage the OS, patches, scaling. Maximum control. Used only when something else won't fit.</div>
+        <div class="svc-use"><strong>Rare here.</strong> Legacy ATLAS installs, special GPU configs.</div>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#cloud-run">Cloud Run</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Fully managed serverless containers. Give it an image, get an HTTPS endpoint. Scales 0 → 1000 automatically. The default for APIs.</div>
+        <div class="svc-use"><strong>Makawalu XAI serving</strong>, ShepBERT inference API, any web service.</div>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#cloud-run-jobs">Cloud Run Jobs</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Run-to-completion containers on the same platform. No HTTP — just runs, finishes, stops. Pair with Cloud Scheduler for cron.</div>
+        <div class="svc-use"><strong>Nightly HIPIMR ingest</strong>, OMOP ETL passes, DICOM batch conversions.</div>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#cloud-functions">Cloud Functions</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">A single function, wrapped in a container by GCP. Triggered by HTTP, Pub/Sub, GCS events. v2 is built on Cloud Run.</div>
+        <div class="svc-use">"When a new DICOM lands in GCS, kick off the de-id pipeline."</div>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#gke">GKE (Autopilot)</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Managed Kubernetes. Use when you need multi-container pods, GPU pools, in-cluster networking, or workloads Cloud Run can't host.</div>
+        <div class="svc-use"><strong>PacificFed aggregator</strong>, multi-tenant lab clusters, long-running training.</div>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#vertex-ai">Vertex AI Training</a></span><span class="svc-tag track-ml">ML</span></div>
+        <div class="svc-desc">Managed ML training. You hand it a container + dataset; it allocates GPUs/TPUs, runs the job, captures logs and artifacts, then tears down.</div>
+        <div class="svc-use"><strong>Makawalu CNN</strong>, HIPIMR density models, ShepBERT LoRA fine-tunes.</div>
+      </div>
+
+    </div>
+
+    <div class="flow">
+      <strong>The serverless instinct:</strong> when picking compute, start at Cloud Run and only step "up" (to GKE) or "sideways" (to Vertex) when Cloud Run genuinely can't do the job. Start at GCE only when the previous five have been ruled out.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Storage & data                   -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="storage">
+    <div class="section-eyebrow">Family 2 / 6</div>
+    <h2 class="section-title">Storage &amp; data: where your data lives</h2>
+    <p style="margin-bottom: 1rem;">Pick by what you're storing. The shape of the data dictates the service — not the other way around.</p>
+
+    <div class="svc-grid">
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#gcs">Cloud Storage (GCS)</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Object storage. <a class="g-term" href="../glossary.html#bucket">Buckets</a> hold <a class="g-term" href="../glossary.html#object">objects</a> (files). Strongly consistent, lifecycle-managed, cheap at scale.</div>
+        <div class="svc-use"><strong>DICOM</strong>, model weights, training images, exports, anything file-shaped.</div>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#bigquery">BigQuery</a></span><span class="svc-tag track-omop">OMOP</span></div>
+        <div class="svc-desc">Serverless data warehouse. Petabyte-scale SQL with no infrastructure. <a class="g-term" href="../glossary.html#dataset">Datasets</a> contain <a class="g-term" href="../glossary.html#table">tables</a>.</div>
+        <div class="svc-use"><strong>HALO OMOP CDM</strong>, federated analytics, billing exports.</div>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#cloud-sql">Cloud SQL</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Managed Postgres/MySQL/SQL Server. Real relational DB with transactions.</div>
+        <div class="svc-use"><strong>ATLAS WebAPI</strong> backend, app metadata, registry state.</div>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#firestore">Firestore</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Managed NoSQL document store. Cheap, fast, integrates cleanly with Cloud Run and Cloud Functions.</div>
+        <div class="svc-use">Audit trails, ingest manifests, session state, light metadata.</div>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#healthcare-api">Cloud Healthcare API</a></span><span class="svc-tag track-hipaa">HIPAA</span></div>
+        <div class="svc-desc">HIPAA-eligible managed store for <a class="g-term" href="../glossary.html#dicom">DICOM</a>, <a class="g-term" href="../glossary.html#fhir">FHIR</a>, and HL7v2. Built-in de-id, BigQuery streaming, DICOMweb.</div>
+        <div class="svc-use"><strong>HIPIMR DICOM</strong>, HALO FHIR ingest, Queen's bulk exports.</div>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#artifact-registry">Artifact Registry</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Managed registry for container <a class="g-term" href="../glossary.html#image">images</a>, Python wheels, Maven jars. Where Cloud Run and GKE pull from.</div>
+        <div class="svc-use"><strong>Every container</strong> you build in M2 onward gets pushed here.</div>
+      </div>
+
+    </div>
+
+    <div class="callout">
+      <strong>The course paradigm — restated:</strong> <a class="g-term" href="../glossary.html#data-gravity">data has gravity</a>. PHI sits in GCS or BigQuery inside the perimeter; compute (Cloud Run, GKE pods, Vertex jobs) comes <em>to</em> the data, does the work, and exits. You never copy patient data to your laptop, and never to a project that isn't BAA-covered.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Network, security, identity      -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="network">
+    <div class="section-eyebrow">Family 3 + 4 / 6</div>
+    <h2 class="section-title">Networking, identity, and the bones of HIPAA</h2>
+    <p style="margin-bottom: 1rem;">For research workloads, networking and security blur into one conversation: how do I keep PHI inside the perimeter? Three layers — network, identity, secrets.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Network</h3>
+    <div class="svc-grid">
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#vpc">VPC</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Your project's private network. Global by default. Contains <a class="g-term" href="../glossary.html#subnet">subnets</a> per <a class="g-term" href="../glossary.html#region">region</a>.</div>
+        <div class="svc-use">Every project gets one (default or custom).</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#vpc-sc">VPC Service Controls</a></span><span class="svc-tag track-hipaa">HIPAA</span></div>
+        <div class="svc-desc">The PHI perimeter. Wraps projects so their GCS / BigQuery / Healthcare API resources <em>cannot</em> be reached from outside the perimeter — even with valid credentials.</div>
+        <div class="svc-use"><strong>The single biggest HIPAA control</strong> on GCP. Every PHI project sits inside one.</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#private-service-connect">Private Service Connect</a></span><span class="svc-tag track-hipaa">HIPAA</span></div>
+        <div class="svc-desc">Reach Google APIs over private IPs. Keep traffic off the public internet entirely.</div>
+        <div class="svc-use">Pair with VPC SC for closed-loop research projects.</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#cloud-nat">Cloud NAT</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Managed outbound NAT for VMs and pods without public IPs.</div>
+        <div class="svc-use">Required when private pods need to reach PyPI, model hubs, etc.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">Identity &amp; access</h3>
+    <div class="svc-grid">
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#iam">IAM</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc"><a class="g-term" href="../glossary.html#principal">Principals</a> are granted <a class="g-term" href="../glossary.html#role">roles</a> that bundle <a class="g-term" href="../glossary.html#permission">permissions</a> on resources. Every action runs as some IAM identity.</div>
+        <div class="svc-use">Default to <strong>predefined</strong> roles, never the basic Owner/Editor/Viewer trio.</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#service-account">Service accounts</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Non-human identities for code. A Cloud Run service or GKE pod gets a service account with only the roles it needs.</div>
+        <div class="svc-use"><strong>Never put personal credentials in code.</strong> One service account per workload.</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#workload-identity">Workload Identity</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">The bridge that lets a GKE pod assume a GCP service account without key files.</div>
+        <div class="svc-use">The right way to give pods access to GCP APIs. Always.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">Secrets &amp; encryption</h3>
+    <div class="svc-grid">
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#secret-manager">Secret Manager</a></span><span class="svc-tag track-hipaa">HIPAA</span></div>
+        <div class="svc-desc">Versioned, IAM-controlled, audit-logged store for API keys, DB passwords, signing keys. Cloud Run and GKE mount secrets directly.</div>
+        <div class="svc-use">Anywhere you would otherwise hardcode a credential.</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#cmek">CMEK</a></span><span class="svc-tag track-hipaa">HIPAA</span></div>
+        <div class="svc-desc">Customer-Managed Encryption Keys — keys you own in Cloud KMS, used to encrypt GCS, BigQuery, Persistent Disks. On top of Google's default encryption.</div>
+        <div class="svc-use">Often required by institutional HIPAA policy.</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#dlp">DLP</a></span><span class="svc-tag track-hipaa">HIPAA</span></div>
+        <div class="svc-desc">Sensitive Data Protection — inspects text, images, structured data for identifiers; can redact, mask, tokenize. The backbone of <a class="g-term" href="../glossary.html#deid">de-identification</a>.</div>
+        <div class="svc-use"><strong>Every PHI export path</strong> runs through DLP somewhere.</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#audit-logs">Audit Logs</a></span><span class="svc-tag track-hipaa">HIPAA</span></div>
+        <div class="svc-desc">Immutable record of who did what, when. Admin Activity is always on; Data Access (every read of a PHI object) must be enabled.</div>
+        <div class="svc-use">Required for HIPAA evidence. Enable Data Access logs on every PHI project.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Glue                             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Family 5 / 6</div>
+    <h2 class="section-title">Glue: how services trigger each other</h2>
+    <p style="margin-bottom: 1rem;">Real research pipelines are choreography, not monoliths. These services are the wires.</p>
+
+    <div class="svc-grid">
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#pubsub">Pub/Sub</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Managed message bus. Publishers write to a <a class="g-term" href="../glossary.html#topic">topic</a>; subscribers pull or are pushed. The plumbing under most event-driven patterns.</div>
+        <div class="svc-use">Decoupling: ingest publishes "new DICOM" → de-id pipeline subscribes.</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#eventarc">Eventarc</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Managed event router. Subscribes to ~100 GCP event sources (GCS object created, BigQuery job done) and delivers them to Cloud Run / Functions / Workflows.</div>
+        <div class="svc-use">"On every new file in this bucket, run this container."</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#cloud-scheduler">Cloud Scheduler</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Managed cron. Fires HTTP requests or Pub/Sub messages on a schedule.</div>
+        <div class="svc-use">Nightly Cloud Run Jobs, weekly OMOP refresh, monthly cost reports.</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#workflows">Cloud Workflows</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Serverless orchestration — chain GCP APIs and HTTP services with retries, parallelism, conditionals. Lightweight alternative to Airflow.</div>
+        <div class="svc-use">Multi-step ingest pipelines that don't justify Vertex AI Pipelines.</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#cloud-build">Cloud Build</a></span><span class="svc-tag track-infra">INFRA</span></div>
+        <div class="svc-desc">Managed CI/CD. Builds images, runs tests, deploys. Triggered by git pushes or PRs.</div>
+        <div class="svc-use"><strong>Every container you ship</strong> from M2 onward.</div>
+      </div>
+      <div class="svc-card">
+        <div class="svc-head"><span class="svc-name"><a class="g-term" href="../glossary.html#dataflow">Dataflow</a></span><span class="svc-tag track-omop">OMOP</span></div>
+        <div class="svc-desc">Managed Apache Beam — batch &amp; streaming ETL. Used for large-scale PHI scans and de-id without standing up infrastructure.</div>
+        <div class="svc-use">HALO ingest, DLP-at-scale, federated aggregation.</div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <strong>Pattern you'll see repeatedly:</strong> Cloud Scheduler → triggers Cloud Run Job → reads GCS, writes BigQuery → emits Pub/Sub → Cloud Function on the other end fans out to Vertex AI for retraining. Every arrow is one of these services.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Serverless vocabulary            -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="serverless">
+    <div class="section-eyebrow">Family 6 / 6 — and the core vocabulary</div>
+    <h2 class="section-title">The serverless vocabulary you'll hear constantly</h2>
+    <p style="margin-bottom: 1.25rem;">"Serverless" doesn't mean there are no servers — it means you don't manage them. Five terms encode the entire mental shift. Internalize these and the rest of the course speaks plain English.</p>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">📦</div>
+        <div class="principle-title"><a class="g-term" href="../glossary.html#container">Container</a> / <a class="g-term" href="../glossary.html#image">image</a></div>
+        <div class="principle-body">An image is your code + dependencies + start command, frozen into a portable bundle. A container is a running instance of an image. M2 is entirely about building good ones.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">⚡</div>
+        <div class="principle-title"><a class="g-term" href="../glossary.html#scale-to-zero">Scale to zero</a></div>
+        <div class="principle-body">When idle, the platform runs zero copies of your service and charges you nothing. The economic core of serverless. A Cloud Run service at 3 AM with no traffic costs $0.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🥶</div>
+        <div class="principle-title"><a class="g-term" href="../glossary.html#cold-start">Cold start</a></div>
+        <div class="principle-body">The latency cost of scale-from-zero — pulling the image, starting the container, loading your code. Mitigations: smaller images, lazy imports, min-instances &gt; 0 for hot paths.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">💨</div>
+        <div class="principle-title"><a class="g-term" href="../glossary.html#ephemeral-compute">Ephemeral compute</a></div>
+        <div class="principle-body">Compute that exists only for the duration of the work. State lives in storage (GCS, BigQuery, Firestore); the container is disposable. This is the paradigm the course is built on.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🎚</div>
+        <div class="principle-title"><a class="g-term" href="../glossary.html#concurrency">Concurrency</a></div>
+        <div class="principle-body">Max in-flight requests a single Cloud Run container handles. Default 80. Lower for heavy ML inference (1–4); higher for cheap I/O APIs (200+).</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🔧</div>
+        <div class="principle-title"><a class="g-term" href="../glossary.html#api">API enabling</a></div>
+        <div class="principle-body">Every GCP service is gated by a per-project API toggle. Before you use Cloud Run in a project you must <code class="code-inline">gcloud services enable run.googleapis.com</code>. Catches a lot of "but I have permission" confusion.</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>The single sentence to remember:</strong> sensitive data stays in a secure cloud boundary; curated containers and compute spin up beside it, do the work, and terminate. You never pay for idle capacity, and your data never moves. Every architectural choice in this course points back at that line.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 0.2</div>
+    <h2 class="section-title">A guided tour of three services</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🧭 Console tour — 20 minutes</div>
+      <ol class="exercise-steps">
+        <li>In your <code class="code-inline">srl-sandbox</code> project from Lesson 1, open <strong>Cloud Storage</strong>. Create a bucket: name <code class="code-inline">srl-sandbox-tour-[yourname]</code>, location <code class="code-inline">us-west1</code>, standard class. Upload any small file. Note the <code class="code-inline">gs://</code> URI.</li>
+        <li>Open <strong>BigQuery</strong>. Run this query against a public dataset — no setup required:<br><code class="code-inline">SELECT name, gender, SUM(number) AS total FROM `bigquery-public-data.usa_names.usa_1910_2013` GROUP BY name, gender ORDER BY total DESC LIMIT 10</code><br>Notice the bytes-scanned indicator on the right. That's what you pay for.</li>
+        <li>Open <strong>Cloud Run</strong>. Your <code class="code-inline">hello</code> service from Lesson 1 should be listed. Click it. Look at: <strong>Metrics</strong> (requests, latency), <strong>Logs</strong> (filtered to this service automatically), <strong>Revisions</strong> (every deploy is a revision), <strong>YAML</strong> (the full service spec — this is what you'll Terraform later).</li>
+        <li>Open <strong>IAM &amp; Admin → IAM</strong>. Find the entry that looks like <code class="code-inline">[PROJECT_NUMBER]-compute@developer.gserviceaccount.com</code>. That is the default <a class="g-term" href="../glossary.html#service-account">service account</a> your hello container runs as. Click the pencil — see the bundle of roles it has. In M3 we replace this with a tight per-workload identity.</li>
+        <li><strong>Quick classification drill.</strong> For each, name the family (compute / storage / network / security / eventing / ML / dev tooling) and a one-line use case in your own work:
+          <ul style="list-style:none;padding-left:1rem;margin-top:.5rem;">
+            <li>→ Pub/Sub</li>
+            <li>→ Cloud SQL</li>
+            <li>→ Cloud Healthcare API</li>
+            <li>→ Vertex AI Pipelines</li>
+            <li>→ Artifact Registry</li>
+            <li>→ VPC Service Controls</li>
+          </ul>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you encountered</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">Cloud Storage (GCS)</span>
+        <span class="tag">BigQuery</span>
+        <span class="tag">Cloud Run</span>
+        <span class="tag">IAM</span>
+        <span class="tag">Service accounts</span>
+        <span class="tag">Cloud Logging</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 8: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>You need to serve a small XAI inference API for Makawalu. Cloud Run, GKE, or Compute Engine — and why?</span>
+        <a href="#" class="check-btn" onclick="alert('Cloud Run. It is a single HTTPS endpoint, traffic is bursty (clinical demos, not 24/7 traffic), and you do not need multi-container pods or GPU pools. Cloud Run scales to zero between demos so you pay $0 most of the day, and the cold start is acceptable for non-real-time XAI.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>HIPIMR DICOMs arrive nightly from the Queen's PACS. Which service holds them, which fires the ingest, and which converts them?</span>
+        <a href="#" class="check-btn" onclick="alert('Holds: Cloud Healthcare API DICOM store (inside the VPC SC perimeter). Fires: Eventarc on the GCS landing bucket, or Cloud Scheduler if pulled. Converts: Cloud Run Job (or Dataflow for large batches). Pattern: Scheduler → Cloud Run Job → reads GCS → writes DICOM store → emits Pub/Sub → downstream consumers.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>What does "scale to zero" buy you that an always-on VM cannot?</span>
+        <a href="../glossary.html#scale-to-zero" class="check-btn">See glossary →</a>
+      </li>
+      <li class="check-item">
+        <span>Which two of these protect PHI most directly: IAM roles, VPC Service Controls, Cloud Armor, CMEK, audit logs?</span>
+        <a href="#" class="check-btn" onclick="alert('VPC Service Controls (defines the perimeter PHI cannot leave) and CMEK (you own the keys that encrypt PHI). IAM roles and audit logs are the layer that says who can act and records what they did. Cloud Armor is edge protection for externally exposed services — less load-bearing for closed-loop research.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m0-lesson1.html" class="btn">← Lesson 1: Setup</a>
+    <a href="m1-lesson1.html" class="btn btn-primary">M1 · Lesson 1: The GCP mental model →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

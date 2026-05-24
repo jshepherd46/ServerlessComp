@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serverless Computing for Research &amp; Clinical AI</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(16px); transition: opacity .5s, transform .5s; }
+.revealed { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">serverless<span>/</span>comp</div>
+    <span class="nav-badge">v1.0 · GCP native</span>
+    <div class="nav-links">
+      <a href="#modules">Modules</a>
+      <a href="modules/m0.html">Prereq</a>
+      <a href="glossary.html">Glossary</a>
+      <a href="#about">About</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-grid-bg">
+    <svg xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"/></svg>
+  </div>
+  <div class="container">
+    <div class="hero-eyebrow">Shepherd Research Lab · University of Hawaiʻi Cancer Center</div>
+    <h1>Serverless computing<br>for research &amp; <em>clinical AI</em></h1>
+    <p class="hero-desc">A practical, 12-module course for health researchers building HIPAA-compliant deep learning, clinical NLP, and federated ML infrastructure on Google Cloud.</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item">12 modules</div>
+      <div class="hero-meta-item">~80 hours guided work</div>
+      <div class="hero-meta-item">Google Cloud native</div>
+      <div class="hero-meta-item">HIPAA-first design</div>
+      <div class="hero-meta-item">Hands-on from day one</div>
+    </div>
+  </div>
+</section>
+
+<main class="container" style="padding-top: 2.5rem; padding-bottom: 5rem;" id="modules">
+
+  <div class="track-row">
+    <button class="track-pill active" data-track="all">All modules</button>
+    <button class="track-pill" data-track="prereq">Prerequisite</button>
+    <button class="track-pill" data-track="infra">Infrastructure &amp; GCP</button>
+    <button class="track-pill" data-track="hipaa">HIPAA &amp; security</button>
+    <button class="track-pill" data-track="ml">ML &amp; deep learning</button>
+    <button class="track-pill" data-track="omop">OMOP / analytics</button>
+  </div>
+
+  <!-- Prerequisite -->
+  <div class="phase-label">Prerequisite — start here</div>
+  <div class="modules-grid">
+
+    <a href="modules/m0.html" class="mod-card reveal" data-track="prereq">
+      <div class="mod-header">
+        <span class="mod-num track-prereq">M0 · PREREQ</span>
+      </div>
+      <div class="mod-title">Set up your environment &amp; learn the GCP vocabulary</div>
+      <div class="mod-meta">~90 min · 2 lessons · Browser, gcloud, glossary</div>
+    </a>
+
+  </div>
+
+  <!-- Phase 1 -->
+  <div class="phase-label">Phase 1 — Foundations</div>
+  <div class="modules-grid">
+
+    <a href="modules/m1-lesson1.html" class="mod-card reveal" data-track="infra">
+      <div class="mod-header">
+        <span class="mod-num track-infra">M1 · INFRA</span>
+      </div>
+      <div class="mod-title">Cloud architecture &amp; systems thinking</div>
+      <div class="mod-meta">5 hrs · GCP Console, Cloud Shell, gcloud CLI</div>
+    </a>
+
+    <a href="modules/m2.html" class="mod-card reveal" data-track="infra" style="transition-delay:.05s">
+      <div class="mod-header">
+        <span class="mod-num track-infra">M2 · INFRA</span>
+      </div>
+      <div class="mod-title">Containers: from local to cloud</div>
+      <div class="mod-meta">8 hrs · Docker, Artifact Registry, Cloud Build</div>
+    </a>
+
+    <a href="modules/m3.html" class="mod-card reveal" data-track="hipaa" style="transition-delay:.1s">
+      <div class="mod-header">
+        <span class="mod-num track-hipaa">M3 · HIPAA</span>
+      </div>
+      <div class="mod-title">HIPAA-compliant GCP environment</div>
+      <div class="mod-meta">7 hrs · VPC SC, CMEK, DLP, BAA</div>
+    </a>
+
+    <a href="modules/m4.html" class="mod-card reveal" data-track="infra" style="transition-delay:.15s">
+      <div class="mod-header">
+        <span class="mod-num track-infra">M4 · INFRA</span>
+      </div>
+      <div class="mod-title">Serverless fundamentals: Cloud Run &amp; Cloud Functions</div>
+      <div class="mod-meta">7 hrs · Cloud Run, Cloud Run Jobs, Eventarc</div>
+    </a>
+
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="phase-label">Phase 2 — Kubernetes &amp; ML Workloads</div>
+  <div class="modules-grid">
+
+    <a href="modules/m5.html" class="mod-card reveal" data-track="infra">
+      <div class="mod-header">
+        <span class="mod-num track-infra">M5 · INFRA</span>
+      </div>
+      <div class="mod-title">Kubernetes (GKE) for research workloads</div>
+      <div class="mod-meta">10 hrs · GKE Autopilot, Helm, namespaces, RBAC</div>
+    </a>
+
+    <a href="modules/m6.html" class="mod-card reveal" data-track="ml" style="transition-delay:.05s">
+      <div class="mod-header">
+        <span class="mod-num track-ml">M6 · ML</span>
+      </div>
+      <div class="mod-title">Deep learning in the cloud: CNNs &amp; imaging</div>
+      <div class="mod-meta">10 hrs · Vertex AI, GKE GPUs, GCS DICOM</div>
+    </a>
+
+    <a href="modules/m7.html" class="mod-card reveal" data-track="ml" style="transition-delay:.1s">
+      <div class="mod-header">
+        <span class="mod-num track-ml">M7 · ML</span>
+      </div>
+      <div class="mod-title">BERT, LLMs &amp; frontier model deployment</div>
+      <div class="mod-meta">10 hrs · Vertex AI Model Garden, HuggingFace, LoRA</div>
+    </a>
+
+    <a href="modules/m8.html" class="mod-card reveal" data-track="hipaa" style="transition-delay:.15s">
+      <div class="mod-header">
+        <span class="mod-num track-hipaa">M8 · HIPAA</span>
+      </div>
+      <div class="mod-title">Secure data pipelines &amp; de-identification</div>
+      <div class="mod-meta">6 hrs · Cloud Healthcare API, DLP, Dataflow, FHIR</div>
+    </a>
+
+  </div>
+
+  <!-- Phase 3 -->
+  <div class="phase-label">Phase 3 — Analytics, Federated &amp; Capstone</div>
+  <div class="modules-grid">
+
+    <a href="modules/m9.html" class="mod-card reveal" data-track="omop">
+      <div class="mod-header">
+        <span class="mod-num track-omop">M9 · OMOP</span>
+      </div>
+      <div class="mod-title">OMOP CDM &amp; ATLAS on GCP</div>
+      <div class="mod-meta">8 hrs · BigQuery, ATLAS, Broadsea, ACHILLES</div>
+    </a>
+
+    <a href="modules/m10.html" class="mod-card reveal" data-track="ml" style="transition-delay:.05s">
+      <div class="mod-header">
+        <span class="mod-num track-ml">M10 · ML</span>
+      </div>
+      <div class="mod-title">Federated learning patterns</div>
+      <div class="mod-meta">7 hrs · Flower, GKE multi-cluster, VPC peering, DP-SGD</div>
+    </a>
+
+    <a href="modules/m11.html" class="mod-card reveal" data-track="infra" style="transition-delay:.1s">
+      <div class="mod-header">
+        <span class="mod-num track-infra">M11 · INFRA</span>
+      </div>
+      <div class="mod-title">MLOps: reusable patterns &amp; automation</div>
+      <div class="mod-meta">6 hrs · Terraform, Vertex AI Pipelines, MLflow</div>
+    </a>
+
+    <a href="modules/m12.html" class="mod-card reveal" data-track="cap" style="transition-delay:.15s">
+      <div class="mod-header">
+        <span class="mod-num track-cap">M12 · CAPSTONE</span>
+      </div>
+      <div class="mod-title">Capstone: build your own research cloud</div>
+      <div class="mod-meta">6 hrs · Makawalu · HALO · ShepBERT · HIPIMR tracks</div>
+    </a>
+
+  </div>
+
+  <!-- About -->
+  <section id="about" style="margin-top: 5rem; padding-top: 3rem; border-top: 1px solid var(--border);">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start;">
+      <div>
+        <h4>About this course</h4>
+        <h2 style="margin: .5rem 0 1rem;">Built for researchers,<br>by researchers</h2>
+        <p style="margin-bottom: 1rem;">Developed at the University of Hawaiʻi Cancer Center to bridge the gap between health research and modern cloud-native infrastructure. Every exercise uses real study contexts — HIPIMR, Makawalu, HALO, PacificFed — so you're building infrastructure you'll actually use.</p>
+        <p>The paradigm throughout: sensitive data stays in a secure cloud boundary; curated containers and compute spin up beside it, do the work, and terminate. You never move PHI. You never pay for idle capacity.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="callout"><strong>Prerequisites</strong> — Comfort with command-line basics. Python experience helpful but not required. No prior cloud or Kubernetes experience assumed.</div>
+        <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem;">
+          <h4 style="margin-bottom: .75rem;">Target outcomes</h4>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
+            <li style="font-size: 13px; color: var(--text2); padding-left: 16px; position: relative;"><span style="position:absolute;left:0;color:var(--teal)">→</span> Spin up HIPAA-compliant GCP environments from Terraform in minutes</li>
+            <li style="font-size: 13px; color: var(--text2); padding-left: 16px; position: relative;"><span style="position:absolute;left:0;color:var(--teal)">→</span> Train and serve CNN, BERT, and LLM models on GKE &amp; Vertex AI</li>
+            <li style="font-size: 13px; color: var(--text2); padding-left: 16px; position: relative;"><span style="position:absolute;left:0;color:var(--teal)">→</span> Deploy OMOP CDM + ATLAS on BigQuery for clinical cohort work</li>
+            <li style="font-size: 13px; color: var(--text2); padding-left: 16px; position: relative;"><span style="position:absolute;left:0;color:var(--teal)">→</span> Build federated ML across multi-site networks like PacificFed</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color: var(--text3)">GitHub</a>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

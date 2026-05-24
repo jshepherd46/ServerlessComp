@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M0 · Lesson 1: Set up your work environment — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+.path-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-bottom: 1.5rem;
+}
+.path-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+}
+.path-card h3 {
+  font-family: 'Syne', sans-serif; font-size: 15px;
+  color: var(--text); margin-bottom: .35rem;
+}
+.path-card p { font-size: 13px; color: var(--text2); margin-bottom: .65rem; line-height: 1.55; }
+.path-card .ptag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  color: var(--prereq); letter-spacing: .06em; display: block; margin-bottom: .35rem;
+}
+@media (max-width: 640px) { .path-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M0 · Lesson 1 of 2</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <a href="m0.html">Module 0</a>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot active" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <span class="progress-label">Lesson 1 of 2</span>
+    </div>
+
+    <h1 class="lesson-title">Set up your<br>work environment</h1>
+    <p class="lesson-sub">Accounts, contracts, billing, CLI, editor, containers. Everything you need in place before Module 1. None of it is hard — but doing it out of order is what gets people stuck a month in.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~45 min</span>
+      <span>🔧 Browser + (optional) terminal</span>
+      <span>📍 Prerequisite</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Accounts & contracts             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="accounts">
+    <div class="section-eyebrow">Setup, part 1</div>
+    <h2 class="section-title">Accounts, the BAA, and billing</h2>
+    <p style="margin-bottom: 1.25rem;">Before you touch a single GCP service, four things have to be true. None of them are technical. All four block real work later if you skip them.</p>
+
+    <div class="hier-accordion">
+
+      <!-- Account -->
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">👤</span>
+          <div class="hier-label">
+            <div class="hier-label-name">1. A Google identity tied to the right domain</div>
+            <div class="hier-label-desc">For UH work, use your hawaii.edu Google account — not a personal gmail.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">Why it matters</div><div class="detail-cell-val">An <a class="g-term" href="../glossary.html#organization">Organization</a> in GCP is keyed to a verified domain. Only identities under that domain can be granted roles inside it without extra friction.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">What to check</div><div class="detail-cell-val">Sign in at <code class="code-inline">console.cloud.google.com</code> with <code class="code-inline">jshepherd@hawaii.edu</code>. Top-right avatar should show the UH org.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Common mistake</div><div class="detail-cell-val">Spinning up a personal-gmail GCP project for "just a quick test." It can never join the UH org or use UH's BAA — you'll have to migrate later.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Action</div><div class="detail-cell-val">If you don't see the UH org in the project picker, email UH ITS or your cloud admin to get added to the <code class="code-inline">shepherd-research-lab</code> folder.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BAA -->
+      <div class="hier-item" id="baa">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-org"></div>
+          <span class="hier-icon">📜</span>
+          <div class="hier-label">
+            <div class="hier-label-name">2. A signed BAA covering your project</div>
+            <div class="hier-label-desc">Without a Business Associate Agreement, no PHI can ever touch GCP. Period.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:.75rem;">A <a class="g-term" href="../glossary.html#baa">BAA</a> is the contract Google signs with UH that lets HIPAA-eligible GCP services process <a class="g-term" href="../glossary.html#phi">PHI</a> on your behalf. It is signed once by UH ITS, not by you — but you must confirm your project is covered before you load any patient data.</p>
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">Who signs</div><div class="detail-cell-val">UH ITS / Cloud Compliance — never an individual researcher.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">What it covers</div><div class="detail-cell-val">Only HIPAA-eligible services (GCS, BigQuery, Cloud Run, GKE, Vertex AI, Healthcare API, KMS, Pub/Sub). Not every GCP service is on the list.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Per-project enrollment</div><div class="detail-cell-val">Each project that will hold PHI must be enrolled under the BAA. UH ITS does this when you request a HIPAA-tier project.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Verification</div><div class="detail-cell-val">Cloud Console → IAM &amp; Admin → Compliance → Compliance reports → search "BAA." Your project should appear in the enrolled list.</div></div>
+          </div>
+          <div class="callout" style="margin-top:1rem;">
+            <strong>HIPIMR / Makawalu / HALO →</strong> all need a BAA-covered project before real data lands. <strong>The course's M0 sandbox</strong> does <em>not</em> — you'll keep it PHI-free and use synthetic data for learning.
+          </div>
+        </div>
+      </div>
+
+      <!-- Billing -->
+      <div class="hier-item" id="billing">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-project"></div>
+          <span class="hier-icon">💳</span>
+          <div class="hier-label">
+            <div class="hier-label-name">3. A billing account linked to your project</div>
+            <div class="hier-label-desc">A project with no billing account can create resources only on the always-free tier.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:.75rem;">A <a class="g-term" href="../glossary.html#billing-account">billing account</a> is the payment entity. A billing account can fund many projects; a project must be linked to exactly one. For grant accounting, this is your hook — link <code class="code-inline">halo-prod</code> to the HALO R01 billing account, <code class="code-inline">makawalu-prod</code> to the Makawalu R01 billing account, and the per-grant invoices come out clean every month.</p>
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">Sandbox</div><div class="detail-cell-val">Use UH's discretionary or your $300 free-tier credit for the M0 sandbox. No PHI, no grant funds.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Per-study</div><div class="detail-cell-val">Each NIH grant should have its own billing account so its monthly invoice maps 1:1 to that award's cloud line.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Cost labels</div><div class="detail-cell-val">Tag every resource with <code class="code-inline">grant=R01CA999999</code> and <code class="code-inline">study=halo</code>. BigQuery billing export then slices cost by tag.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Set this up later</div><div class="detail-cell-val">Cost labels and BQ billing export are an M3/M11 topic. For now, just confirm a billing account exists and is linked.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Budgets -->
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-resource"></div>
+          <span class="hier-icon">🚨</span>
+          <div class="hier-label">
+            <div class="hier-label-name">4. A budget alert on every project</div>
+            <div class="hier-label-desc">The default is no alert. The default is also no spend cap. Set both — yourself.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:.75rem;">A <a class="g-term" href="../glossary.html#budget-alert">budget alert</a> emails you at 50/90/100% of a monthly threshold. It does <em>not</em> stop charges. If you want a hard kill switch (recommended for sandboxes), pair the 100% alert with a Pub/Sub topic that triggers a Cloud Function which disables the billing link.</p>
+          <p style="font-size:13px;color:var(--text2);">For your sandbox, $50/month is plenty. For HIPIMR-prod, set it to your monthly NIH cloud line and pad 20%. We'll wire up the kill-switch pattern in M11.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Two paths                        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="cloud-shell">
+    <div class="section-eyebrow">Setup, part 2</div>
+    <h2 class="section-title">Two paths to a working CLI</h2>
+    <p style="margin-bottom: 1.25rem;">You can drive GCP from a browser tab or from your laptop terminal. Both work for this course. Pick one to start; you'll likely end up using both.</p>
+
+    <div class="path-grid">
+      <div class="path-card">
+        <span class="ptag">Path A · easiest</span>
+        <h3><a class="g-term" href="../glossary.html#cloud-shell">Cloud Shell</a></h3>
+        <p>A free browser-based Linux VM with gcloud, kubectl, Docker, Python, and an editor pre-installed. Pre-authenticated to your identity. Click the terminal icon in the top-right of the Cloud Console.</p>
+        <p style="margin-bottom:0;color:var(--text3);font-size:12px;"><strong>Use when:</strong> learning, demos, exercises in M0–M4, any time you're on a borrowed machine.</p>
+      </div>
+      <div class="path-card">
+        <span class="ptag">Path B · what you'll grow into</span>
+        <h3>Local gcloud + VS Code</h3>
+        <p>Install the Cloud SDK on your laptop, auth it once, drive everything from your own terminal. Your editor, your shell, your dotfiles.</p>
+        <p style="margin-bottom:0;color:var(--text3);font-size:12px;"><strong>Use when:</strong> serious development, building containers (M2+), running long sessions, version control.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Recommendation:</strong> start with Cloud Shell today. Install the local CLI by the end of this lesson if you have 10 free minutes. Either way, the rest of the course works.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: gcloud CLI                       -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="gcloud-install">
+    <div class="section-eyebrow">The CLI</div>
+    <h2 class="section-title">Install, auth, and configure gcloud</h2>
+    <p style="margin-bottom: 1rem;">The <a class="g-term" href="../glossary.html#gcloud">gcloud CLI</a> is the primary tool you'll use across the course. Cloud Shell already has it. If you're going local:</p>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.5rem;color:var(--text);">macOS</h3>
+<pre class="code-block"><span class="cm"># Homebrew</span>
+brew install --cask google-cloud-sdk
+
+<span class="cm"># Verify</span>
+gcloud version</pre>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.5rem;color:var(--text);">Windows</h3>
+<pre class="code-block"><span class="cm"># Download the installer</span>
+<span class="ok">https://cloud.google.com/sdk/docs/install#windows</span>
+
+<span class="cm"># Then in a new PowerShell:</span>
+gcloud version</pre>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.5rem;color:var(--text);">Linux (Debian / Ubuntu)</h3>
+<pre class="code-block">curl https://sdk.cloud.google.com | bash
+exec -l $SHELL
+gcloud version</pre>
+
+    <h3 id="auth" style="margin-top:2rem;margin-bottom:.5rem;color:var(--text);">Auth — two commands you run once</h3>
+    <p style="margin-bottom:.75rem;">There are two distinct auth flows. You need both.</p>
+<pre class="code-block"><span class="cm"># 1. Authenticates you (the human) for gcloud commands</span>
+gcloud auth login
+
+<span class="cm"># 2. Authenticates SDKs running on your machine (Python, Go, Node)</span>
+<span class="cm">#    via Application Default Credentials</span>
+gcloud auth application-default login</pre>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">The first command is what <em>you</em> use. The second is what <em>your code</em> uses — when you write a Python script that calls the BigQuery client, it reaches for <a class="g-term" href="../glossary.html#adc">ADC</a> automatically. Run both, once, on every machine you work from.</p>
+
+    <div class="callout">
+      <strong>On GCP, ADC just works.</strong> A Cloud Run service or GKE pod automatically picks up the credentials of the <a class="g-term" href="../glossary.html#service-account">service account</a> attached to it. You never set env vars or copy key files. Local dev is the only place you call <code class="code-inline">application-default login</code>.
+    </div>
+
+    <h3 id="configurations" style="margin-top:2rem;margin-bottom:.5rem;color:var(--text);">Multi-project switching with configurations</h3>
+    <p style="margin-bottom:.75rem;">You'll be flipping between HIPIMR, Makawalu, HALO, and your sandbox constantly. Don't edit <code class="code-inline">gcloud config</code> properties one at a time — use named <a class="g-term" href="../glossary.html#gcloud-config">configurations</a>:</p>
+<pre class="code-block"><span class="cm"># Create a configuration per study</span>
+gcloud config configurations create hipimr-prod
+gcloud config set project hipimr-prod
+gcloud config set compute/region us-west1
+gcloud config set account jshepherd@hawaii.edu
+
+gcloud config configurations create makawalu-dev
+gcloud config set project makawalu-dev
+gcloud config set compute/region us-west1
+
+<span class="cm"># Switch between them with one command</span>
+gcloud config configurations activate makawalu-dev
+
+<span class="cm"># See what you have</span>
+gcloud config configurations list</pre>
+
+    <p style="font-size:13.5px;">Set this up once for every project you regularly touch. Saves you from the entire class of "wait, which project just got that command?" mistakes.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Editor & containers              -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="vscode">
+    <div class="section-eyebrow">Editor &amp; container runtime</div>
+    <h2 class="section-title">VS Code + Cloud Code, and Docker for M2</h2>
+
+    <p style="margin-bottom:.75rem;">For local work the recommended stack is <strong>VS Code</strong> with the <strong><a class="g-term" href="../glossary.html#cloud-code">Cloud Code</a></strong> extension. Cloud Code gives you:</p>
+    <ul style="list-style:none;padding-left:1rem;margin-bottom:1.5rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ One-click "Run on Cloud Run" — builds, pushes, deploys from your editor</li>
+      <li>→ Live GKE cluster browser, pod logs, exec-into-pod from a sidebar</li>
+      <li>→ YAML schemas for Kubernetes and Cloud Run service manifests</li>
+      <li>→ Secret Manager browser without leaving the editor</li>
+    </ul>
+
+<pre class="code-block"><span class="cm"># Install VS Code, then add the extension:</span>
+<span class="cm"># Marketplace → search "Cloud Code" → Google → Install</span>
+<span class="cm"># Sign in with your hawaii.edu account when prompted.</span></pre>
+
+    <h3 id="docker" style="margin-top:1.75rem;margin-bottom:.5rem;color:var(--text);">Container runtime (needed from M2 onward)</h3>
+    <p style="margin-bottom:.75rem;">M2 builds container images on your laptop. You need a local container runtime. Three real options:</p>
+
+    <div class="path-grid">
+      <div class="path-card">
+        <span class="ptag">Most common</span>
+        <h3><a class="g-term" href="../glossary.html#docker-desktop">Docker Desktop</a></h3>
+        <p>The default. Free for personal and small academic use; check UH licensing for paid use. Mac + Windows + Linux.</p>
+      </div>
+      <div class="path-card">
+        <span class="ptag">License-friendly</span>
+        <h3>Rancher Desktop</h3>
+        <p>Open-source, Apache 2.0. Drop-in replacement for Docker Desktop's daemon. Ships with k3s for local Kubernetes.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <strong>If you're staying in Cloud Shell:</strong> skip this section. Cloud Shell has Docker built in. You'll only need a local runtime when you want to iterate on containers without round-tripping to the cloud.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 0.1</div>
+    <h2 class="section-title">Your first 30 minutes — sandbox to "hello, Cloud Run"</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📟 Guided exercise — Cloud Shell (no local install needed)</div>
+      <ol class="exercise-steps">
+        <li>Open <strong>console.cloud.google.com</strong> and sign in with <code class="code-inline">your-name@hawaii.edu</code>. Confirm the org switcher shows the UH organization.</li>
+        <li>Open <strong>Cloud Shell</strong> (terminal icon, top-right of the console). Run <code class="code-inline">gcloud auth list</code> — your hawaii.edu account should show as <code class="code-inline">ACTIVE</code>.</li>
+        <li>Create your sandbox project:<br><code class="code-inline">gcloud projects create srl-sandbox-[yourname] --name="SRL Sandbox"</code></li>
+        <li>Set it as your active project and pick a region:<br>
+          <code class="code-inline">gcloud config set project srl-sandbox-[yourname]</code><br>
+          <code class="code-inline">gcloud config set run/region us-west1</code>
+        </li>
+        <li>Link a billing account (use UH discretionary or your free-tier credit):<br>
+          <code class="code-inline">gcloud billing projects link srl-sandbox-[yourname] --billing-account=[BILLING_ACCOUNT_ID]</code>
+        </li>
+        <li>Enable the <a class="g-term" href="../glossary.html#api">APIs</a> you'll need:<br>
+          <code class="code-inline">gcloud services enable run.googleapis.com artifactregistry.googleapis.com</code>
+        </li>
+        <li>Deploy the Cloud Run hello-world straight from a public image — no Dockerfile yet:<br>
+          <code class="code-inline">gcloud run deploy hello --image=us-docker.pkg.dev/cloudrun/container/hello --allow-unauthenticated --region=us-west1</code>
+        </li>
+        <li>Visit the URL gcloud prints. You should see the Cloud Run welcome page. <strong>Congratulations — you just deployed a serverless container.</strong></li>
+        <li>Set a budget alert: <strong>Billing → Budgets &amp; alerts → Create budget</strong>. Scope to your sandbox project. $50/month. Alerts at 50% / 90% / 100%.</li>
+        <li><strong>Optional (10 min):</strong> install gcloud locally on your laptop, run <code class="code-inline">gcloud auth login</code> + <code class="code-inline">gcloud auth application-default login</code>, then <code class="code-inline">gcloud config configurations create srl-sandbox</code> and re-set the project. Confirm <code class="code-inline">gcloud run services list --region=us-west1</code> shows your <code class="code-inline">hello</code> service.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Useful commands to keep on hand</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud config list</span>
+        <span class="tag">gcloud config configurations list</span>
+        <span class="tag">gcloud auth list</span>
+        <span class="tag">gcloud projects list</span>
+        <span class="tag">gcloud services list --enabled</span>
+        <span class="tag">gcloud run services list</span>
+        <span class="tag">gcloud help</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Why must HIPIMR live in a BAA-covered project but the M0 sandbox does not?</span>
+        <a href="#" class="check-btn" onclick="alert('HIPIMR holds PHI. PHI on GCP requires a signed BAA between UH and Google — without it, you are out of HIPAA compliance the moment patient data lands. The sandbox holds only synthetic data, so no BAA is required.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>What is the difference between <code class="code-inline">gcloud auth login</code> and <code class="code-inline">gcloud auth application-default login</code>?</span>
+        <a href="../glossary.html#adc" class="check-btn">See ADC →</a>
+      </li>
+      <li class="check-item">
+        <span>You're working on HALO in the morning and Makawalu in the afternoon. Why use named configurations rather than <code class="code-inline">gcloud config set project</code> every time?</span>
+        <a href="../glossary.html#gcloud-config" class="check-btn">See configurations →</a>
+      </li>
+      <li class="check-item">
+        <span>A budget alert fires at 100% of your monthly threshold. Did GCP stop charging you?</span>
+        <a href="#" class="check-btn" onclick="alert('No. Budget alerts notify; they do not enforce. To enforce, wire the alert through Pub/Sub to a Cloud Function that disables the billing link. We build this pattern in M11.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m0.html" class="btn">← Module 0 index</a>
+    <a href="m0-lesson2.html" class="btn btn-primary">Lesson 2: The GCP landscape →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

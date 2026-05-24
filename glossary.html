@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glossary — ServerlessComp</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(8px); transition: opacity .35s, transform .35s; }
+.revealed { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">Reference · always available</span>
+    <div class="nav-links">
+      <a href="index.html">← All modules</a>
+      <a href="modules/m0.html">Prereq</a>
+      <a href="glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="glossary-hero">
+  <div class="container">
+    <div class="section-eyebrow">Reference</div>
+    <h1>Glossary</h1>
+    <p>Every GCP service, acronym, and serverless concept used across the course. Built from the Module 0 primer and updated as new modules ship. Link directly to any term with the anchor in its URL.</p>
+  </div>
+</section>
+
+<div class="glossary-toolbar">
+  <div class="container glossary-toolbar-inner">
+    <input
+      type="search"
+      id="glossary-search"
+      class="glossary-search"
+      placeholder="Search terms — try ‘vpc’, ‘scale to zero’, ‘BAA’…"
+      autocomplete="off"
+      spellcheck="false">
+    <span class="glossary-count" id="glossary-count">0 terms</span>
+  </div>
+</div>
+
+<main class="container glossary-wrap">
+
+  <div class="gloss-empty" id="glossary-empty">No terms match that search.</div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- ACCOUNT, HIERARCHY & BILLING                          -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="glossary-category" data-cat="account">
+    <div class="glossary-cat-label">Account, hierarchy &amp; billing</div>
+    <div class="glossary-grid">
+
+      <div class="gloss-card" id="organization" data-search="organization org gcp resource hierarchy">
+        <div class="gloss-head"><span class="gloss-term">Organization</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">The root node of GCP's resource hierarchy, tied to a verified domain (e.g. <code class="code-inline">hawaii.edu</code>). One per institution. Owns all folders, projects, and resources beneath it.</div>
+        <div class="gloss-meta"><span>See also: <a href="#folder">Folder</a>, <a href="#project">Project</a></span><a href="modules/m1-lesson1.html#hierarchy">Introduced in M1L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="folder" data-search="folder folders division">
+        <div class="gloss-head"><span class="gloss-term">Folder</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A grouping container under the organization, used for divisions, centers, or labs (e.g. <code class="code-inline">uhcc</code> → <code class="code-inline">shepherd-research-lab</code>). Policies set on a folder cascade to every project inside.</div>
+        <div class="gloss-meta"><span>See also: <a href="#organization">Organization</a>, <a href="#org-policy">Org policy</a></span><a href="modules/m1-lesson1.html#hierarchy">M1L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="project" data-search="project gcp project id project number">
+        <div class="gloss-head"><span class="gloss-term">Project</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">The unit of work in GCP. APIs, billing, IAM, quotas, and VPCs are all project-scoped. The recommended default: one project per study or environment (e.g. <code class="code-inline">hipimr-prod</code>, <code class="code-inline">makawalu-dev</code>).</div>
+        <div class="gloss-meta"><span>See also: <a href="#billing-account">Billing account</a>, <a href="#api">API</a></span><a href="modules/m1-lesson1.html#hierarchy">M1L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="resource" data-search="resource gcp resource resources">
+        <div class="gloss-head"><span class="gloss-term">Resource</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Any concrete GCP service instance — a Cloud Run service, a GCS bucket, a BigQuery dataset. Every resource lives inside exactly one project.</div>
+        <div class="gloss-meta"><span>See also: <a href="#project">Project</a></span><a href="modules/m0-lesson2.html">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="billing-account" data-search="billing account billing budget invoice">
+        <div class="gloss-head"><span class="gloss-term">Billing account</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">The payment entity that funds resources. A billing account can fund many projects; a project must be linked to exactly one. Used for grant accounting — link <code class="code-inline">halo-prod</code> to the HALO R01 billing account, not your discretionary card.</div>
+        <div class="gloss-meta"><span>See also: <a href="#budget-alert">Budget alert</a>, <a href="#baa">BAA</a></span><a href="modules/m0-lesson1.html#billing">M0L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="budget-alert" data-search="budget alert budget alerts spending cost cap">
+        <div class="gloss-head"><span class="gloss-term">Budget alert</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A configured threshold (e.g. 50%, 90%, 100% of monthly budget) that emails or notifies when spend crosses it. Does not stop charges — pair with a kill-switch Cloud Function if you need a hard cap.</div>
+        <div class="gloss-meta"><span>See also: <a href="#billing-account">Billing account</a></span><a href="modules/m0-lesson1.html#billing">M0L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="quota" data-search="quota quotas limits gpu quota">
+        <div class="gloss-head"><span class="gloss-term">Quota</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A per-project, per-region ceiling on how much of a resource you can use (GPUs, CPU cores, API requests per minute). Most quotas start low; you raise them via a console request.</div>
+        <div class="gloss-meta"><span>See also: <a href="#region">Region</a></span><a href="modules/m0-lesson2.html">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="org-policy" data-search="organization policy org policy constraint">
+        <div class="gloss-head"><span class="gloss-term">Org policy</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">A constraint applied at the organization or folder level — e.g. "no external IPs," "only US regions," "require CMEK." Inherited by every project beneath. The primary tool for institutional guardrails.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cmek">CMEK</a>, <a href="#vpc-sc">VPC SC</a></span><a href="modules/m3.html">M3</a></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- IDENTITY & ACCESS                                     -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="glossary-category" data-cat="iam">
+    <div class="glossary-cat-label">Identity &amp; access (IAM)</div>
+    <div class="glossary-grid">
+
+      <div class="gloss-card" id="iam" data-search="iam identity access management policy">
+        <div class="gloss-head"><span class="gloss-term">IAM</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Identity and Access Management. GCP's access control system: who (principal) can do what (role) on which resource. Every action runs as some IAM identity.</div>
+        <div class="gloss-meta"><span>See also: <a href="#principal">Principal</a>, <a href="#role">Role</a>, <a href="#service-account">Service account</a></span><a href="modules/m1-lesson1.html">M1L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="principal" data-search="principal user member identity">
+        <div class="gloss-head"><span class="gloss-term">Principal</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">An identity that IAM can grant a role to: a Google user, a Google Group, a service account, or a federated identity. Formerly called a "member."</div>
+        <div class="gloss-meta"><span>See also: <a href="#role">Role</a>, <a href="#service-account">Service account</a></span><a href="modules/m0-lesson2.html">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="role" data-search="role iam role basic predefined custom">
+        <div class="gloss-head"><span class="gloss-term">IAM role</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A bundle of permissions you grant to a principal. Three flavors: <strong>basic</strong> (Owner/Editor/Viewer — too broad, avoid), <strong>predefined</strong> (per-service, e.g. <code class="code-inline">roles/run.invoker</code>), <strong>custom</strong> (you author).</div>
+        <div class="gloss-meta"><span>See also: <a href="#permission">Permission</a>, <a href="#least-privilege">Least privilege</a></span><a href="modules/m0-lesson2.html">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="permission" data-search="permission permissions">
+        <div class="gloss-head"><span class="gloss-term">Permission</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A single allowed action, like <code class="code-inline">storage.buckets.get</code>. You don't grant permissions directly — you bundle them into a role and grant the role.</div>
+        <div class="gloss-meta"><span>See also: <a href="#role">IAM role</a></span><a href="modules/m0-lesson2.html">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="service-account" data-search="service account sa non-human identity">
+        <div class="gloss-head"><span class="gloss-term">Service account</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A non-human identity for code. Cloud Run services, GKE pods, and Vertex training jobs all run as service accounts. Never put personal credentials in code — always use a service account scoped to only what that workload needs.</div>
+        <div class="gloss-meta"><span>See also: <a href="#workload-identity">Workload Identity</a>, <a href="#adc">ADC</a></span><a href="modules/m1-lesson1.html">M1L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="workload-identity" data-search="workload identity federation gke pod identity">
+        <div class="gloss-head"><span class="gloss-term">Workload Identity</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">The mechanism that lets a GKE pod or external workload assume a GCP service account without long-lived key files. The right way to give pods access to GCP APIs.</div>
+        <div class="gloss-meta"><span>See also: <a href="#service-account">Service account</a>, <a href="#gke">GKE</a></span><a href="modules/m5.html">M5</a></div>
+      </div>
+
+      <div class="gloss-card" id="adc" data-search="adc application default credentials gcloud auth">
+        <div class="gloss-head"><span class="gloss-term">ADC (Application Default Credentials)</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A credential lookup chain Google SDKs use automatically: env vars → <code class="code-inline">gcloud auth application-default login</code> file → attached service account. Set up once locally with the gcloud command; running on GCP, ADC just works.</div>
+        <div class="gloss-meta"><span>See also: <a href="#service-account">Service account</a>, <a href="#gcloud">gcloud CLI</a></span><a href="modules/m0-lesson1.html#auth">M0L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="least-privilege" data-search="least privilege principle of least privilege">
+        <div class="gloss-head"><span class="gloss-term">Least privilege</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">The principle that every identity should have only the permissions it actually needs — nothing more. The default posture for every service account you create.</div>
+        <div class="gloss-meta"><span>See also: <a href="#service-account">Service account</a>, <a href="#role">IAM role</a></span><a href="modules/m1-lesson1.html">M1L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="secret-manager" data-search="secret manager secrets api keys credentials">
+        <div class="gloss-head"><span class="gloss-term">Secret Manager</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">GCP's managed store for API keys, DB passwords, and other secrets. Versioned, IAM-controlled, audit-logged. Cloud Run and GKE can mount secrets directly without baking them into images.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cmek">CMEK</a>, <a href="#service-account">Service account</a></span><a href="modules/m3.html">M3</a></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TOOLING & DEVELOPER ENVIRONMENT                       -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="glossary-category" data-cat="tooling">
+    <div class="glossary-cat-label">Tooling &amp; developer environment</div>
+    <div class="glossary-grid">
+
+      <div class="gloss-card" id="cloud-console" data-search="cloud console gcp console web ui">
+        <div class="gloss-head"><span class="gloss-term">Cloud Console</span><span class="gloss-tag track-prereq">PREREQ</span></div>
+        <div class="gloss-def">The web UI for GCP at <code class="code-inline">console.cloud.google.com</code>. Good for exploring, viewing logs, and one-off changes. Anything you do repeatedly should move to gcloud or Terraform.</div>
+        <div class="gloss-meta"><span>See also: <a href="#gcloud">gcloud CLI</a>, <a href="#cloud-shell">Cloud Shell</a></span><a href="modules/m0-lesson1.html">M0L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="cloud-shell" data-search="cloud shell browser terminal">
+        <div class="gloss-head"><span class="gloss-term">Cloud Shell</span><span class="gloss-tag track-prereq">PREREQ</span></div>
+        <div class="gloss-def">A free browser-based Linux VM with gcloud, kubectl, Docker, and an editor pre-installed. Pre-authenticated to your Google identity. Best place to start before installing anything locally.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cloud-console">Cloud Console</a>, <a href="#gcloud">gcloud CLI</a></span><a href="modules/m0-lesson1.html#cloud-shell">M0L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="gcloud" data-search="gcloud cli sdk command line">
+        <div class="gloss-head"><span class="gloss-term">gcloud CLI</span><span class="gloss-tag track-prereq">PREREQ</span></div>
+        <div class="gloss-def">The primary command-line tool for GCP, part of the Google Cloud SDK. Manages projects, IAM, deploys to Cloud Run, drives GKE — every service has gcloud commands.</div>
+        <div class="gloss-meta"><span>See also: <a href="#gsutil">gsutil</a>, <a href="#bq">bq</a>, <a href="#kubectl">kubectl</a></span><a href="modules/m0-lesson1.html#gcloud-install">M0L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="gcloud-config" data-search="gcloud configurations config configurations multi project switching">
+        <div class="gloss-head"><span class="gloss-term">gcloud configurations</span><span class="gloss-tag track-prereq">PREREQ</span></div>
+        <div class="gloss-def">Named sets of gcloud settings (account + project + region). Switch between studies with one command: <code class="code-inline">gcloud config configurations activate hipimr-prod</code>. Use this instead of editing properties one at a time.</div>
+        <div class="gloss-meta"><span>See also: <a href="#gcloud">gcloud CLI</a></span><a href="modules/m0-lesson1.html#configurations">M0L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="gsutil" data-search="gsutil gcs cli storage cli">
+        <div class="gloss-head"><span class="gloss-term">gsutil / gcloud storage</span><span class="gloss-tag track-prereq">PREREQ</span></div>
+        <div class="gloss-def">CLI for Cloud Storage. <code class="code-inline">gcloud storage</code> is the newer, faster replacement for <code class="code-inline">gsutil</code> and is what we use throughout the course.</div>
+        <div class="gloss-meta"><span>See also: <a href="#gcs">GCS</a>, <a href="#gcloud">gcloud CLI</a></span><a href="modules/m0-lesson1.html">M0L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="bq" data-search="bq bigquery cli">
+        <div class="gloss-head"><span class="gloss-term">bq</span><span class="gloss-tag track-omop">OMOP</span></div>
+        <div class="gloss-def">The BigQuery CLI. Used for queries, loads, dataset management. Heavy ATLAS / OMOP work runs through it.</div>
+        <div class="gloss-meta"><span>See also: <a href="#bigquery">BigQuery</a></span><a href="modules/m9.html">M9</a></div>
+      </div>
+
+      <div class="gloss-card" id="kubectl" data-search="kubectl kubernetes cli">
+        <div class="gloss-head"><span class="gloss-term">kubectl</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">The Kubernetes CLI. Manages clusters, pods, deployments, services. <code class="code-inline">gcloud container clusters get-credentials</code> wires up kubectl for a GKE cluster.</div>
+        <div class="gloss-meta"><span>See also: <a href="#gke">GKE</a>, <a href="#pod">Pod</a></span><a href="modules/m5.html">M5</a></div>
+      </div>
+
+      <div class="gloss-card" id="cloud-code" data-search="cloud code vscode extension intellij">
+        <div class="gloss-head"><span class="gloss-term">Cloud Code</span><span class="gloss-tag track-prereq">PREREQ</span></div>
+        <div class="gloss-def">Google's VS Code (and JetBrains) extension. Adds GKE/Cloud Run dev loops, YAML schemas, log viewers, and Secret Manager browser inside the editor. Optional but very useful.</div>
+        <div class="gloss-meta"><span>See also: <a href="#docker-desktop">Docker Desktop</a></span><a href="modules/m0-lesson1.html#vscode">M0L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="docker-desktop" data-search="docker desktop rancher container runtime">
+        <div class="gloss-head"><span class="gloss-term">Docker Desktop</span><span class="gloss-tag track-prereq">PREREQ</span></div>
+        <div class="gloss-def">The local container runtime you need to build images on your laptop (Mac, Windows). Rancher Desktop and OrbStack are licence-friendly alternatives. Cloud Shell already has Docker.</div>
+        <div class="gloss-meta"><span>See also: <a href="#container">Container</a>, <a href="#image">Image</a></span><a href="modules/m0-lesson1.html#docker">M0L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="terraform" data-search="terraform iac infrastructure as code">
+        <div class="gloss-head"><span class="gloss-term">Terraform</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">HashiCorp's infrastructure-as-code tool. Declare resources in <code class="code-inline">.tf</code> files; <code class="code-inline">terraform apply</code> reconciles GCP to match. Anything you build by hand more than twice should move into Terraform.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cloud-build">Cloud Build</a></span><a href="modules/m11.html">M11</a></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- COMPUTE                                               -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="glossary-category" data-cat="compute">
+    <div class="glossary-cat-label">Compute</div>
+    <div class="glossary-grid">
+
+      <div class="gloss-card" id="compute-engine" data-search="compute engine gce vm virtual machine">
+        <div class="gloss-head"><span class="gloss-term">Compute Engine (GCE)</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Raw VMs. Maximum control, maximum ops burden. Useful for legacy software or specific hardware needs. Rare in this course — we default to managed and serverless.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cloud-run">Cloud Run</a>, <a href="#gke">GKE</a></span><a href="modules/m0-lesson2.html#compute">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="cloud-run" data-search="cloud run serverless container fully managed">
+        <div class="gloss-head"><span class="gloss-term">Cloud Run</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Fully managed serverless container platform. You give it a container image; it serves HTTP and gRPC, scales from zero to thousands automatically. The default place to put a containerised API.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cloud-run-jobs">Cloud Run Jobs</a>, <a href="#scale-to-zero">Scale to zero</a>, <a href="#concurrency">Concurrency</a></span><a href="modules/m4.html">M4</a></div>
+      </div>
+
+      <div class="gloss-card" id="cloud-run-jobs" data-search="cloud run jobs batch task">
+        <div class="gloss-head"><span class="gloss-term">Cloud Run Jobs</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Run-to-completion container workloads on the same platform as Cloud Run. Use for batch processing, scheduled training warmups, ETL — anything that runs, finishes, and stops.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cloud-run">Cloud Run</a>, <a href="#cloud-scheduler">Cloud Scheduler</a></span><a href="modules/m4.html">M4</a></div>
+      </div>
+
+      <div class="gloss-card" id="cloud-functions" data-search="cloud functions faas event">
+        <div class="gloss-head"><span class="gloss-term">Cloud Functions</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Function-as-a-service: write a single function in Python/Node/Go, GCP wraps it in a container and runs it on events (HTTP, Pub/Sub, GCS). Cloud Functions v2 is built on Cloud Run.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cloud-run">Cloud Run</a>, <a href="#eventarc">Eventarc</a></span><a href="modules/m4.html">M4</a></div>
+      </div>
+
+      <div class="gloss-card" id="gke" data-search="gke kubernetes google kubernetes engine cluster">
+        <div class="gloss-head"><span class="gloss-term">GKE (Google Kubernetes Engine)</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Managed Kubernetes. The right answer when you need long-running services, multi-container workloads, GPU pools, or fine-grained networking that Cloud Run can't do.</div>
+        <div class="gloss-meta"><span>See also: <a href="#gke-autopilot">GKE Autopilot</a>, <a href="#pod">Pod</a>, <a href="#kubectl">kubectl</a></span><a href="modules/m5.html">M5</a></div>
+      </div>
+
+      <div class="gloss-card" id="gke-autopilot" data-search="gke autopilot serverless kubernetes">
+        <div class="gloss-head"><span class="gloss-term">GKE Autopilot</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">GKE mode where Google manages nodes for you. You declare pods; Autopilot provisions compute, handles patching, upgrades, and right-sizes. The default GKE mode in this course.</div>
+        <div class="gloss-meta"><span>See also: <a href="#gke">GKE</a>, <a href="#pod">Pod</a></span><a href="modules/m5.html">M5</a></div>
+      </div>
+
+      <div class="gloss-card" id="pod" data-search="pod kubernetes pod container group">
+        <div class="gloss-head"><span class="gloss-term">Pod</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Kubernetes' smallest deployable unit: one or more containers that share a network namespace and storage. Pods are ephemeral — controllers (Deployment, Job, CronJob) manage them.</div>
+        <div class="gloss-meta"><span>See also: <a href="#gke">GKE</a>, <a href="#container">Container</a></span><a href="modules/m5.html">M5</a></div>
+      </div>
+
+      <div class="gloss-card" id="namespace" data-search="namespace kubernetes namespace isolation">
+        <div class="gloss-head"><span class="gloss-term">Namespace</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A logical partition inside a Kubernetes cluster. Used for multi-tenancy — Makawalu in one namespace, ShepBERT in another, each with its own RBAC and quotas.</div>
+        <div class="gloss-meta"><span>See also: <a href="#gke">GKE</a>, <a href="#rbac">RBAC</a></span><a href="modules/m5.html">M5</a></div>
+      </div>
+
+      <div class="gloss-card" id="rbac" data-search="rbac role based access control kubernetes">
+        <div class="gloss-head"><span class="gloss-term">RBAC</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Role-Based Access Control — Kubernetes' in-cluster permissions system. Separate from (but bridged to) GCP IAM via Workload Identity.</div>
+        <div class="gloss-meta"><span>See also: <a href="#workload-identity">Workload Identity</a>, <a href="#namespace">Namespace</a></span><a href="modules/m5.html">M5</a></div>
+      </div>
+
+      <div class="gloss-card" id="vertex-ai" data-search="vertex ai ml platform managed">
+        <div class="gloss-head"><span class="gloss-term">Vertex AI</span><span class="gloss-tag track-ml">ML</span></div>
+        <div class="gloss-def">GCP's managed ML platform. Umbrella for Training (run any container as a training job), Pipelines (DAGs of ML steps), Endpoints (model serving), Model Garden (curated open and Google models), and Workbench (managed Jupyter).</div>
+        <div class="gloss-meta"><span>See also: <a href="#vertex-pipelines">Vertex AI Pipelines</a>, <a href="#vertex-endpoint">Vertex Endpoint</a></span><a href="modules/m6.html">M6</a></div>
+      </div>
+
+      <div class="gloss-card" id="vertex-pipelines" data-search="vertex pipelines kubeflow ml pipeline">
+        <div class="gloss-head"><span class="gloss-term">Vertex AI Pipelines</span><span class="gloss-tag track-ml">ML</span></div>
+        <div class="gloss-def">Managed Kubeflow Pipelines on GCP. Define an ML workflow as a Python DAG; each step runs in its own container with its own IAM. The right home for repeatable training and inference jobs.</div>
+        <div class="gloss-meta"><span>See also: <a href="#vertex-ai">Vertex AI</a>, <a href="#cloud-build">Cloud Build</a></span><a href="modules/m11.html">M11</a></div>
+      </div>
+
+      <div class="gloss-card" id="vertex-endpoint" data-search="vertex endpoint model serving online prediction">
+        <div class="gloss-head"><span class="gloss-term">Vertex AI Endpoint</span><span class="gloss-tag track-ml">ML</span></div>
+        <div class="gloss-def">Managed online model serving — upload a model, get a low-latency HTTPS endpoint with autoscaling, traffic splitting, and explainability hooks. Alternative to serving a model yourself from Cloud Run.</div>
+        <div class="gloss-meta"><span>See also: <a href="#vertex-ai">Vertex AI</a>, <a href="#cloud-run">Cloud Run</a></span><a href="modules/m6.html">M6</a></div>
+      </div>
+
+      <div class="gloss-card" id="container" data-search="container oci runtime image">
+        <div class="gloss-head"><span class="gloss-term">Container</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A running instance of an image — your code plus its dependencies, isolated from the host. The unit of deployment for Cloud Run, GKE, Cloud Functions v2, and Vertex Training.</div>
+        <div class="gloss-meta"><span>See also: <a href="#image">Image</a>, <a href="#docker-desktop">Docker Desktop</a></span><a href="modules/m2.html">M2</a></div>
+      </div>
+
+      <div class="gloss-card" id="image" data-search="image container image docker image oci">
+        <div class="gloss-head"><span class="gloss-term">Image</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">An immutable, layered tarball of your code, dependencies, and a starting command. Built from a Dockerfile, pushed to a registry, pulled and run as containers.</div>
+        <div class="gloss-meta"><span>See also: <a href="#container">Container</a>, <a href="#artifact-registry">Artifact Registry</a></span><a href="modules/m2.html">M2</a></div>
+      </div>
+
+      <div class="gloss-card" id="artifact-registry" data-search="artifact registry docker registry container images">
+        <div class="gloss-head"><span class="gloss-term">Artifact Registry</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">GCP's managed registry for container images, Python wheels, Maven jars, etc. Successor to Container Registry. Cloud Run and GKE pull images from here.</div>
+        <div class="gloss-meta"><span>See also: <a href="#image">Image</a>, <a href="#cloud-build">Cloud Build</a></span><a href="modules/m2.html">M2</a></div>
+      </div>
+
+      <div class="gloss-card" id="cold-start" data-search="cold start cold-start container startup latency">
+        <div class="gloss-head"><span class="gloss-term">Cold start</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">The latency added when a serverless platform has to pull your image, start a new container, and load your app before serving the first request. Hits scale-from-zero. Mitigations: minimum instances, smaller images, lazy imports.</div>
+        <div class="gloss-meta"><span>See also: <a href="#scale-to-zero">Scale to zero</a>, <a href="#cloud-run">Cloud Run</a></span><a href="modules/m4.html">M4</a></div>
+      </div>
+
+      <div class="gloss-card" id="scale-to-zero" data-search="scale to zero scale-to-zero zero instances">
+        <div class="gloss-head"><span class="gloss-term">Scale to zero</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">When idle, the platform runs zero instances of your service and charges you nothing. The core economic lever of serverless. Trade-off: cold starts on the next request.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cold-start">Cold start</a>, <a href="#cloud-run">Cloud Run</a></span><a href="modules/m0-lesson2.html#serverless">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="concurrency" data-search="concurrency requests per container cloud run">
+        <div class="gloss-head"><span class="gloss-term">Concurrency</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">The maximum number of in-flight requests a single Cloud Run container handles. Default 80. Lower for heavy ML inference; higher for cheap I/O-bound APIs.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cloud-run">Cloud Run</a></span><a href="modules/m4.html">M4</a></div>
+      </div>
+
+      <div class="gloss-card" id="ephemeral-compute" data-search="ephemeral compute disposable transient">
+        <div class="gloss-head"><span class="gloss-term">Ephemeral compute</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Compute that exists only for the duration of the work. The course's core paradigm: containers spin up beside the data, do the job, and terminate. State lives in storage; compute is disposable.</div>
+        <div class="gloss-meta"><span>See also: <a href="#scale-to-zero">Scale to zero</a>, <a href="#data-gravity">Data gravity</a></span><a href="modules/m0-lesson2.html#serverless">M0L2</a></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- STORAGE & DATA                                        -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="glossary-category" data-cat="storage">
+    <div class="glossary-cat-label">Storage &amp; data</div>
+    <div class="glossary-grid">
+
+      <div class="gloss-card" id="gcs" data-search="gcs cloud storage bucket object">
+        <div class="gloss-head"><span class="gloss-term">GCS (Cloud Storage)</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Object storage. Buckets hold objects (files). The default home for DICOM, model weights, training data, exports. Strongly consistent, regional or multi-regional, lifecycle-managed.</div>
+        <div class="gloss-meta"><span>See also: <a href="#bucket">Bucket</a>, <a href="#object">Object</a>, <a href="#dicom">DICOM</a></span><a href="modules/m0-lesson2.html#storage">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="bucket" data-search="bucket gcs bucket storage bucket">
+        <div class="gloss-head"><span class="gloss-term">Bucket</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A globally-named container for GCS objects. Naming is global across all of GCP — choose names like <code class="code-inline">uhcc-hipimr-dicom-prod</code>, not <code class="code-inline">data</code>.</div>
+        <div class="gloss-meta"><span>See also: <a href="#gcs">GCS</a>, <a href="#object">Object</a></span><a href="modules/m0-lesson2.html#storage">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="object" data-search="object gcs file blob">
+        <div class="gloss-head"><span class="gloss-term">Object</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A file stored in GCS. Identified by <code class="code-inline">gs://bucket/path/to/file</code>. Immutable on write (overwrites create a new version if versioning is on).</div>
+        <div class="gloss-meta"><span>See also: <a href="#bucket">Bucket</a></span><a href="modules/m0-lesson2.html#storage">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="bigquery" data-search="bigquery bq data warehouse sql">
+        <div class="gloss-head"><span class="gloss-term">BigQuery</span><span class="gloss-tag track-omop">OMOP</span></div>
+        <div class="gloss-def">Serverless data warehouse. Petabyte-scale SQL with no infrastructure to manage. The home for OMOP CDM in HALO, for analytics across the federated network, and for any structured research data.</div>
+        <div class="gloss-meta"><span>See also: <a href="#dataset">Dataset</a>, <a href="#table">Table</a>, <a href="#omop">OMOP CDM</a></span><a href="modules/m9.html">M9</a></div>
+      </div>
+
+      <div class="gloss-card" id="dataset" data-search="dataset bigquery dataset">
+        <div class="gloss-head"><span class="gloss-term">Dataset (BigQuery)</span><span class="gloss-tag track-omop">OMOP</span></div>
+        <div class="gloss-def">A BigQuery container for tables and views. IAM is applied at the dataset level. One dataset per study or per OMOP vocabulary version is a clean pattern.</div>
+        <div class="gloss-meta"><span>See also: <a href="#bigquery">BigQuery</a>, <a href="#table">Table</a></span><a href="modules/m9.html">M9</a></div>
+      </div>
+
+      <div class="gloss-card" id="table" data-search="table bigquery table partitioned clustered">
+        <div class="gloss-head"><span class="gloss-term">Table (BigQuery)</span><span class="gloss-tag track-omop">OMOP</span></div>
+        <div class="gloss-def">A columnar table inside a BigQuery dataset. Partition by date, cluster by patient_id — the difference between a $1 query and a $400 query.</div>
+        <div class="gloss-meta"><span>See also: <a href="#bigquery">BigQuery</a>, <a href="#dataset">Dataset</a></span><a href="modules/m9.html">M9</a></div>
+      </div>
+
+      <div class="gloss-card" id="cloud-sql" data-search="cloud sql postgres mysql managed database">
+        <div class="gloss-head"><span class="gloss-term">Cloud SQL</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Managed Postgres, MySQL, or SQL Server. Use when you need a real relational DB (ATLAS metadata, app state). For analytical workloads, use BigQuery instead.</div>
+        <div class="gloss-meta"><span>See also: <a href="#bigquery">BigQuery</a></span><a href="modules/m0-lesson2.html#storage">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="firestore" data-search="firestore document database nosql">
+        <div class="gloss-head"><span class="gloss-term">Firestore</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Managed NoSQL document store. Useful for metadata, audit trails, session state. Cheap, fast, integrates cleanly with Cloud Run.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cloud-sql">Cloud SQL</a></span><a href="modules/m0-lesson2.html#storage">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="healthcare-api" data-search="cloud healthcare api dicom fhir hl7">
+        <div class="gloss-head"><span class="gloss-term">Cloud Healthcare API</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">HIPAA-eligible managed store for DICOM, FHIR, and HL7v2. Handles ingest, de-identification, and FHIR-native querying. The right home for HIPIMR DICOM and HALO FHIR ingests.</div>
+        <div class="gloss-meta"><span>See also: <a href="#dicom">DICOM store</a>, <a href="#fhir">FHIR store</a>, <a href="#dlp">DLP</a></span><a href="modules/m8.html">M8</a></div>
+      </div>
+
+      <div class="gloss-card" id="dicom" data-search="dicom store medical imaging dicomweb">
+        <div class="gloss-head"><span class="gloss-term">DICOM store</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">A DICOMweb-compatible managed store inside the Healthcare API. Holds studies, series, instances. Pixels can be exported for ML; metadata is queryable directly.</div>
+        <div class="gloss-meta"><span>See also: <a href="#healthcare-api">Cloud Healthcare API</a></span><a href="modules/m8.html">M8</a></div>
+      </div>
+
+      <div class="gloss-card" id="fhir" data-search="fhir store hl7 fhir resources">
+        <div class="gloss-head"><span class="gloss-term">FHIR store</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">An HL7 FHIR-native managed store inside the Healthcare API. Stream FHIR resources, query them, export to BigQuery for analytics.</div>
+        <div class="gloss-meta"><span>See also: <a href="#healthcare-api">Cloud Healthcare API</a>, <a href="#bigquery">BigQuery</a></span><a href="modules/m8.html">M8</a></div>
+      </div>
+
+      <div class="gloss-card" id="data-gravity" data-search="data gravity data has gravity locality">
+        <div class="gloss-head"><span class="gloss-term">Data gravity</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">The principle that data is hard to move and easy to leak — so you move compute to the data, not the other way around. PHI lives in the VPC perimeter; Cloud Run, Vertex, and GKE jobs run beside it and terminate.</div>
+        <div class="gloss-meta"><span>See also: <a href="#vpc-sc">VPC SC</a>, <a href="#ephemeral-compute">Ephemeral compute</a></span><a href="modules/m1-lesson1.html#principles">M1L1</a></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- NETWORKING                                            -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="glossary-category" data-cat="network">
+    <div class="glossary-cat-label">Networking</div>
+    <div class="glossary-grid">
+
+      <div class="gloss-card" id="vpc" data-search="vpc virtual private cloud network">
+        <div class="gloss-head"><span class="gloss-term">VPC (Virtual Private Cloud)</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Your project's private network. Defines subnets, firewall rules, routes. GCP VPCs are global by default — one VPC can span every region.</div>
+        <div class="gloss-meta"><span>See also: <a href="#subnet">Subnet</a>, <a href="#vpc-sc">VPC SC</a></span><a href="modules/m0-lesson2.html#network">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="subnet" data-search="subnet subnetwork cidr">
+        <div class="gloss-head"><span class="gloss-term">Subnet</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A regional IP range inside a VPC. Resources live in subnets; firewall rules and routes target them.</div>
+        <div class="gloss-meta"><span>See also: <a href="#vpc">VPC</a>, <a href="#region">Region</a></span><a href="modules/m0-lesson2.html#network">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="vpc-sc" data-search="vpc service controls vpc sc perimeter">
+        <div class="gloss-head"><span class="gloss-term">VPC Service Controls (VPC SC)</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">A perimeter you draw around projects so their resources can't be reached from outside it — even with valid credentials. The single most important HIPAA control for PHI buckets and BigQuery datasets.</div>
+        <div class="gloss-meta"><span>See also: <a href="#vpc">VPC</a>, <a href="#data-gravity">Data gravity</a></span><a href="modules/m3.html">M3</a></div>
+      </div>
+
+      <div class="gloss-card" id="private-service-connect" data-search="private service connect psc private endpoint">
+        <div class="gloss-head"><span class="gloss-term">Private Service Connect</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">Lets services in your VPC reach Google APIs (and other tenants' services) over private IPs, never traversing the public internet. Pair with VPC SC.</div>
+        <div class="gloss-meta"><span>See also: <a href="#vpc-sc">VPC SC</a></span><a href="modules/m3.html">M3</a></div>
+      </div>
+
+      <div class="gloss-card" id="cloud-nat" data-search="cloud nat egress nat">
+        <div class="gloss-head"><span class="gloss-term">Cloud NAT</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Managed outbound NAT for VMs and pods without public IPs. Required if your private pods need to reach external package mirrors, model registries, etc.</div>
+        <div class="gloss-meta"><span>See also: <a href="#vpc">VPC</a></span><a href="modules/m3.html">M3</a></div>
+      </div>
+
+      <div class="gloss-card" id="cloud-armor" data-search="cloud armor waf ddos">
+        <div class="gloss-head"><span class="gloss-term">Cloud Armor</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">Edge WAF and DDoS protection. Apply rate limits, geo restrictions, and OWASP rule sets to externally-exposed services.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cloud-run">Cloud Run</a></span><a href="modules/m3.html">M3</a></div>
+      </div>
+
+      <div class="gloss-card" id="region" data-search="region geographic region us-central1">
+        <div class="gloss-head"><span class="gloss-term">Region</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A geographic location with multiple isolated zones (e.g. <code class="code-inline">us-west1</code>, <code class="code-inline">us-central1</code>). Most resources are regional. Pick close to your data — and to where your IRB lets you put it.</div>
+        <div class="gloss-meta"><span>See also: <a href="#zone">Zone</a></span><a href="modules/m0-lesson2.html">M0L2</a></div>
+      </div>
+
+      <div class="gloss-card" id="zone" data-search="zone availability zone">
+        <div class="gloss-head"><span class="gloss-term">Zone</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">An isolated failure domain inside a region (e.g. <code class="code-inline">us-west1-a</code>). HA-aware services spread across zones automatically.</div>
+        <div class="gloss-meta"><span>See also: <a href="#region">Region</a></span><a href="modules/m0-lesson2.html">M0L2</a></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- SECURITY & COMPLIANCE                                 -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="glossary-category" data-cat="security">
+    <div class="glossary-cat-label">Security &amp; compliance</div>
+    <div class="glossary-grid">
+
+      <div class="gloss-card" id="hipaa" data-search="hipaa health insurance portability accountability">
+        <div class="gloss-head"><span class="gloss-term">HIPAA</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">The US health-information privacy law that governs PHI. Compliance on GCP requires a signed BAA, HIPAA-eligible services only, plus your own configuration discipline (VPC SC, CMEK, audit logs, least privilege).</div>
+        <div class="gloss-meta"><span>See also: <a href="#baa">BAA</a>, <a href="#phi">PHI</a>, <a href="#vpc-sc">VPC SC</a></span><a href="modules/m3.html">M3</a></div>
+      </div>
+
+      <div class="gloss-card" id="baa" data-search="baa business associate agreement">
+        <div class="gloss-head"><span class="gloss-term">BAA (Business Associate Agreement)</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">The contract that allows GCP to process PHI on your behalf. Must be signed (typically by UH ITS, not you) before anything HIPAA touches your projects. Without a BAA, no PHI in GCP — period.</div>
+        <div class="gloss-meta"><span>See also: <a href="#hipaa">HIPAA</a>, <a href="#phi">PHI</a></span><a href="modules/m0-lesson1.html#baa">M0L1</a></div>
+      </div>
+
+      <div class="gloss-card" id="phi" data-search="phi protected health information">
+        <div class="gloss-head"><span class="gloss-term">PHI (Protected Health Information)</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">Health information that identifies an individual, combined with the 18 HIPAA identifiers. The thing the entire HIPAA track is designed to keep contained, audited, and (when possible) de-identified before analysis.</div>
+        <div class="gloss-meta"><span>See also: <a href="#hipaa">HIPAA</a>, <a href="#deid">De-identification</a>, <a href="#dlp">DLP</a></span><a href="modules/m8.html">M8</a></div>
+      </div>
+
+      <div class="gloss-card" id="cmek" data-search="cmek customer managed encryption keys kms">
+        <div class="gloss-head"><span class="gloss-term">CMEK</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">Customer-Managed Encryption Keys. Encryption keys you create and control in Cloud KMS, used to encrypt GCS, BigQuery, Persistent Disks, etc. Required by many institutional HIPAA policies on top of Google's default encryption.</div>
+        <div class="gloss-meta"><span>See also: <a href="#hipaa">HIPAA</a>, <a href="#org-policy">Org policy</a></span><a href="modules/m3.html">M3</a></div>
+      </div>
+
+      <div class="gloss-card" id="dlp" data-search="dlp sensitive data protection deidentification">
+        <div class="gloss-head"><span class="gloss-term">Cloud DLP / Sensitive Data Protection</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">A managed service that inspects text, images, and structured data for sensitive identifiers (SSNs, MRNs, names) and can redact, mask, or tokenize them. The backbone of de-identification pipelines.</div>
+        <div class="gloss-meta"><span>See also: <a href="#deid">De-identification</a>, <a href="#phi">PHI</a></span><a href="modules/m8.html">M8</a></div>
+      </div>
+
+      <div class="gloss-card" id="deid" data-search="deidentification de-identification deid safe harbor">
+        <div class="gloss-head"><span class="gloss-term">De-identification</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">Removing or obscuring identifiers so data is no longer PHI under HIPAA (Safe Harbor or Expert Determination). The boundary between "needs the perimeter" and "can move to a research project."</div>
+        <div class="gloss-meta"><span>See also: <a href="#dlp">DLP</a>, <a href="#phi">PHI</a></span><a href="modules/m8.html">M8</a></div>
+      </div>
+
+      <div class="gloss-card" id="audit-logs" data-search="audit logs cloud audit logging">
+        <div class="gloss-head"><span class="gloss-term">Cloud Audit Logs</span><span class="gloss-tag track-hipaa">HIPAA</span></div>
+        <div class="gloss-def">Immutable logs of who did what, where, when. Admin Activity logs are always on; Data Access logs (every read of a PHI object) must be turned on explicitly for HIPAA.</div>
+        <div class="gloss-meta"><span>See also: <a href="#hipaa">HIPAA</a></span><a href="modules/m3.html">M3</a></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- EVENTING, SCHEDULING & GLUE                           -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="glossary-category" data-cat="eventing">
+    <div class="glossary-cat-label">Eventing, scheduling &amp; glue</div>
+    <div class="glossary-grid">
+
+      <div class="gloss-card" id="pubsub" data-search="pub sub pubsub topic subscription messaging">
+        <div class="gloss-head"><span class="gloss-term">Pub/Sub</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Managed message bus. Publishers send messages to a topic; subscribers pull or are pushed to. The plumbing under most event-driven serverless patterns on GCP.</div>
+        <div class="gloss-meta"><span>See also: <a href="#topic">Topic</a>, <a href="#eventarc">Eventarc</a></span><a href="modules/m4.html">M4</a></div>
+      </div>
+
+      <div class="gloss-card" id="topic" data-search="topic pubsub topic subscription">
+        <div class="gloss-head"><span class="gloss-term">Topic / Subscription</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Pub/Sub primitives. A <strong>topic</strong> is a named channel; a <strong>subscription</strong> is a consumer's view of it. Multiple subscriptions on one topic each get their own copy of every message.</div>
+        <div class="gloss-meta"><span>See also: <a href="#pubsub">Pub/Sub</a></span><a href="modules/m4.html">M4</a></div>
+      </div>
+
+      <div class="gloss-card" id="eventarc" data-search="eventarc event router">
+        <div class="gloss-head"><span class="gloss-term">Eventarc</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A managed event router. Subscribes to ~100 GCP event sources (GCS object created, BigQuery job done, Pub/Sub message) and delivers them to Cloud Run, Cloud Functions, or Workflows in CloudEvents format.</div>
+        <div class="gloss-meta"><span>See also: <a href="#pubsub">Pub/Sub</a>, <a href="#cloud-run">Cloud Run</a></span><a href="modules/m4.html">M4</a></div>
+      </div>
+
+      <div class="gloss-card" id="cloud-scheduler" data-search="cloud scheduler cron job">
+        <div class="gloss-head"><span class="gloss-term">Cloud Scheduler</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Managed cron. Fires HTTP requests, Pub/Sub messages, or App Engine tasks on a schedule. Pair with Cloud Run Jobs for nightly batch work.</div>
+        <div class="gloss-meta"><span>See also: <a href="#cloud-run-jobs">Cloud Run Jobs</a></span><a href="modules/m4.html">M4</a></div>
+      </div>
+
+      <div class="gloss-card" id="workflows" data-search="cloud workflows orchestration state machine">
+        <div class="gloss-head"><span class="gloss-term">Cloud Workflows</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">A serverless orchestrator for chaining GCP APIs and HTTP services with retries, parallelism, and conditional logic. Lightweight alternative to a full Airflow.</div>
+        <div class="gloss-meta"><span>See also: <a href="#eventarc">Eventarc</a>, <a href="#vertex-pipelines">Vertex AI Pipelines</a></span><a href="modules/m4.html">M4</a></div>
+      </div>
+
+      <div class="gloss-card" id="cloud-build" data-search="cloud build ci cd">
+        <div class="gloss-head"><span class="gloss-term">Cloud Build</span><span class="gloss-tag track-infra">INFRA</span></div>
+        <div class="gloss-def">Managed CI/CD. Builds container images, runs tests, pushes to Artifact Registry, deploys to Cloud Run / GKE. Triggered by git pushes or PRs.</div>
+        <div class="gloss-meta"><span>See also: <a href="#artifact-registry">Artifact Registry</a>, <a href="#terraform">Terraform</a></span><a href="modules/m2.html">M2</a></div>
+      </div>
+
+      <div class="gloss-card" id="dataflow" data-search="dataflow apache beam streaming etl">
+        <div class="gloss-head"><span class="gloss-term">Dataflow</span><span class="gloss-tag track-omop">OMOP</span></div>
+        <div class="gloss-def">Managed Apache Beam — for batch and streaming ETL. Used in HIPAA pipelines to scan, transform, and de-identify large datasets without standing up infrastructure.</div>
+        <div class="gloss-meta"><span>See also: <a href="#dlp">DLP</a>, <a href="#bigquery">BigQuery</a></span><a href="modules/m8.html">M8</a></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- ML, ANALYTICS & RESEARCH DATA                         -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="glossary-category" data-cat="research">
+    <div class="glossary-cat-label">ML, analytics &amp; research data</div>
+    <div class="glossary-grid">
+
+      <div class="gloss-card" id="omop" data-search="omop cdm common data model ohdsi">
+        <div class="gloss-head"><span class="gloss-term">OMOP CDM</span><span class="gloss-tag track-omop">OMOP</span></div>
+        <div class="gloss-def">OHDSI's Observational Medical Outcomes Partnership Common Data Model. A canonical schema for clinical observations that lets standard analytic packages (ATLAS, ACHILLES) work across institutions. HALO sits on this.</div>
+        <div class="gloss-meta"><span>See also: <a href="#atlas">ATLAS</a>, <a href="#achilles">ACHILLES</a>, <a href="#bigquery">BigQuery</a></span><a href="modules/m9.html">M9</a></div>
+      </div>
+
+      <div class="gloss-card" id="atlas" data-search="atlas ohdsi cohort definition">
+        <div class="gloss-head"><span class="gloss-term">ATLAS</span><span class="gloss-tag track-omop">OMOP</span></div>
+        <div class="gloss-def">OHDSI's web UI for defining cohorts, characterizations, and incidence analyses over OMOP data. Deployed via Broadsea or as a container on Cloud Run/GKE.</div>
+        <div class="gloss-meta"><span>See also: <a href="#omop">OMOP CDM</a>, <a href="#broadsea">Broadsea</a></span><a href="modules/m9.html">M9</a></div>
+      </div>
+
+      <div class="gloss-card" id="achilles" data-search="achilles ohdsi data quality">
+        <div class="gloss-head"><span class="gloss-term">ACHILLES</span><span class="gloss-tag track-omop">OMOP</span></div>
+        <div class="gloss-def">OHDSI's data characterization and quality-assessment tool for OMOP datasets. Generates per-domain summary statistics that ATLAS surfaces.</div>
+        <div class="gloss-meta"><span>See also: <a href="#omop">OMOP CDM</a>, <a href="#atlas">ATLAS</a></span><a href="modules/m9.html">M9</a></div>
+      </div>
+
+      <div class="gloss-card" id="broadsea" data-search="broadsea ohdsi docker">
+        <div class="gloss-head"><span class="gloss-term">Broadsea</span><span class="gloss-tag track-omop">OMOP</span></div>
+        <div class="gloss-def">A containerised OHDSI stack (ATLAS + WebAPI + tooling) that drops onto Docker / Cloud Run / GKE so you can stand up an OHDSI environment in an afternoon.</div>
+        <div class="gloss-meta"><span>See also: <a href="#atlas">ATLAS</a>, <a href="#omop">OMOP CDM</a></span><a href="modules/m9.html">M9</a></div>
+      </div>
+
+      <div class="gloss-card" id="federated-learning" data-search="federated learning fl flower">
+        <div class="gloss-head"><span class="gloss-term">Federated learning</span><span class="gloss-tag track-ml">ML</span></div>
+        <div class="gloss-def">A training pattern where the model travels to each site's data instead of the data moving. Sites compute gradient updates locally; only updates leave. The architecture for PacificFed.</div>
+        <div class="gloss-meta"><span>See also: <a href="#dp-sgd">DP-SGD</a></span><a href="modules/m10.html">M10</a></div>
+      </div>
+
+      <div class="gloss-card" id="dp-sgd" data-search="dp-sgd differential privacy stochastic gradient descent">
+        <div class="gloss-head"><span class="gloss-term">DP-SGD</span><span class="gloss-tag track-ml">ML</span></div>
+        <div class="gloss-def">Differentially-Private Stochastic Gradient Descent. Clips and noises per-example gradients during training so the resulting model carries a formal privacy budget (ε, δ). Pair with federated learning for the strongest guarantees.</div>
+        <div class="gloss-meta"><span>See also: <a href="#federated-learning">Federated learning</a></span><a href="modules/m10.html">M10</a></div>
+      </div>
+
+      <div class="gloss-card" id="lora" data-search="lora low rank adaptation peft fine tuning">
+        <div class="gloss-head"><span class="gloss-term">LoRA</span><span class="gloss-tag track-ml">ML</span></div>
+        <div class="gloss-def">Low-Rank Adaptation — a fine-tuning method that trains small rank-decomposition matrices on top of a frozen base model. Cheap, GPU-friendly, the default for ShepBERT-style clinical fine-tuning.</div>
+        <div class="gloss-meta"><span>See also: <a href="#clinical-bert">ClinicalBERT</a></span><a href="modules/m7.html">M7</a></div>
+      </div>
+
+      <div class="gloss-card" id="clinical-bert" data-search="clinicalbert bert clinical nlp">
+        <div class="gloss-head"><span class="gloss-term">ClinicalBERT</span><span class="gloss-tag track-ml">ML</span></div>
+        <div class="gloss-def">A family of BERT-derived language models pretrained on clinical notes (MIMIC). Starting point for ShepBERT and most domain-specific clinical NLP.</div>
+        <div class="gloss-meta"><span>See also: <a href="#lora">LoRA</a></span><a href="modules/m7.html">M7</a></div>
+      </div>
+
+      <div class="gloss-card" id="cbm" data-search="concept bottleneck model xai interpretable">
+        <div class="gloss-head"><span class="gloss-term">Concept bottleneck model (CBM)</span><span class="gloss-tag track-ml">ML</span></div>
+        <div class="gloss-def">An interpretable model architecture that predicts a set of human-readable concepts as an intermediate layer, then predicts the target from those concepts. The core of Makawalu's XAI design.</div>
+        <div class="gloss-meta"><span>See also: <a href="#vertex-ai">Vertex AI</a></span><a href="modules/m6.html">M6</a></div>
+      </div>
+
+      <div class="gloss-card" id="api" data-search="api google api enable">
+        <div class="gloss-head"><span class="gloss-term">API (enabling)</span><span class="gloss-tag track-prereq">PREREQ</span></div>
+        <div class="gloss-def">Every GCP service is gated by a per-project API toggle. Before you can use Cloud Run in a project, you <code class="code-inline">gcloud services enable run.googleapis.com</code>. Catches a lot of "but I have permission" confusion.</div>
+        <div class="gloss-meta"><span>See also: <a href="#project">Project</a></span><a href="modules/m0-lesson1.html">M0L1</a></div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
