@@ -3,27 +3,433 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Coming Soon — ServerlessComp</title>
+<title>M1 · Lesson 2: Designing your project topology — ServerlessComp</title>
 <link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+
+/* Topology tree */
+.topo {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  line-height: 1.7; color: var(--text2); overflow-x: auto;
+}
+.topo .org { color: var(--purple); }
+.topo .fld { color: var(--teal); }
+.topo .prj { color: var(--blue); }
+.topo .shared { color: var(--amber); }
+.topo .ann { color: var(--text3); font-style: italic; }
+
+/* Naming card */
+.name-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem; margin-bottom: 8px;
+  display: grid; grid-template-columns: 220px 1fr; gap: 1rem;
+  align-items: center;
+}
+.name-card .nc-key {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--teal);
+}
+.name-card .nc-val { font-size: 13px; color: var(--text2); line-height: 1.55; }
+@media (max-width: 640px) { .name-card { grid-template-columns: 1fr; gap: .35rem; } }
+
+/* Decision table */
+.dec-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 10px;
+}
+.dec-cell {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+}
+.dec-cell h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); text-transform: none; letter-spacing: 0; margin-bottom: .35rem;
+}
+.dec-cell p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .4rem; }
+.dec-cell .dc-tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  letter-spacing: .06em; text-transform: uppercase;
+  display: inline-block; padding: 2px 7px; border-radius: 3px;
+  margin-bottom: .4rem;
+}
+.dec-cell.win { border-left: 3px solid var(--green); }
+.dec-cell.lose { border-left: 3px solid var(--coral); opacity: .85; }
+.win .dc-tag { background: rgba(63,185,80,.12); color: var(--green); }
+.lose .dc-tag { background: rgba(248,113,113,.12); color: var(--coral); }
+@media (max-width: 640px) { .dec-row { grid-template-columns: 1fr; } }
+</style>
 </head>
 <body>
+
 <nav>
   <div class="nav-inner">
     <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
-    <div class="nav-links"><a href="../index.html">← All modules</a><a href="../glossary.html">Glossary</a></div>
+    <span class="nav-badge">M1 · Lesson 2 of 4</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
   </div>
 </nav>
-<main style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:2rem">
-  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:1rem">In development</div>
-  <h1 style="font-family:'Syne',sans-serif;font-size:2rem;color:var(--text);margin-bottom:.75rem">This module is coming soon</h1>
-  <p style="color:var(--text2);max-width:480px;margin-bottom:2rem">Lessons are added module by module. Follow the GitHub repo for updates, or start with Module 1.</p>
-  <a href="../index.html" style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:10px 20px;border:1px solid var(--border2);border-radius:8px;color:var(--text2);text-decoration:none;transition:all .15s" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">← Back to course home</a>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 1</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <div class="progress-dot" title="Lesson 4"></div>
+      <span class="progress-label">Lesson 2 of 4</span>
+    </div>
+
+    <h1 class="lesson-title">Designing your<br>project topology</h1>
+    <p class="lesson-sub">Lesson 1 gave you the four-level tree. This lesson tells you how to actually fill it in for a real research lab. The blueprint we land on here is what HIPIMR, Makawalu, HALO, ShepBERT, and PacificFed actually run on.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~40 min reading + exercise</span>
+      <span>🔧 gcloud CLI, IAM &amp; Resource Manager</span>
+      <span>📍 Module 1 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Project as the unit              -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Core principle</div>
+    <h2 class="section-title">One project per study, per environment</h2>
+    <p style="margin-bottom: 1.25rem;">A <a class="g-term" href="../glossary.html#project">project</a> is the smallest unit on GCP where IAM, billing, quotas, APIs, and <a class="g-term" href="../glossary.html#vpc">VPCs</a> live independently. Sharing a project across two studies means sharing all of those — which is almost never what you want. The default rule is straightforward:</p>
+
+    <div class="callout">
+      <strong>Default:</strong> one project per <em>(study × environment)</em>. HIPIMR-prod, HIPIMR-dev, Makawalu-prod, Makawalu-dev. Separate everything you can separate, because separation is free.
+    </div>
+
+    <p style="margin-top: 1.25rem; margin-bottom: 1rem;">Four things follow automatically when you do this:</p>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">💥</div>
+        <div class="principle-title">Blast radius is contained</div>
+        <div class="principle-body">A misconfigured IAM binding in Makawalu-dev cannot expose HIPIMR data. A runaway training job in HALO-staging cannot exhaust HIPIMR's quota. Failures stay where they happen.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">💰</div>
+        <div class="principle-title">Billing maps to grants</div>
+        <div class="principle-body">Link each project to the right <a class="g-term" href="../glossary.html#billing-account">billing account</a>. Monthly invoices come out per-grant with no spreadsheets — your post-award team will thank you.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🪪</div>
+        <div class="principle-title">Access stays scoped</div>
+        <div class="principle-body">A research coordinator on HALO doesn't accidentally see HIPIMR DICOMs. You grant <a class="g-term" href="../glossary.html#role">roles</a> on the project, not on individual resources, and the boundary holds.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">⏳</div>
+        <div class="principle-title">Lifecycle is clean</div>
+        <div class="principle-body">When a grant ends, you delete the project. One command shuts down every resource, cancels every API, voids every key. There is no archaeology.</div>
+      </div>
+    </div>
+
+    <div class="flow" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:0 var(--r2) var(--r2) 0;padding:1rem 1.25rem;margin:1rem 0 0;font-size:13px;color:var(--text2);line-height:1.7;">
+      <strong style="color:var(--amber);">The exception worth knowing now:</strong> when something is genuinely shared across studies — your container registry, your audit log sink, your OMOP vocabulary — it gets its own dedicated "shared services" project. We come back to this pattern in Section 4.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Lab → study → environment        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Three axes of decomposition</div>
+    <h2 class="section-title">Lab, study, environment</h2>
+    <p style="margin-bottom: 1.25rem;">Every project in a research org sits at the intersection of three things: which lab owns it, which study it serves, and which environment it represents. Get those three right and the topology designs itself.</p>
+
+    <div class="hier-accordion">
+
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">🏛</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Axis 1 — Lab (folder)</div>
+            <div class="hier-label-desc">A single GCP folder per research lab. SRL gets <code class="code-inline">shepherd-research-lab</code>.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">Why a folder, not just a project?</div><div class="detail-cell-val">Folders carry <a class="g-term" href="../glossary.html#org-policy">org policies</a>, lab-wide IAM (every SRL postdoc gets Viewer on the lab folder), and a billing-export sink. Projects can't host those at scale.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Who owns it</div><div class="detail-cell-val">The PI and one or two delegated cloud admins. Folder admin is rare and powerful.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Sits under</div><div class="detail-cell-val">The <code class="code-inline">uhcc</code> folder, which sits under the <code class="code-inline">hawaii.edu</code> <a class="g-term" href="../glossary.html#organization">organization</a>.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Why not nest deeper?</div><div class="detail-cell-val">You can — UHCC → SRL → Active Grants → R01s — but nest only when you have a concrete reason. Deep trees become hard to reason about during an audit.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-project"></div>
+          <span class="hier-icon">📦</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Axis 2 — Study (project name root)</div>
+            <div class="hier-label-desc">Each funded study gets its own slug: <code class="code-inline">hipimr</code>, <code class="code-inline">makawalu</code>, <code class="code-inline">halo</code>, <code class="code-inline">shepbert</code>, <code class="code-inline">pacificfed</code>.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">What counts as a study</div><div class="detail-cell-val">A funded grant, a defined cohort, or a deliverable with its own IRB protocol and PI. If the work has a unique compliance posture, it's a study.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Lifetime</div><div class="detail-cell-val">As long as the grant. When the grant closes, the project closes — but a final archive can land in the lab's archival GCS bucket first.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Sub-projects</div><div class="detail-cell-val">A large study can have multiple projects (data project + compute project) — but that's an optimisation, not the default.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">Multi-PI studies</div><div class="detail-cell-val">Pick the lead institution's lab folder. Other PIs get IAM as principals; the project still belongs to one folder.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-resource"></div>
+          <span class="hier-icon">🎚</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Axis 3 — Environment (project name suffix)</div>
+            <div class="hier-label-desc">Three tiers: <code class="code-inline">-dev</code> (iteration), <code class="code-inline">-staging</code> (rehearsal), <code class="code-inline">-prod</code> (real data).</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <div class="detail-grid">
+            <div class="detail-cell"><div class="detail-cell-label">-dev</div><div class="detail-cell-val">Synthetic data only. No <a class="g-term" href="../glossary.html#baa">BAA</a> needed. Permissive IAM. Where you break things.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">-staging</div><div class="detail-cell-val">De-identified subset of prod. BAA-covered. Mirror of prod's network and IAM. Where you rehearse releases.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">-prod</div><div class="detail-cell-val">Real <a class="g-term" href="../glossary.html#phi">PHI</a>. Inside the <a class="g-term" href="../glossary.html#vpc-sc">VPC SC perimeter</a>. Tightest IAM. Audit logs on everything.</div></div>
+            <div class="detail-cell"><div class="detail-cell-label">When to skip an env</div><div class="detail-cell-val">Small or short studies often skip <code class="code-inline">-staging</code> and run only <code class="code-inline">-dev</code> + <code class="code-inline">-prod</code>. Never skip <code class="code-inline">-dev</code>.</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Naming as architecture           -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Naming is architecture</div>
+    <h2 class="section-title">A scheme your scripts can parse</h2>
+    <p style="margin-bottom: 1rem;">Project IDs and resource names are forever. You cannot rename a project. You cannot rename a <a class="g-term" href="../glossary.html#bucket">bucket</a>. Get the scheme right on day one and every script you write for the next five years becomes shorter.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The pattern</h3>
+
+<pre class="code-block"><span class="ok">&lt;lab&gt;-&lt;study&gt;-&lt;env&gt;</span>          <span class="cm"># projects</span>
+<span class="ok">&lt;lab&gt;-&lt;study&gt;-&lt;purpose&gt;-&lt;env&gt;</span> <span class="cm"># resources: buckets, datasets, secrets</span></pre>
+
+    <div class="name-card"><div class="nc-key">srl-hipimr-prod</div><div class="nc-val">Project ID. Lab = SRL, study = HIPIMR, env = prod.</div></div>
+    <div class="name-card"><div class="nc-key">srl-makawalu-dev</div><div class="nc-val">Project ID. Iteration environment for Makawalu.</div></div>
+    <div class="name-card"><div class="nc-key">srl-hipimr-dicom-prod</div><div class="nc-val">GCS bucket for HIPIMR production DICOMs. Globally unique, recognisable at a glance.</div></div>
+    <div class="name-card"><div class="nc-key">srl-halo-omop-prod</div><div class="nc-val">BigQuery dataset (or project) for HALO production OMOP CDM.</div></div>
+    <div class="name-card"><div class="nc-key">srl-shared-registry</div><div class="nc-val">Shared Artifact Registry project — explicitly <em>not</em> tied to a single study.</div></div>
+
+    <div class="callout" style="margin-top:1rem;">
+      <strong>The boring constraints to respect:</strong> project IDs are 6–30 characters, lowercase, digits and hyphens only, must start with a letter, and are globally unique across all of GCP. Pick the lab prefix wisely — it lives forever in every URL, every log line, every IAM binding.
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">Labels — the metadata layer</h3>
+    <p style="margin-bottom:.75rem;">Project IDs encode the shape; <strong>labels</strong> encode the metadata. Apply a label set to every project so billing exports and tooling can slice cleanly:</p>
+
+<pre class="code-block">gcloud projects update srl-halo-prod \
+  --update-labels=<span class="am">lab=srl</span>,<span class="am">study=halo</span>,<span class="am">env=prod</span>,<span class="am">grant=r01ca999999</span>,<span class="am">phi=yes</span>,<span class="am">pi=jshepherd</span></pre>
+
+    <p style="font-size:13.5px;">The <code class="code-inline">phi=yes</code> label is the one you'll lean on most — it's how the BigQuery billing export answers "show me my PHI footprint and what it cost last quarter."</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Shared services                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The exception to the rule</div>
+    <h2 class="section-title">The shared-services project</h2>
+    <p style="margin-bottom: 1rem;">Some things genuinely belong to the lab, not a study. Put them in a single dedicated project so every study consumes them instead of re-creating them.</p>
+
+    <div class="svc-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:1.5rem;">
+      <div class="principle-card"><div class="principle-title" style="margin-bottom:.4rem;">📦 Artifact Registry</div><div class="principle-body">One <a class="g-term" href="../glossary.html#artifact-registry">Artifact Registry</a> for all your container images. Every study's Cloud Run / GKE pulls from it. Don't sprawl registries.</div></div>
+      <div class="principle-card"><div class="principle-title" style="margin-bottom:.4rem;">🪵 Audit log sink</div><div class="principle-body">A single BigQuery dataset that receives <a class="g-term" href="../glossary.html#audit-logs">audit logs</a> from every lab project. One query gives you a lab-wide answer.</div></div>
+      <div class="principle-card"><div class="principle-title" style="margin-bottom:.4rem;">🧬 OMOP vocabularies</div><div class="principle-body">The OHDSI standard vocabulary is multi-GB and identical across studies. Host it once; HALO, ShepBERT, and PacificFed all reference the same dataset.</div></div>
+      <div class="principle-card"><div class="principle-title" style="margin-bottom:.4rem;">🔐 KMS keyring</div><div class="principle-body">A lab-level Cloud KMS keyring holds <a class="g-term" href="../glossary.html#cmek">CMEK</a> keys you reuse across studies. Audit posture stays consistent.</div></div>
+    </div>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Convention: name it <code class="code-inline">srl-shared-services</code> (or <code class="code-inline">srl-shared-registry</code> if you want a separate project per shared concern — fine, just don't go further than that).</p>
+
+    <div class="callout">
+      <strong>The test:</strong> if removing this resource would break more than one study, it belongs in shared services. If removing it only affects one study, it lives in that study's project.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: The whole picture                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Putting it together</div>
+    <h2 class="section-title">SRL's actual topology</h2>
+    <p style="margin-bottom: 1rem;">Here is what every principle from this lesson, applied to the Shepherd Research Lab portfolio, looks like in one tree:</p>
+
+    <div class="topo">
+<span class="org">🏛 hawaii.edu</span>                                  <span class="ann"># organization</span>
+└── <span class="fld">📁 uhcc</span>                                    <span class="ann"># UH Cancer Center folder</span>
+    └── <span class="fld">📁 shepherd-research-lab</span>               <span class="ann"># SRL folder — lab-wide IAM &amp; org policies</span>
+        ├── <span class="shared">📦 srl-shared-services</span>             <span class="ann"># registry, audit sink, OMOP vocab, KMS</span>
+        │
+        ├── <span class="prj">📦 srl-hipimr-dev</span>                   <span class="ann"># synthetic DICOMs, no BAA</span>
+        ├── <span class="prj">📦 srl-hipimr-prod</span>                  <span class="ann"># real PHI, VPC SC perimeter</span>
+        │
+        ├── <span class="prj">📦 srl-makawalu-dev</span>                 <span class="ann"># synthetic CBM training data</span>
+        ├── <span class="prj">📦 srl-makawalu-staging</span>             <span class="ann"># de-id Queen's data, BAA-covered</span>
+        ├── <span class="prj">📦 srl-makawalu-prod</span>                <span class="ann"># live POCUS XAI serving</span>
+        │
+        ├── <span class="prj">📦 srl-halo-dev</span>                     <span class="ann"># synthetic OMOP</span>
+        ├── <span class="prj">📦 srl-halo-prod</span>                    <span class="ann"># Queen's HCC cohort, OMOP on BigQuery</span>
+        │
+        ├── <span class="prj">📦 srl-shepbert-dev</span>                 <span class="ann"># LoRA fine-tunes (Pavel)</span>
+        ├── <span class="prj">📦 srl-shepbert-prod</span>                <span class="ann"># clinical NLP API on GKE</span>
+        │
+        └── <span class="prj">📦 srl-pacificfed-infra</span>             <span class="ann"># FL aggregator, GKE multi-cluster</span>
+    </div>
+
+    <div class="dec-row">
+      <div class="dec-cell win">
+        <span class="dc-tag">Why this works</span>
+        <h4>Eleven projects, one lab folder, one shared services project</h4>
+        <p>Folder-level IAM lets every SRL postdoc see all dev projects without explicit per-project bindings. PHI is contained in three specific projects, all inside a VPC SC perimeter you can audit in one place. When the HCC R01 ends, you delete two projects and the rest are unaffected.</p>
+      </div>
+      <div class="dec-cell lose">
+        <span class="dc-tag">What you avoided</span>
+        <h4>The "one big lab project" anti-pattern</h4>
+        <p>Mixing all five studies in <code class="code-inline">srl-lab</code> would mean: shared IAM (Pavel can see HIPIMR), shared quota (HALO trainings starve Makawalu), shared billing (no per-grant slice), single VPC SC perimeter (one mistake exposes everything). When NIH audits HALO, they see the whole lab.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Hands-on exercise                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 1.2</div>
+    <h2 class="section-title">Design and create your own slice of the topology</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📐 Design first, then build</div>
+      <ol class="exercise-steps">
+        <li><strong>On paper, sketch the topology for one of your studies.</strong> Pick a real one (or use Makawalu as the worked example). Draw the folder, name every project, and label which holds PHI vs synthetic data.</li>
+        <li>List the shared resources that would <em>not</em> belong to a single study — registry, OMOP vocab, key ring, audit sink. These go to <code class="code-inline">srl-shared-services</code>, not into the study projects.</li>
+        <li>Switch to your active configuration from M0L1:<br>
+          <code class="code-inline">gcloud config configurations activate srl-sandbox</code>
+        </li>
+        <li>Create three projects that match the pattern — a fake study with dev, staging, and prod:<br>
+          <code class="code-inline">gcloud projects create srl-demo-dev --name="SRL Demo (dev)"</code><br>
+          <code class="code-inline">gcloud projects create srl-demo-staging --name="SRL Demo (staging)"</code><br>
+          <code class="code-inline">gcloud projects create srl-demo-prod --name="SRL Demo (prod)"</code>
+        </li>
+        <li>Apply labels to all three so billing exports later slice cleanly:<br>
+          <code class="code-inline">gcloud projects update srl-demo-prod --update-labels=lab=srl,study=demo,env=prod,phi=no</code>
+        </li>
+        <li>Link each to your billing account:<br>
+          <code class="code-inline">gcloud billing projects link srl-demo-dev --billing-account=[BILLING_ACCOUNT_ID]</code> <span style="color:var(--text3);">(repeat for staging + prod)</span>
+        </li>
+        <li>List your projects and confirm the three appear with the right labels:<br>
+          <code class="code-inline">gcloud projects list --filter="labels.lab=srl"</code>
+        </li>
+        <li><strong>Cleanup discipline.</strong> When you're done practising, delete all three:<br>
+          <code class="code-inline">gcloud projects delete srl-demo-dev</code> <span style="color:var(--text3);">(repeat — the 30-day grace period gives you a way out if you click too fast)</span>
+        </li>
+        <li><strong>Bonus, if you have a folder admin handy:</strong> create a real <code class="code-inline">shepherd-research-lab</code> folder under <code class="code-inline">uhcc</code> and move <code class="code-inline">srl-demo-*</code> into it. <code class="code-inline">gcloud projects move srl-demo-dev --folder=[FOLDER_ID]</code>.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Commands you used or saw</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud projects create</span>
+        <span class="tag">gcloud projects update --update-labels</span>
+        <span class="tag">gcloud projects list --filter</span>
+        <span class="tag">gcloud billing projects link</span>
+        <span class="tag">gcloud projects move</span>
+        <span class="tag">gcloud projects delete</span>
+        <span class="tag">gcloud resource-manager folders list</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>HALO and ShepBERT both want to query the same OMOP vocabulary tables. Where does that vocabulary live, and why not in either study's project?</span>
+        <a href="#" class="check-btn" onclick="alert('Shared services. The vocabulary is identical across studies, multi-gigabyte, and updated lab-wide on a known cadence. Putting it in either study project ties its lifecycle to that grant and forces the other study to copy or cross-project query. In srl-shared-services it has one owner, one billing line, and every study reads from it.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You inherit a project called <code class="code-inline">uhcc-research</code> that holds HIPIMR DICOMs, Makawalu training data, and HALO OMOP all in the same buckets and datasets. Name three specific things this design makes harder.</span>
+        <a href="#" class="check-btn" onclick="alert('1) IAM bleed — anyone with Storage Object Viewer sees PHI from all three studies. 2) Billing — you cannot slice per grant without writing queries against labels you do not have. 3) Lifecycle — when HIPIMR ends, you cannot delete the project without taking HALO and Makawalu down with it. Also: any VPC SC perimeter is binary, so the entire project is in or out.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why is <code class="code-inline">phi=yes</code> as a project label more useful than a project name that contains the word "phi"?</span>
+        <a href="#" class="check-btn" onclick="alert('Labels are queryable — billing exports, asset inventories, and org-policy conditionals can all filter on labels. Names are searchable strings only. With phi=yes you can write one query that lists every PHI project across the org, one BigQuery view that totals PHI cost per quarter, or one org policy that automatically applies CMEK to every labelled project.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>For a small one-year pilot study, do you still need a dev, staging, and prod project?</span>
+        <a href="#" class="check-btn" onclick="alert('Often no. Many short studies run only dev + prod. Skip staging when the prod environment is small enough to rehearse changes inside dev and roll forward. Never skip dev — you need a place where breaking things is free.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m1-lesson1.html" class="btn">← Lesson 1.1: The GCP mental model</a>
+    <a href="#" class="btn btn-primary" style="opacity:.55;cursor:default;" title="In development">Lesson 1.3: Identity &amp; access architecture →</a>
+  </div>
+
 </main>
-<footer style="border-top:1px solid var(--border);padding:2rem;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text3)">
-  Shepherd Research Lab · University of Hawaiʻi Cancer Center
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
 </footer>
-<script>
-  // Load Google Fonts for placeholder too
-</script>
+
+<script src="../js/main.js"></script>
 </body>
 </html>
