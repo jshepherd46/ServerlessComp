@@ -87,12 +87,18 @@ ServerlessComp/
 
 ## Module curriculum
 
+### Phase 0 — Prerequisite
+
+| # | Track | Title | Hours | Status |
+|---|-------|-------|-------|--------|
+| M0 | PREREQ | Set up your environment + GCP landscape | ~1.5 | Complete (L1 + L2) |
+
 ### Phase 1 — Foundations (M1–M4)
 
 | # | Track | Title | Hours | Status |
 |---|-------|-------|-------|--------|
-| M1 | INFRA | Cloud architecture & systems thinking | 5 | L1 complete, L2–L4 needed |
-| M2 | INFRA | Containers: from local to cloud | 8 | Stub |
+| M1 | INFRA | Cloud architecture & systems thinking | 5 | Complete (L1–L4) |
+| M2 | INFRA | Containers: from local to cloud | 8 | Complete (L1–L3) |
 | M3 | HIPAA | HIPAA-compliant GCP environment | 7 | Stub |
 | M4 | INFRA | Serverless fundamentals: Cloud Run & Cloud Functions | 7 | Stub |
 

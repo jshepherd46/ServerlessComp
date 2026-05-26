@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M2 · Lesson 1: Container fundamentals — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Layer stack visualisation */
+.layer-stack {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+}
+.layer {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r); padding: .6rem .9rem;
+  margin-bottom: 6px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 1rem;
+}
+.layer:last-child { margin-bottom: 0; }
+.layer .lyr-name { color: var(--text); }
+.layer .lyr-size { color: var(--text3); white-space: nowrap; }
+.layer.base   { border-left: 3px solid var(--teal); }
+.layer.deps   { border-left: 3px solid var(--blue); }
+.layer.code   { border-left: 3px solid var(--amber); }
+.layer.config { border-left: 3px solid var(--purple); }
+.layer-arrow {
+  text-align: center; color: var(--text3); font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; margin: 4px 0;
+}
+
+/* Mistake row */
+.mistake {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .9rem 1.15rem; margin-bottom: 8px;
+}
+.mistake .m-title {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--coral); margin-bottom: .3rem;
+}
+.mistake .m-body {
+  font-size: 12.5px; color: var(--text2); line-height: 1.55;
+}
+.mistake .m-body code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M2 · Lesson 1 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 2</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot active" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 1 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Container fundamentals<br>and your first Dockerfile</h1>
+    <p class="lesson-sub">Module 1 told you where things live and who can touch them. From here on, "thing" means container. This lesson is the model — what a container actually is, how you build one, and the five mistakes that cost researchers a week.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 Docker Desktop or Cloud Shell</span>
+      <span>📍 Module 2 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: The mental model                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The model</div>
+    <h2 class="section-title">Image, container, registry</h2>
+    <p style="margin-bottom: 1rem;">Three concepts. Learn them in order; everything else in the module follows.</p>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">📦</div>
+        <div class="principle-title"><a class="g-term" href="../glossary.html#image">Image</a></div>
+        <div class="principle-body">An immutable, layered bundle of your code, its dependencies, and a starting command. Built once, run anywhere. Think "a frozen filesystem with metadata."</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">⚡</div>
+        <div class="principle-title"><a class="g-term" href="../glossary.html#container">Container</a></div>
+        <div class="principle-body">A running instance of an image. Isolated from the host, ephemeral, disposable. Stop it and the container disappears — the image stays.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🗂</div>
+        <div class="principle-title">Registry</div>
+        <div class="principle-body">A network-addressable storage system for images. You <code class="code-inline">push</code> images to it after building; Cloud Run and GKE <code class="code-inline">pull</code> from it to run. <a class="g-term" href="../glossary.html#artifact-registry">Artifact Registry</a> is GCP's. Docker Hub is the public one.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🧱</div>
+        <div class="principle-title">Layer</div>
+        <div class="principle-body">An image is a stack of layers — each one a filesystem diff. Layers are cached and shared between images. The single most important property to understand for fast, small builds.</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Why containers exist:</strong> "it works on my machine" stops being a sentence anyone has to say. The image bundles the OS userland, the language runtime, the library versions, and your code into one artifact. The same image runs on your laptop, in Cloud Shell, on Cloud Run, in a GKE pod, and on a Vertex AI Training node — bit-for-bit identical.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Layers visualised                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">How images are built</div>
+    <h2 class="section-title">Layers, cached and stacked</h2>
+    <p style="margin-bottom: 1rem;">Every line in a Dockerfile that changes the filesystem creates a new layer. Layers stack top-down. Crucially, layers are cached by their content hash — if a layer's inputs haven't changed, Docker reuses the cached version instead of rebuilding it.</p>
+
+    <div class="layer-stack">
+      <div class="layer config"><span class="lyr-name">CMD ["python", "app.py"]</span> <span class="lyr-size">metadata, 0 B</span></div>
+      <div class="layer-arrow">↑ cached unless the line above changes</div>
+      <div class="layer code"><span class="lyr-name">COPY . /app</span> <span class="lyr-size">~50 KB (your code)</span></div>
+      <div class="layer-arrow">↑ invalidates whenever any source file changes</div>
+      <div class="layer deps"><span class="lyr-name">RUN pip install -r requirements.txt</span> <span class="lyr-size">~120 MB</span></div>
+      <div class="layer-arrow">↑ invalidates only when requirements.txt changes</div>
+      <div class="layer deps"><span class="lyr-name">COPY requirements.txt /tmp/</span> <span class="lyr-size">~2 KB</span></div>
+      <div class="layer-arrow">↑ invalidates only when requirements.txt changes</div>
+      <div class="layer base"><span class="lyr-name">FROM python:3.12-slim</span> <span class="lyr-size">~50 MB (base image)</span></div>
+    </div>
+
+    <p style="font-size:13.5px; margin-bottom: 1rem;">Read the stack bottom-up — that's the order Docker builds in. Read it top-down to see what runs first when a container starts.</p>
+
+    <div class="callout">
+      <strong>The single most important Dockerfile principle:</strong> put slow-changing things (the base image, system packages, Python deps) <em>early</em>. Put fast-changing things (your code) <em>late</em>. Then a code-only edit rebuilds in seconds, not minutes — Docker reuses every layer up to the line you changed.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Dockerfile anatomy               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The Dockerfile</div>
+    <h2 class="section-title">A complete file, line by line</h2>
+    <p style="margin-bottom: 1rem;">Here is a real Dockerfile for a tiny Flask service — the kind of thing you'd build to serve a simple inference endpoint or a webhook. Every line earns its place. We'll walk through it after.</p>
+
+<pre class="code-block"><span class="cm"># Dockerfile</span>
+<span class="kw">FROM</span> python:3.12-slim
+
+<span class="cm"># 1. Set a working directory inside the image</span>
+<span class="kw">WORKDIR</span> /app
+
+<span class="cm"># 2. System packages (rare for pure-Python; here as an example)</span>
+<span class="kw">RUN</span> apt-get update <span class="am">&amp;&amp;</span> apt-get install -y --no-install-recommends \
+        curl \
+    <span class="am">&amp;&amp;</span> rm -rf /var/lib/apt/lists/*
+
+<span class="cm"># 3. Python deps — copy lockfile FIRST, install, THEN copy code</span>
+<span class="cm">#    This is the layer-caching pattern from Section 2.</span>
+<span class="kw">COPY</span> requirements.txt .
+<span class="kw">RUN</span> pip install --no-cache-dir -r requirements.txt
+
+<span class="cm"># 4. Now the application code</span>
+<span class="kw">COPY</span> . .
+
+<span class="cm"># 5. Run as a non-root user (security baseline)</span>
+<span class="kw">RUN</span> useradd --create-home --shell /bin/bash app <span class="am">&amp;&amp;</span> chown -R app:app /app
+<span class="kw">USER</span> app
+
+<span class="cm"># 6. Document the port the app listens on (informational)</span>
+<span class="kw">EXPOSE</span> 8080
+
+<span class="cm"># 7. The command that starts the container</span>
+<span class="kw">CMD</span> [<span class="str">"python"</span>, <span class="str">"app.py"</span>]</pre>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">The directives that matter</h3>
+
+    <div class="hier-accordion">
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">🪨</span>
+          <div class="hier-label">
+            <div class="hier-label-name">FROM — the base image</div>
+            <div class="hier-label-desc">Every Dockerfile starts here. Picks the OS userland + runtime your image is built on.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);"><code class="code-inline">python:3.12-slim</code> = Debian slim + CPython 3.12, around 50 MB. <code class="code-inline">python:3.12</code> = full Debian, ~1 GB. For pure-Python services, always start with <code class="code-inline">-slim</code>. For ML work with CUDA, start with an NVIDIA-published image like <code class="code-inline">nvidia/cuda:12.4-runtime-ubuntu22.04</code>.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">📁</span>
+          <div class="hier-label">
+            <div class="hier-label-name">WORKDIR — set and forget</div>
+            <div class="hier-label-desc">The cwd for every following <code class="code-inline">RUN</code>, <code class="code-inline">CMD</code>, <code class="code-inline">COPY</code>.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Pick <code class="code-inline">/app</code> and stick with it. Don't <code class="code-inline">cd</code> inside <code class="code-inline">RUN</code> — that doesn't persist between lines because every <code class="code-inline">RUN</code> is its own shell.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-project"></div>
+          <span class="hier-icon">⚡</span>
+          <div class="hier-label">
+            <div class="hier-label-name">RUN — executes a command at build time</div>
+            <div class="hier-label-desc">Modifies the image filesystem and produces a new layer.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Chain related commands with <code class="code-inline">&amp;&amp;</code> into one RUN so they share a single layer. <code class="code-inline">apt-get update</code> followed by a separate <code class="code-inline">apt-get install</code> in two RUNs is a classic bug — the cached update layer goes stale and you install ancient packages.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-resource"></div>
+          <span class="hier-icon">📥</span>
+          <div class="hier-label">
+            <div class="hier-label-name">COPY — pull files from your build context into the image</div>
+            <div class="hier-label-desc">The build context is the directory you point <code class="code-inline">docker build</code> at.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Prefer <code class="code-inline">COPY</code> over <code class="code-inline">ADD</code> (ADD has surprising URL-fetching and tar-extraction behaviour). Order COPYs by change frequency — lockfile first, code last — to maximise caching.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">👤</span>
+          <div class="hier-label">
+            <div class="hier-label-name">USER — drop root privileges</div>
+            <div class="hier-label-desc">By default, containers run as root. That is not what you want.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Create an unprivileged user and switch to it. Cloud Run and GKE will run your container as root if you let them — and image-scanning tools and HIPAA reviewers will both flag it.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-project"></div>
+          <span class="hier-icon">▶️</span>
+          <div class="hier-label">
+            <div class="hier-label-name">CMD vs ENTRYPOINT — what runs when the container starts</div>
+            <div class="hier-label-desc">99% of the time, <code class="code-inline">CMD</code> in exec form is what you want.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);"><code class="code-inline">CMD ["python", "app.py"]</code> — exec form, no shell, signals propagate correctly so Cloud Run can stop the container cleanly. Avoid <code class="code-inline">CMD python app.py</code> (shell form) — it wraps your command in <code class="code-inline">sh -c</code> and breaks signal handling. <code class="code-inline">ENTRYPOINT</code> is for when you want the image to behave like a CLI binary; rare in research services.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Build, tag, run                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The local loop</div>
+    <h2 class="section-title">Build, tag, run, inspect</h2>
+    <p style="margin-bottom: 1rem;">Three commands take you from a Dockerfile to a running container on your laptop.</p>
+
+<pre class="code-block"><span class="cm"># 1. Build the image. The . is the build context (current directory).</span>
+docker build -t hello-flask:0.1 .
+
+<span class="cm"># 2. Run it, mapping container port 8080 to your laptop's 8080.</span>
+docker run --rm -p 8080:8080 hello-flask:0.1
+
+<span class="cm"># 3. From another terminal, hit it</span>
+curl http://localhost:8080/</pre>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Tags, IDs, and what's where</h3>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">An image has a content-addressed <strong>ID</strong> (a sha256 hash) that never changes. Tags are mutable, human-friendly pointers at IDs:</p>
+
+<pre class="code-block">hello-flask:0.1        <span class="cm"># your tag — name + version</span>
+hello-flask:latest     <span class="cm"># default tag if you do not specify one</span>
+sha256:7b8a9c…         <span class="cm"># the immutable underlying ID</span></pre>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">When you push to a registry, the full address looks like:</p>
+
+<pre class="code-block">us-west1-docker.pkg.dev/srl-shared-services/research/hello-flask:0.1
+<span class="cm">└──── registry host ────┘ └─ project ─┘ └─ repo ─┘ └─── image ──┘ └tag┘</span></pre>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Useful local commands</h3>
+
+<pre class="code-block">docker images                <span class="cm"># list local images</span>
+docker ps                    <span class="cm"># list running containers</span>
+docker ps -a                 <span class="cm"># include stopped containers</span>
+docker logs &lt;container_id&gt;   <span class="cm"># container stdout/stderr</span>
+docker exec -it &lt;id&gt; bash    <span class="cm"># shell into a running container</span>
+docker image inspect hello-flask:0.1   <span class="cm"># layers, env, metadata</span>
+docker image history hello-flask:0.1   <span class="cm"># show layers + sizes</span>
+docker system prune          <span class="cm"># reclaim disk: stopped containers + dangling images</span></pre>
+
+    <div class="callout">
+      <strong>Cloud Shell users:</strong> Docker is already installed. Build and run exactly the same way; just keep in mind Cloud Shell's home directory is small, so <code class="code-inline">docker system prune</code> is your friend.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: The five mistakes                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">What costs you a week</div>
+    <h2 class="section-title">Five mistakes you only make once</h2>
+
+    <div class="mistake">
+      <div class="m-title">1. The 3 GB image for a 200-line service</div>
+      <div class="m-body">You started <code>FROM python:3.12</code> instead of <code>python:3.12-slim</code>. Or you forgot <code>--no-install-recommends</code> on apt-get. Or you left <code>/var/lib/apt/lists</code> in the image. Result: slow pushes, slow pulls, expensive Cloud Run cold starts. <strong>Fix:</strong> start slim, clean up in the same RUN line.</div>
+    </div>
+
+    <div class="mistake">
+      <div class="m-title">2. <code>COPY . .</code> with no .dockerignore</div>
+      <div class="m-body">Your build context is the whole directory. Without a <code>.dockerignore</code> file, <code>.git/</code>, <code>node_modules/</code>, your local <code>venv/</code>, training checkpoints, and that 4 GB of test fixtures all get sucked into the build. <strong>Fix:</strong> always ship a <code>.dockerignore</code> (template below).</div>
+    </div>
+
+    <div class="mistake">
+      <div class="m-title">3. <code>COPY . .</code> before <code>pip install</code></div>
+      <div class="m-body">Now every code edit invalidates the dependency layer. A two-second fix triggers a five-minute rebuild. <strong>Fix:</strong> the pattern from Section 3 — copy the lockfile, install, then copy code.</div>
+    </div>
+
+    <div class="mistake">
+      <div class="m-title">4. Secrets baked into the image</div>
+      <div class="m-body"><code>COPY .env /app/.env</code>, <code>ENV API_KEY=...</code>, hard-coded service account JSON. Anyone who can pull the image can read every layer's contents. <strong>Fix:</strong> never. Use <a class="g-term" href="../glossary.html#secret-manager">Secret Manager</a> at runtime, mounted by Cloud Run or GKE. We do this in M2L3.</div>
+    </div>
+
+    <div class="mistake">
+      <div class="m-title">5. Unpinned versions everywhere</div>
+      <div class="m-body"><code>FROM python:3</code>, <code>RUN pip install flask</code>, <code>RUN apt-get install curl</code>. Your image is reproducible until Tuesday morning when the upstream changes. <strong>Fix:</strong> pin the base image tag (<code>python:3.12.3-slim-bookworm</code>), pin Python deps in <code>requirements.txt</code> (or use <code>uv pip compile</code> / <code>pip-tools</code>), pin apt versions if a regression bit you.</div>
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.5rem;color:var(--text);">A .dockerignore that covers 90% of cases</h3>
+
+<pre class="code-block">.git
+.gitignore
+.venv
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.idea/
+.vscode/
+node_modules/
+.DS_Store
+*.log
+*.env
+secrets/
+data/
+checkpoints/
+*.ckpt
+*.pt
+*.bin</pre>
+
+    <p style="font-size:13.5px;">Drop this in alongside your Dockerfile on day one. Tune as needed.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 2.1</div>
+    <h2 class="section-title">Containerise your first Flask service</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🐳 Build, run, hit it with curl</div>
+      <ol class="exercise-steps">
+        <li>Create a new directory and <code class="code-inline">cd</code> into it. Either on your laptop (Docker Desktop running) or in Cloud Shell.</li>
+        <li>Save this as <strong><code class="code-inline">app.py</code></strong>:
+<pre class="code-block">from flask import Flask
+app = Flask(__name__)
+
+@app.get(<span class="str">"/"</span>)
+def root():
+    return {<span class="str">"service"</span>: <span class="str">"hello-flask"</span>, <span class="str">"status"</span>: <span class="str">"ok"</span>}
+
+if __name__ == <span class="str">"__main__"</span>:
+    app.run(host=<span class="str">"0.0.0.0"</span>, port=8080)</pre>
+        </li>
+        <li>Save this as <strong><code class="code-inline">requirements.txt</code></strong>:
+<pre class="code-block">flask==3.0.3</pre>
+        </li>
+        <li>Save the Dockerfile from <strong>Section 3</strong> as <strong><code class="code-inline">Dockerfile</code></strong> (no extension).</li>
+        <li>Save the <code class="code-inline">.dockerignore</code> from <strong>Section 5</strong> as <strong><code class="code-inline">.dockerignore</code></strong>.</li>
+        <li>Build:<br>
+          <code class="code-inline">docker build -t hello-flask:0.1 .</code><br>
+          Watch the layers. Note which step took longest.
+        </li>
+        <li>Run, mapping the port:<br>
+          <code class="code-inline">docker run --rm -p 8080:8080 hello-flask:0.1</code>
+        </li>
+        <li>In another terminal, hit it:<br>
+          <code class="code-inline">curl http://localhost:8080/</code><br>
+          You should see <code class="code-inline">{"service":"hello-flask","status":"ok"}</code>.
+        </li>
+        <li><strong>Force a cache hit.</strong> Edit only <code class="code-inline">app.py</code> (change the status string). Rebuild and time it:<br>
+          <code class="code-inline">time docker build -t hello-flask:0.2 .</code><br>
+          The dependency layer should be reused — rebuild in &lt;5 seconds.
+        </li>
+        <li><strong>Force a cache miss.</strong> Edit <code class="code-inline">requirements.txt</code> (add <code class="code-inline">requests==2.32.3</code>). Rebuild. The pip install layer reruns. Now you've seen both sides of the cache.</li>
+        <li>Inspect the image:<br>
+          <code class="code-inline">docker image history hello-flask:0.2</code><br>
+          Each line is a layer + its size. This is your bill of materials.
+        </li>
+        <li>Stop the running container with <kbd>Ctrl-C</kbd>. Clean up:<br>
+          <code class="code-inline">docker rmi hello-flask:0.1 hello-flask:0.2</code>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Commands you used</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">docker build</span>
+        <span class="tag">docker run</span>
+        <span class="tag">docker image history</span>
+        <span class="tag">docker images</span>
+        <span class="tag">docker ps</span>
+        <span class="tag">docker logs</span>
+        <span class="tag">docker rmi</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>You edit one line in <code class="code-inline">app.py</code>. Your rebuild takes 8 minutes because pip reinstalls every package. What's wrong with the Dockerfile?</span>
+        <a href="#" class="check-btn" onclick="alert('The COPY . . line is above the pip install line. Any source edit invalidates the layer that triggers dependency installation. Fix: COPY requirements.txt first, RUN pip install, THEN COPY . . — so code edits reuse the cached deps layer.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your colleague says "just put the API key in an ENV directive — the image is private." Why is this still wrong?</span>
+        <a href="#" class="check-btn" onclick="alert('Three reasons. (1) Image layers are not encrypted; anyone who pulls the image can read every layer with docker image history or by extracting the tarball. (2) "Private" registries get compromised, mis-shared, or cached. (3) You cannot rotate the key without rebuilding and re-deploying. Secrets belong in Secret Manager, mounted at runtime — covered in M2L3.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>What's the practical difference between <code class="code-inline">CMD ["python", "app.py"]</code> and <code class="code-inline">CMD python app.py</code>?</span>
+        <a href="#" class="check-btn" onclick="alert('The exec form (array syntax) runs your command as PID 1 directly. The shell form wraps it in sh -c, so signals (SIGTERM from Cloud Run when scaling down) go to the shell, not your app. Your app may not get a clean shutdown — in-flight requests get dropped instead of drained. Always use exec form for production containers.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your <code class="code-inline">hello-flask:0.1</code> image is 1.2 GB. The actual app is 200 lines of Python. Name three places the bloat likely came from.</span>
+        <a href="#" class="check-btn" onclick="alert('1) Base image: python:3.12 instead of python:3.12-slim adds ~900 MB of Debian. 2) apt-get install without --no-install-recommends pulled in transitive packages you do not need. 3) Build context bloat: missing .dockerignore swept .venv, .git, training checkpoints, or test data into a COPY . . layer. Bonus: pip install --no-cache-dir was missing, leaving wheel caches.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="../index.html" class="btn">← All modules</a>
+    <a href="m2-lesson2.html" class="btn btn-primary">Lesson 2.2: Production-quality images &amp; CI →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

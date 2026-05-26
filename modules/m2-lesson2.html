@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M2 · Lesson 2: Production-quality images, Artifact Registry, Cloud Build — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Bar quality */
+.bar-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px; margin: 1rem 0 1.5rem;
+}
+.bar {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .85rem 1rem;
+  border-left: 3px solid var(--teal);
+}
+.bar:nth-child(2) { border-left-color: var(--blue); }
+.bar:nth-child(3) { border-left-color: var(--coral); }
+.bar:nth-child(4) { border-left-color: var(--amber); }
+.bar:nth-child(5) { border-left-color: var(--green); }
+.bar h3 {
+  font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+  text-transform: none; letter-spacing: 0;
+}
+.bar p { font-size: 12px; color: var(--text2); line-height: 1.5; }
+
+/* Image-size comparison */
+.size-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin: 1rem 0 1.5rem;
+}
+.size-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+}
+.size-card.bad { border-left: 3px solid var(--coral); }
+.size-card.good { border-left: 3px solid var(--green); }
+.size-card .sc-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  letter-spacing: .06em; text-transform: uppercase;
+  margin-bottom: .35rem;
+}
+.bad .sc-label { color: var(--coral); }
+.good .sc-label { color: var(--green); }
+.size-card h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.size-card .sc-size {
+  font-family: 'IBM Plex Mono', monospace; font-size: 18px;
+  color: var(--text); margin: .35rem 0;
+}
+.size-card p { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+@media (max-width: 640px) { .size-row { grid-template-columns: 1fr; } }
+
+/* Build steps */
+.bstep {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .85rem 1.1rem; margin-bottom: 8px;
+  display: grid; grid-template-columns: 32px 1fr; gap: 12px;
+  align-items: flex-start;
+}
+.bstep .bn {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(240,165,0,.15); color: var(--amber);
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.bstep .bt {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+}
+.bstep .bd { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.bstep .bd code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M2 · Lesson 2 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 2</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 2 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Production-quality images,<br>registry, and CI</h1>
+    <p class="lesson-sub">Lesson 1 got you building. This lesson is the gap between "it works on my laptop" and "it ships nightly into a HIPAA project." Multi-stage builds, pinned deps, Artifact Registry, Cloud Build, and the vulnerability scan you'll actually read.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 Docker, Artifact Registry, Cloud Build</span>
+      <span>📍 Module 2 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: The bar                          -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The bar</div>
+    <h2 class="section-title">What "production quality" actually means</h2>
+    <p style="margin-bottom: 1rem;">Five properties. An image that has all five can ship to <code class="code-inline">srl-makawalu-prod</code>. An image missing any one of them is a near-miss waiting to be an incident.</p>
+
+    <div class="bar-grid">
+      <div class="bar">
+        <h3>🪶 Small</h3>
+        <p>Sub-300 MB for pure Python; sub-2 GB even for CUDA workloads. Smaller = faster pushes, faster pulls, smaller cold starts, smaller attack surface.</p>
+      </div>
+      <div class="bar">
+        <h3>🚀 Fast to start</h3>
+        <p>Layered for cache reuse. Lazy imports. No heavy work in module top-level. Cold-start budget on Cloud Run is real money at scale.</p>
+      </div>
+      <div class="bar">
+        <h3>🔒 Secure</h3>
+        <p>Runs as a non-root user. No secrets baked in. No unused tools (bash, curl, ssh) shipped in prod. Minimal CVE surface.</p>
+      </div>
+      <div class="bar">
+        <h3>♻️ Reproducible</h3>
+        <p>Pin everything — base image digest, language deps with hashes, system packages. Same Dockerfile + same lockfile = bit-identical image, today and in 18 months.</p>
+      </div>
+      <div class="bar">
+        <h3>🔍 Scanned</h3>
+        <p>Every image scanned for CVEs on push. Findings triaged on a known cadence. Auditors don't ask "do you scan?" — they ask "what was your response time on CVE-2024-XXXX?"</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>The mindset shift from L1:</strong> in L1 you proved you could build an image. From here on, every Dockerfile change asks <em>"which of the five did this just affect?"</em> The exercise at the end of this lesson takes the hello-flask from L1 and makes it production-grade against all five.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Multi-stage + bases              -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="multistage">
+    <div class="section-eyebrow">Smaller, fewer moving parts</div>
+    <h2 class="section-title">Multi-stage builds and bases that earn their bytes</h2>
+
+    <p style="margin-bottom: 1rem;">A <strong>multi-stage build</strong> uses one image to compile things, then copies only the final artifacts into a clean, minimal image. The build-time tools (gcc, headers, cargo, npm) never make it into what you ship.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The pattern</h3>
+
+<pre class="code-block"><span class="cm"># Stage 1 — build wheels with compilers available</span>
+<span class="kw">FROM</span> python:3.12-slim <span class="kw">AS</span> builder
+<span class="kw">WORKDIR</span> /build
+<span class="kw">RUN</span> apt-get update <span class="am">&amp;&amp;</span> apt-get install -y --no-install-recommends \
+        build-essential gcc \
+    <span class="am">&amp;&amp;</span> rm -rf /var/lib/apt/lists/*
+<span class="kw">COPY</span> requirements.txt .
+<span class="kw">RUN</span> pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
+<span class="cm"># Stage 2 — clean runtime, no compilers</span>
+<span class="kw">FROM</span> python:3.12-slim
+<span class="kw">WORKDIR</span> /app
+<span class="kw">COPY</span> --from=builder /wheels /wheels
+<span class="kw">COPY</span> requirements.txt .
+<span class="kw">RUN</span> pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.txt \
+    <span class="am">&amp;&amp;</span> rm -rf /wheels
+<span class="kw">COPY</span> . .
+<span class="kw">RUN</span> useradd --create-home --shell /bin/bash app <span class="am">&amp;&amp;</span> chown -R app:app /app
+<span class="kw">USER</span> app
+<span class="kw">CMD</span> [<span class="str">"python"</span>, <span class="str">"app.py"</span>]</pre>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Stage 1 has gcc and build-essential — about 300 MB of extra tooling — used only to compile any C extensions in your dependencies. The final image is stage 2: slim base + wheels + your code. Nothing else.</p>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Base image choices</h3>
+
+    <div class="hier-accordion">
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">🐍</span>
+          <div class="hier-label">
+            <div class="hier-label-name">python:3.12-slim</div>
+            <div class="hier-label-desc">~50 MB. Default for pure Python services. Use this 80% of the time.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Debian-derived, has apt, has a shell. Easy to debug. Slightly larger than alpine but no glibc/musl headaches with binary wheels (PyTorch, scipy, etc.). Pin the patch version + the Debian codename in prod: <code class="code-inline">python:3.12.3-slim-bookworm</code>.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-project"></div>
+          <span class="hier-icon">🪨</span>
+          <div class="hier-label">
+            <div class="hier-label-name">gcr.io/distroless/python3</div>
+            <div class="hier-label-desc">~30 MB. No shell, no package manager, no editor. Maximum security; minimum debuggability.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Use for prod-prod images where someone exec'ing into the container is the wrong answer anyway. Pair with multi-stage: build in <code class="code-inline">python:3.12-slim</code>, copy artifacts into <code class="code-inline">distroless/python3</code>. Trade-off: <code class="code-inline">docker exec -it … bash</code> stops working — you debug via logs only.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-resource"></div>
+          <span class="hier-icon">🎮</span>
+          <div class="hier-label">
+            <div class="hier-label-name">nvidia/cuda:12.4-runtime-ubuntu22.04</div>
+            <div class="hier-label-desc">~3 GB. Ships CUDA + cuDNN runtime libraries. The price you pay for GPU compute.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Pick <code class="code-inline">-runtime</code> over <code class="code-inline">-devel</code> for serving — the devel tag adds compilers and headers you do not ship to prod. For Vertex AI Training where you need nvcc to JIT-compile kernels, use devel in the build stage and runtime in the final stage. For Makawalu CBM serving, runtime is enough.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-resource"></div>
+          <span class="hier-icon">🪶</span>
+          <div class="hier-label">
+            <div class="hier-label-name">alpine — usually wrong for ML</div>
+            <div class="hier-label-desc">~10 MB. Tempting. Then your binary wheels don't exist for musl.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Alpine uses musl libc; almost every ML wheel on PyPI is built for glibc. You end up compiling NumPy / PyTorch / scipy from source inside a multi-stage build — slow, fragile, and you save ~40 MB versus slim. Don't. Reach for distroless instead.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">Before / after on hello-flask</h3>
+
+    <div class="size-row">
+      <div class="size-card bad">
+        <div class="sc-label">L1 single-stage</div>
+        <h4>hello-flask:0.1</h4>
+        <div class="sc-size">~130 MB</div>
+        <p>python:3.12-slim base + Flask + the apt cache we cleaned. Fine for learning, fat for prod.</p>
+      </div>
+      <div class="size-card good">
+        <div class="sc-label">L2 multi-stage</div>
+        <h4>hello-flask:0.2</h4>
+        <div class="sc-size">~80 MB</div>
+        <p>Wheels built in stage 1, copied into a clean stage 2. No apt cache, no compilers, no pip cache, non-root.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Reproducibility                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Reproducibility</div>
+    <h2 class="section-title">Pin everything, with hashes</h2>
+    <p style="margin-bottom: 1rem;">A reproducible image is one where today's build and next year's build are bit-identical. Three layers of pinning, applied in order:</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.5rem;color:var(--text);">1. Pin the base image to a digest, not just a tag</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">Tags are mutable. <code class="code-inline">python:3.12-slim</code> means whatever Python published most recently. Digests don't move.</p>
+
+<pre class="code-block"><span class="cm"># Fragile</span>
+<span class="kw">FROM</span> python:3.12-slim
+
+<span class="cm"># Tighter</span>
+<span class="kw">FROM</span> python:3.12.3-slim-bookworm
+
+<span class="cm"># Bulletproof</span>
+<span class="kw">FROM</span> python:3.12.3-slim-bookworm@sha256:e1cc7a3a8b9d1c…</pre>
+
+    <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;">Get the digest from <code class="code-inline">docker inspect python:3.12.3-slim-bookworm --format='{{index .RepoDigests 0}}'</code> after pulling. Update intentionally on a cadence — usually when you intentionally pull a newer patch version.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.5rem;color:var(--text);">2. Pin Python deps with a lockfile (use <code class="code-inline">uv</code>)</h3>
+
+<pre class="code-block"><span class="cm"># requirements.in — what you actually want</span>
+flask
+gunicorn
+
+<span class="cm"># Generate requirements.txt with versions + hashes</span>
+uv pip compile requirements.in -o requirements.txt --generate-hashes</pre>
+
+    <p style="margin-bottom:.5rem;font-size:13px;color:var(--text2);">The generated <code class="code-inline">requirements.txt</code> pins every direct + transitive dep with a <code class="code-inline">--hash=sha256:…</code> line. Install with <code class="code-inline">pip install --require-hashes</code> in the Dockerfile so any tampering or registry compromise fails the build instead of poisoning the image.</p>
+
+    <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;">If you're not using uv yet: <code class="code-inline">pip-tools</code> (older), <code class="code-inline">poetry</code>, or <code class="code-inline">pdm</code> all produce hashed lockfiles. Pick one per lab and stick with it.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.5rem;color:var(--text);">3. Tag images with a meaningful version, not just <code class="code-inline">latest</code></h3>
+
+<pre class="code-block">us-west1-docker.pkg.dev/srl-shared-services/research/hello-flask:0.2.0
+us-west1-docker.pkg.dev/srl-shared-services/research/hello-flask:abc1234   <span class="cm"># git short-sha</span>
+us-west1-docker.pkg.dev/srl-shared-services/research/hello-flask:2026-05-24 <span class="cm"># date tag</span></pre>
+
+    <p style="font-size:13px;color:var(--text2);">In a Cloud Build pipeline, tag with the git SHA — every deploy is traceable to a commit. Avoid <code class="code-inline">:latest</code> in deploy targets; Cloud Run picks up the new image silently and you lose rollback.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Artifact Registry                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="registry">
+    <div class="section-eyebrow">The registry</div>
+    <h2 class="section-title">Push to Artifact Registry</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#artifact-registry">Artifact Registry</a> is GCP's managed image store. One regional repository per use case, IAM-controlled, automatically scanned, lifecycle-managed. The convention from M1L2: a single <code class="code-inline">srl-shared-services</code> project holds the lab-wide registry; every study's compute pulls from it.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Create the repository once</h3>
+
+<pre class="code-block">gcloud config set project srl-shared-services
+gcloud services enable artifactregistry.googleapis.com
+
+gcloud artifacts repositories create research \
+  --repository-format=docker \
+  --location=us-west1 \
+  --description=<span class="str">"SRL research containers"</span></pre>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Authenticate Docker to the registry (per-machine, once)</h3>
+
+<pre class="code-block">gcloud auth configure-docker us-west1-docker.pkg.dev</pre>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Tag and push</h3>
+
+<pre class="code-block">IMG=us-west1-docker.pkg.dev/srl-shared-services/research/hello-flask:0.2.0
+
+docker build -t <span class="am">$IMG</span> .
+docker push <span class="am">$IMG</span></pre>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Lifecycle — don't keep every image forever</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Cloud Build pushes a new tag for every commit. Without a cleanup policy you accumulate thousands of images. Set a retention rule:</p>
+
+<pre class="code-block">gcloud artifacts repositories set-cleanup-policies research \
+  --location=us-west1 \
+  --policy=cleanup-policy.json</pre>
+
+    <p style="font-size:13px;color:var(--text2);margin-bottom:.5rem;">A minimal <code class="code-inline">cleanup-policy.json</code>:</p>
+
+<pre class="code-block">[
+  {
+    <span class="str">"name"</span>: <span class="str">"keep-tagged-releases"</span>,
+    <span class="str">"action"</span>: {<span class="str">"type"</span>: <span class="str">"Keep"</span>},
+    <span class="str">"condition"</span>: {<span class="str">"tagState"</span>: <span class="str">"TAGGED"</span>, <span class="str">"tagPrefixes"</span>: [<span class="str">"v"</span>]}
+  },
+  {
+    <span class="str">"name"</span>: <span class="str">"delete-old-untagged"</span>,
+    <span class="str">"action"</span>: {<span class="str">"type"</span>: <span class="str">"Delete"</span>},
+    <span class="str">"condition"</span>: {<span class="str">"tagState"</span>: <span class="str">"UNTAGGED"</span>, <span class="str">"olderThan"</span>: <span class="str">"30d"</span>}
+  }
+]</pre>
+
+    <div class="callout">
+      <strong>Cross-project pulls:</strong> Cloud Run / GKE in <code class="code-inline">srl-makawalu-prod</code> needs <code class="code-inline">roles/artifactregistry.reader</code> on the <code class="code-inline">srl-shared-services</code> registry — granted to the runtime <a class="g-term" href="../glossary.html#service-account">service account</a>, not to the project. This is M1L3's one-SA-per-workload pattern in action.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Cloud Build                      -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="cloudbuild">
+    <div class="section-eyebrow">Managed CI</div>
+    <h2 class="section-title">Cloud Build — building, scanning, pushing on git push</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#cloud-build">Cloud Build</a> is GCP's managed CI/CD. The minimum useful pipeline: on every push to <code class="code-inline">main</code>, build the image, tag with the git SHA, push to Artifact Registry. Scanning happens automatically on push.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The cloudbuild.yaml that ships with your repo</h3>
+
+<pre class="code-block"><span class="cm"># cloudbuild.yaml</span>
+substitutions:
+  _REGION: us-west1
+  _REPO: research
+  _IMAGE: hello-flask
+
+steps:
+  <span class="cm"># 1. Build, tagging with both git SHA and a release tag</span>
+  - <span class="kw">name</span>: <span class="str">'gcr.io/cloud-builders/docker'</span>
+    <span class="kw">args</span>:
+      - build
+      - --tag=<span class="am">${_REGION}</span>-docker.pkg.dev/<span class="am">$PROJECT_ID</span>/<span class="am">${_REPO}</span>/<span class="am">${_IMAGE}</span>:<span class="am">$SHORT_SHA</span>
+      - --tag=<span class="am">${_REGION}</span>-docker.pkg.dev/<span class="am">$PROJECT_ID</span>/<span class="am">${_REPO}</span>/<span class="am">${_IMAGE}</span>:latest
+      - .
+
+  <span class="cm"># 2. Push both tags</span>
+  - <span class="kw">name</span>: <span class="str">'gcr.io/cloud-builders/docker'</span>
+    <span class="kw">args</span>:
+      - push
+      - --all-tags
+      - <span class="am">${_REGION}</span>-docker.pkg.dev/<span class="am">$PROJECT_ID</span>/<span class="am">${_REPO}</span>/<span class="am">${_IMAGE}</span>
+
+images:
+  - <span class="am">${_REGION}</span>-docker.pkg.dev/<span class="am">$PROJECT_ID</span>/<span class="am">${_REPO}</span>/<span class="am">${_IMAGE}</span>
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8</pre>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Run it on demand</h3>
+
+<pre class="code-block">gcloud builds submit --config=cloudbuild.yaml .</pre>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Wire to git — the trigger</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Connect your GitHub repo via <strong>Cloud Build → Triggers → Connect repository</strong>. Then create a push trigger:</p>
+
+    <div class="bstep"><div class="bn">1</div><div><div class="bt">Event</div><div class="bd">Push to branch — <code>main</code></div></div></div>
+    <div class="bstep"><div class="bn">2</div><div><div class="bt">Source</div><div class="bd">Your GitHub repo (Cloud Build authenticates via the GitHub app)</div></div></div>
+    <div class="bstep"><div class="bn">3</div><div><div class="bt">Configuration</div><div class="bd">Cloud Build config file → <code>cloudbuild.yaml</code></div></div></div>
+    <div class="bstep"><div class="bn">4</div><div><div class="bt">Service account</div><div class="bd">A dedicated <code>cloud-build-sa</code> with <code>artifactregistry.writer</code> on the registry repo. Per M1L3 — no shared identities.</div></div></div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">Vulnerability scanning — included, must be read</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Every image pushed to Artifact Registry is automatically scanned by Artifact Analysis. Findings appear in the registry UI and via:</p>
+
+<pre class="code-block">gcloud artifacts docker images list-vulnerabilities \
+  us-west1-docker.pkg.dev/srl-shared-services/research/hello-flask:0.2.0</pre>
+
+    <div class="callout">
+      <strong>The response policy:</strong> Critical findings — patch within 7 days or document why you can't. High — 30 days. Medium / Low — quarterly sweep. Findings that exist only in base-image packages your code never imports — note them and move on; don't burn engineering capacity rebuilding for a CVE in a library you don't call.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 2.2</div>
+    <h2 class="section-title">Take hello-flask production</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🏗 Convert, push, automate</div>
+      <ol class="exercise-steps">
+        <li><strong>Start from the hello-flask repo from L1.</strong> If you didn't save it, recreate <code class="code-inline">app.py</code>, <code class="code-inline">requirements.in</code> (just <code class="code-inline">flask</code> + <code class="code-inline">gunicorn</code>), and <code class="code-inline">.dockerignore</code>.</li>
+        <li><strong>Lock dependencies with hashes.</strong> If you have uv: <code class="code-inline">uv pip compile requirements.in -o requirements.txt --generate-hashes</code>. Otherwise install <code class="code-inline">pip-tools</code> and use <code class="code-inline">pip-compile --generate-hashes requirements.in</code>.</li>
+        <li><strong>Rewrite the Dockerfile as multi-stage</strong> using the template from Section 2. Add <code class="code-inline">--require-hashes</code> to the pip install line. Switch <code class="code-inline">CMD</code> to use gunicorn:<br>
+          <code class="code-inline">CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]</code>
+        </li>
+        <li><strong>Build and confirm size dropped.</strong><br>
+          <code class="code-inline">docker build -t hello-flask:0.2.0 .</code><br>
+          <code class="code-inline">docker images hello-flask</code> — compare to 0.1 from L1.
+        </li>
+        <li><strong>Create your Artifact Registry repo</strong> (in your sandbox project for practice):<br>
+          <code class="code-inline">gcloud services enable artifactregistry.googleapis.com</code><br>
+          <code class="code-inline">gcloud artifacts repositories create practice --repository-format=docker --location=us-west1</code>
+        </li>
+        <li><strong>Auth Docker + push:</strong><br>
+          <code class="code-inline">gcloud auth configure-docker us-west1-docker.pkg.dev</code><br>
+          <code class="code-inline">IMG=us-west1-docker.pkg.dev/$PROJECT/practice/hello-flask:0.2.0</code><br>
+          <code class="code-inline">docker tag hello-flask:0.2.0 $IMG &amp;&amp; docker push $IMG</code>
+        </li>
+        <li><strong>Check the scan results</strong> (wait 1–2 min after push):<br>
+          <code class="code-inline">gcloud artifacts docker images list-vulnerabilities $IMG</code><br>
+          Note severity counts. With a slim base + Flask, there should be very few.
+        </li>
+        <li><strong>Add a <code class="code-inline">cloudbuild.yaml</code></strong> from Section 5 to your repo. Run it manually first:<br>
+          <code class="code-inline">gcloud services enable cloudbuild.googleapis.com</code><br>
+          <code class="code-inline">gcloud builds submit --config=cloudbuild.yaml --substitutions=_REPO=practice .</code>
+        </li>
+        <li><strong>Bonus — wire the trigger.</strong> Cloud Build → Triggers → Connect your hello-flask GitHub repo (or the ServerlessComp repo if you're using a subdirectory). Create a push-to-main trigger pointing at <code class="code-inline">cloudbuild.yaml</code>. Make any commit; watch the build fire automatically.</li>
+        <li><strong>Cleanup:</strong> the practice repo costs pennies but tidy up — <code class="code-inline">gcloud artifacts repositories delete practice --location=us-west1</code> when you're done.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools &amp; commands you used</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">uv pip compile</span>
+        <span class="tag">multi-stage Dockerfile</span>
+        <span class="tag">gcloud artifacts repositories create</span>
+        <span class="tag">gcloud auth configure-docker</span>
+        <span class="tag">docker push</span>
+        <span class="tag">gcloud artifacts docker images list-vulnerabilities</span>
+        <span class="tag">gcloud builds submit</span>
+        <span class="tag">Cloud Build triggers</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>You add <code class="code-inline">scipy</code> to <code class="code-inline">requirements.in</code> and your image jumps from 80 MB to 800 MB. Walk through where the extra 720 MB lives and where multi-stage helps.</span>
+        <a href="#" class="check-btn" onclick="alert('scipy ships large compiled numerical libraries (BLAS, LAPACK linkages) in its wheels. Those are runtime artifacts you need — multi-stage cannot drop them. What multi-stage *can* drop: if scipy required compiling from source (no prebuilt wheel for your platform), the compilers and build headers stay in stage 1 only. Also: pip cache, apt cache, and any build-time scratch files are excluded from the final image. The honest answer: a multi-GB ML image is sometimes the floor and the win is shipping prebuilt wheels via stage 1, not making scipy itself smaller.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You tag every Cloud Run deploy with <code class="code-inline">:latest</code> instead of the git SHA. What goes wrong the first time you need to roll back?</span>
+        <a href="#" class="check-btn" onclick="alert('latest moves with every push, so by the time you decide to roll back, your previous "good" image either has the same tag (now pointing at the broken build) or is buried under retention policies. Cloud Run records the image *digest* it deployed, so a console rollback still works — but only if Artifact Registry has not garbage-collected the old digest. With SHA-tagged immutable releases plus a Keep cleanup rule for v-prefixed tags, rollback is a one-line gcloud command at any time.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Artifact Analysis flags 18 vulnerabilities in your image. Three are Critical. Where do you spend your first 30 minutes?</span>
+        <a href="#" class="check-btn" onclick="alert('Look at the three Criticals. For each: (1) what package is affected, (2) does your code actually import or invoke it, (3) is there a fixed version available. If a fix exists, bump the lockfile (uv pip compile to refresh hashes) and rebuild — usually 10 minutes total. If no fix exists or the affected code path is unreachable from your app, document it in the runbook (M1L4) with a re-check date. The 15 lower-severity ones get a quarterly sweep, not 30 minutes today.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why grant <code class="code-inline">roles/artifactregistry.reader</code> to the Cloud Run service account rather than to the Makawalu project itself?</span>
+        <a href="#" class="check-btn" onclick="alert('Per M1L3 — one service account per workload, narrow predefined roles. Granting reader to the SA means only THAT workload can pull THAT image. If you grant it project-wide, every other service account in srl-makawalu-prod can pull every image in the shared registry — a much wider blast radius for no benefit.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m2-lesson1.html" class="btn">← Lesson 2.1: Fundamentals</a>
+    <a href="m2-lesson3.html" class="btn btn-primary">Lesson 2.3: Running containers →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

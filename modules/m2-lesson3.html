@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M2 · Lesson 3: Running containers — Cloud Run, Jobs, and when to escalate — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Contract bullets */
+.contract {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+}
+.contract h3 {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--amber); margin-bottom: .85rem;
+  text-transform: uppercase;
+}
+.contract ul { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 8px; }
+.contract li {
+  font-size: 13.5px; color: var(--text2); line-height: 1.6;
+  padding-left: 22px; position: relative;
+}
+.contract li::before {
+  content: '→'; position: absolute; left: 0; color: var(--amber); font-weight: 600;
+}
+.contract li strong { color: var(--text); font-weight: 600; }
+.contract li code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* Knob grid */
+.knob-grid {
+  display: grid; grid-template-columns: 200px 1fr;
+  gap: 0; margin: 1rem 0 1.5rem;
+  border: 1px solid var(--border); border-radius: var(--r2); overflow: hidden;
+}
+.knob-key, .knob-val {
+  padding: .8rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px; line-height: 1.55;
+}
+.knob-grid > div:nth-last-child(-n+2) { border-bottom: none; }
+.knob-key {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--teal); background: var(--bg2);
+}
+.knob-val { color: var(--text2); background: var(--bg); }
+.knob-val strong { color: var(--text); font-weight: 600; }
+.knob-val code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--amber); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+@media (max-width: 640px) {
+  .knob-grid { grid-template-columns: 1fr; }
+  .knob-key { border-bottom: none; padding-bottom: .25rem; }
+}
+
+/* Pattern card */
+.pat {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.25rem; margin-bottom: 10px;
+  border-left: 3px solid var(--blue);
+}
+.pat:nth-child(2) { border-left-color: var(--teal); }
+.pat:nth-child(3) { border-left-color: var(--purple); }
+.pat .pt-name {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+}
+.pat .pt-when {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--amber); letter-spacing: .04em; margin-bottom: .5rem;
+}
+.pat .pt-arch {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--text3); line-height: 1.7; margin-bottom: .5rem;
+}
+.pat .pt-arch .a { color: var(--blue); }
+.pat .pt-arch .b { color: var(--teal); }
+.pat .pt-arch .c { color: var(--amber); }
+.pat .pt-arch .arr { color: var(--text3); }
+.pat .pt-note { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+
+/* Trigger condition */
+.trig {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .85rem 1.15rem; margin-bottom: 8px;
+}
+.trig .tt {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--coral); margin-bottom: .25rem;
+}
+.trig .tb {
+  font-size: 12.5px; color: var(--text2); line-height: 1.55;
+}
+.trig .tb code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M2 · Lesson 3 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 2</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 3</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot done" title="Lesson 2"></div>
+      <div class="progress-dot active" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 3 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Running containers:<br>Cloud Run, Jobs, and when to escalate</h1>
+    <p class="lesson-sub">You can build a clean image. Now you have to run it somewhere. <a href="../glossary.html#cloud-run">Cloud Run</a> is the default for 80% of research workloads. <a href="../glossary.html#cloud-run-jobs">Cloud Run Jobs</a> handle the batch 15%. The remaining 5% is the GKE escalation — and knowing when you've hit it.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 Cloud Run, Cloud Run Jobs, Cloud Scheduler, Eventarc</span>
+      <span>📍 Module 2 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: The contract                     -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The runtime contract</div>
+    <h2 class="section-title">What every serverless container platform expects</h2>
+    <p style="margin-bottom: 1rem;">Cloud Run, Cloud Run Jobs, and GKE all run your container — but they each demand the same handful of behaviours from your image. Get the contract right once and the same image runs everywhere.</p>
+
+    <div class="contract">
+      <h3>The container contract</h3>
+      <ul>
+        <li><strong>Listen on the port given to you, not a hard-coded one.</strong> Read <code>$PORT</code> from the environment; default to 8080 if absent. Cloud Run sets it; Cloud Run Jobs ignore it; GKE leaves it to your <code>Service</code> spec.</li>
+        <li><strong>Handle SIGTERM cleanly.</strong> When the platform scales you down, it sends SIGTERM and waits ~10 seconds before SIGKILL. Drain in-flight requests; finish writes; flush logs. Use <code>CMD</code> in exec form (from L1) so signals reach your process.</li>
+        <li><strong>Be stateless across requests / runs.</strong> Anything that must persist goes to <a class="g-term" href="../glossary.html#gcs">GCS</a>, <a class="g-term" href="../glossary.html#bigquery">BigQuery</a>, or <a class="g-term" href="../glossary.html#firestore">Firestore</a> — not the container filesystem, which disappears between revisions.</li>
+        <li><strong>Start fast.</strong> Time from container start to "ready to serve" should be measured in seconds, not minutes. Lazy-load big model weights; do heavy initialisation on first request, not at module import.</li>
+        <li><strong>Log to stdout / stderr.</strong> Cloud Logging picks up everything your container writes. No log files, no log rotation, no log shipping — just print.</li>
+        <li><strong>Run as a non-root user.</strong> The <code>USER app</code> line from your L1 Dockerfile.</li>
+      </ul>
+    </div>
+
+    <p style="font-size:13.5px;">Your hello-flask image from M2L1+L2 already meets all six (Flask reads <code class="code-inline">$PORT</code> via gunicorn, gunicorn handles signals, the app is stateless, startup is &lt;2s, logs go to stdout, the Dockerfile drops privileges). That's the floor.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Cloud Run deploy + knobs         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The default — Cloud Run services</div>
+    <h2 class="section-title">Deploying, configuring, scaling</h2>
+    <p style="margin-bottom: 1rem;">The minimum deploy is one command. The rest of this section is the knobs you turn after.</p>
+
+<pre class="code-block">IMG=us-west1-docker.pkg.dev/srl-shared-services/research/hello-flask:0.2.0
+
+gcloud run deploy hello-flask \
+  --image=<span class="am">$IMG</span> \
+  --region=us-west1 \
+  --service-account=hello-flask-sa@srl-makawalu-prod.iam.gserviceaccount.com \
+  --no-allow-unauthenticated</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">That deploys an authenticated HTTPS endpoint running as a sharply scoped service account. Default knobs: 80 concurrent requests per container, 512 MB memory, scales 0 → 100, 5-minute request timeout. Now the levers worth knowing.</p>
+
+    <div class="knob-grid">
+      <div class="knob-key">--memory</div>
+      <div class="knob-val">Default <strong>512 MB</strong>. ML inference needs <code>2Gi</code>–<code>16Gi</code>. Pick the smallest that holds your model + a request buffer. Memory drives CPU allocation — more memory = more vCPU.</div>
+
+      <div class="knob-key">--cpu</div>
+      <div class="knob-val">Default <strong>1 vCPU</strong>. Bump to <code>2</code> or <code>4</code> for CPU-bound inference (CBM models, scikit-learn). Per-instance, not per-request.</div>
+
+      <div class="knob-key">--concurrency</div>
+      <div class="knob-val">Default <strong>80</strong>. Drop to <code>1</code>–<code>4</code> for heavy ML serving so each container handles few requests at a time. Raise to <code>200+</code> for cheap I/O APIs to keep instance counts (and cost) low.</div>
+
+      <div class="knob-key">--min-instances</div>
+      <div class="knob-val">Default <strong>0</strong> (full <a class="g-term" href="../glossary.html#scale-to-zero">scale-to-zero</a>). Set to <code>1</code> for low-latency paths — eliminates the first-request <a class="g-term" href="../glossary.html#cold-start">cold start</a> but you pay for an idle container 24/7.</div>
+
+      <div class="knob-key">--max-instances</div>
+      <div class="knob-val">Default <strong>100</strong>. A safety cap, not a target. Set to your wallet's ceiling so a traffic spike or runaway loop can't run up a bill.</div>
+
+      <div class="knob-key">--timeout</div>
+      <div class="knob-val">Default <strong>5 min</strong>, max <strong>60 min</strong>. Anything that needs longer is a Cloud Run Job, not a service.</div>
+
+      <div class="knob-key">--ingress</div>
+      <div class="knob-val">Default <strong>all</strong>. Use <code>internal</code> for services other GCP workloads call but no human should reach. <code>internal-and-cloud-load-balancing</code> for fronting via Cloud Armor.</div>
+
+      <div class="knob-key">--vpc-connector</div>
+      <div class="knob-val">Wires the service into your <a class="g-term" href="../glossary.html#vpc">VPC</a> so it can reach private resources (Cloud SQL on private IP, internal services). Required for any PHI-adjacent service that should never see the public internet.</div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Mounting secrets at runtime</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">From L1: secrets never go in the image. From M1L3: workload service accounts get <code class="code-inline">roles/secretmanager.secretAccessor</code> on specific secrets. Cloud Run mounts the secret value either as an env var or as a file:</p>
+
+<pre class="code-block">gcloud run deploy hello-flask \
+  --image=<span class="am">$IMG</span> \
+  --region=us-west1 \
+  --service-account=hello-flask-sa@<span class="am">$PROJECT</span>.iam.gserviceaccount.com \
+  --update-secrets=API_KEY=projects/<span class="am">$PROJECT</span>/secrets/hello-api-key:latest \
+  --update-secrets=/etc/creds/db.json=projects/<span class="am">$PROJECT</span>/secrets/db-creds:latest</pre>
+
+    <p style="font-size:13.5px;">First binding exposes the secret as an env var. Second mounts it as a file at <code class="code-inline">/etc/creds/db.json</code>. Both are read at container start; rotating the secret requires a redeploy (or use <code class="code-inline">:latest</code> and the new value picks up on the next cold start).</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Cloud Run Jobs                   -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">For batch — Cloud Run Jobs</div>
+    <h2 class="section-title">Run-to-completion containers</h2>
+    <p style="margin-bottom: 1rem;">A <a class="g-term" href="../glossary.html#cloud-run-jobs">Cloud Run Job</a> is the same runtime as a service, but the container doesn't serve HTTP — it runs, finishes, exits. The platform tracks completion, retries on failure, and emits events when done.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">When to pick a Job over a Service</h3>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">🌙</div>
+        <div class="principle-title">Scheduled work</div>
+        <div class="principle-body">Nightly HIPIMR DICOM ingest, weekly OMOP refresh, monthly cohort export. Triggered by <a class="g-term" href="../glossary.html#cloud-scheduler">Cloud Scheduler</a> on a cron.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">⏳</div>
+        <div class="principle-title">Long-running passes</div>
+        <div class="principle-body">Work that exceeds Cloud Run's 60-minute request timeout. A 4-hour DLP scan, a 90-minute Dataflow trigger sequence.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">📦</div>
+        <div class="principle-title">Batch fan-out</div>
+        <div class="principle-body">Process 1000 patient studies in parallel. A Job with <code class="code-inline">--tasks=1000 --parallelism=20</code> runs 20 at a time and tracks all 1000.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🔁</div>
+        <div class="principle-title">Idempotent retries</div>
+        <div class="principle-body">If a task fails, the platform retries it automatically. Your code must be idempotent — which is good discipline regardless.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Create and run a Job</h3>
+
+<pre class="code-block"><span class="cm"># Create the Job spec (does not run yet)</span>
+gcloud run jobs create nightly-ingest \
+  --image=<span class="am">$IMG</span> \
+  --region=us-west1 \
+  --service-account=ingest-job-sa@<span class="am">$PROJECT</span>.iam.gserviceaccount.com \
+  --tasks=1 \
+  --max-retries=2 \
+  --task-timeout=30m \
+  --memory=2Gi \
+  --set-env-vars=INGEST_DATE=<span class="str">"latest"</span>
+
+<span class="cm"># Trigger an execution right now</span>
+gcloud run jobs execute nightly-ingest --region=us-west1 --wait
+
+<span class="cm"># Schedule it nightly at 02:00 HST via Cloud Scheduler</span>
+gcloud scheduler jobs create http nightly-ingest-trigger \
+  --location=us-west1 \
+  --schedule=<span class="str">"0 2 * * *"</span> \
+  --time-zone=<span class="str">"Pacific/Honolulu"</span> \
+  --uri=<span class="str">"https://us-west1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/$PROJECT/jobs/nightly-ingest:run"</span> \
+  --http-method=POST \
+  --oauth-service-account-email=scheduler-invoker-sa@<span class="am">$PROJECT</span>.iam.gserviceaccount.com</pre>
+
+    <p style="font-size:13.5px;">The scheduler runs as its own service account with <code class="code-inline">roles/run.invoker</code> on the Job — separating <em>"who decides when to run"</em> from <em>"what runs"</em>. Job logs land in Cloud Logging keyed by execution ID.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Three patterns                   -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The patterns you'll reach for</div>
+    <h2 class="section-title">Three patterns that cover most research workloads</h2>
+
+    <div class="pat">
+      <div class="pt-name">Pattern 1 — Authenticated HTTPS inference API</div>
+      <div class="pt-when">Use for: Makawalu XAI serving, ShepBERT inference, any model-as-a-service.</div>
+      <div class="pt-arch">
+        <span class="a">[Caller (auth'd via IAP or service account)]</span> <span class="arr">─▶</span> <span class="b">[Cloud Run service]</span> <span class="arr">─▶</span> <span class="c">[GCS model weights + Secret Manager API keys]</span>
+      </div>
+      <div class="pt-note">Cloud Run service with <code class="code-inline">--no-allow-unauthenticated</code>, mounted secrets, model weights pulled from GCS on first request and cached in memory. <code class="code-inline">--min-instances=1</code> if cold starts matter; otherwise scale-to-zero. <code class="code-inline">--concurrency=2</code> for heavy models.</div>
+    </div>
+
+    <div class="pat">
+      <div class="pt-name">Pattern 2 — Scheduled ingest / ETL</div>
+      <div class="pt-when">Use for: nightly HIPIMR DICOM pulls, weekly OMOP staging refresh.</div>
+      <div class="pt-arch">
+        <span class="a">[Cloud Scheduler (cron)]</span> <span class="arr">─▶</span> <span class="b">[Cloud Run Job]</span> <span class="arr">─▶</span> <span class="c">[reads source, writes GCS + Pub/Sub completion event]</span>
+      </div>
+      <div class="pt-note">Job runs to completion, exits, emits an event. Downstream consumers (de-id pipeline, BigQuery loader) subscribe to that event via Eventarc and react. Decoupled, idempotent, traceable.</div>
+    </div>
+
+    <div class="pat">
+      <div class="pt-name">Pattern 3 — Object-triggered processing</div>
+      <div class="pt-when">Use for: every-new-DICOM de-identification, every-uploaded-image classification.</div>
+      <div class="pt-arch">
+        <span class="a">[GCS object created]</span> <span class="arr">─▶</span> <span class="b">[Eventarc trigger]</span> <span class="arr">─▶</span> <span class="c">[Cloud Run service handles one CloudEvent per request]</span>
+      </div>
+      <div class="pt-note"><a class="g-term" href="../glossary.html#eventarc">Eventarc</a> wraps GCS Audit Log events as CloudEvents and POSTs them to your Cloud Run service. Your container processes one event per request, idempotently. Scales automatically with arrival rate.</div>
+    </div>
+
+    <div class="callout">
+      <strong>The common thread:</strong> stateless containers + GCS/BigQuery for state + Pub/Sub or Eventarc as the wiring. You compose these three patterns to build everything from a one-shot demo to PacificFed's multi-site coordinator.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: When to escalate to GKE          -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">When Cloud Run is the wrong answer</div>
+    <h2 class="section-title">Five conditions that mean it's time for GKE</h2>
+    <p style="margin-bottom: 1rem;">Cloud Run covers most of what a research lab needs — but it isn't everything. <a class="g-term" href="../glossary.html#gke">GKE</a> (Module 5) is what you escalate to when one of these conditions is true. Recognise them so you don't bend Cloud Run into shapes it wasn't built for.</p>
+
+    <div class="trig">
+      <div class="tt">1. The workload runs longer than 60 minutes per request</div>
+      <div class="tb">Cloud Run's max request timeout is 60 min. Cloud Run Jobs go to 24 h, which covers most batch — but if you have a continuous training loop or a long-lived stream consumer, you need GKE pods that run until you stop them.</div>
+    </div>
+
+    <div class="trig">
+      <div class="tt">2. You need a GPU pool that Cloud Run can't give you</div>
+      <div class="tb">Cloud Run added GPU support recently but with narrow choices. Production CBM training, PacificFed FL aggregator on A100s, multi-GPU jobs — these need GKE with a GPU node pool and explicit scheduling.</div>
+    </div>
+
+    <div class="trig">
+      <div class="tt">3. The workload is multi-container (sidecars, init containers)</div>
+      <div class="tb">A pod with a main container plus an Envoy sidecar, a log forwarder, an init container that warms model weights into a shared volume — that's a Kubernetes pod, not a Cloud Run service. Cloud Run supports sidecars now too, but limited to a small set of approved patterns.</div>
+    </div>
+
+    <div class="trig">
+      <div class="tt">4. You need in-cluster service discovery / mesh</div>
+      <div class="tb">Multiple services that talk to each other by name, route via Istio / Cloud Service Mesh, share a per-namespace identity. PacificFed's seven-site aggregator topology is GKE-native because of this.</div>
+    </div>
+
+    <div class="trig">
+      <div class="tt">5. You need persistent state inside the runtime</div>
+      <div class="tb">A stateful container that requires a Persistent Disk — say, a SQLite-backed cache that must survive restarts, or an ATLAS WebAPI instance with local files. Cloud Run filesystems are ephemeral; GKE has <code>PersistentVolumeClaim</code>.</div>
+    </div>
+
+    <div class="callout">
+      <strong>What is <em>not</em> a reason to escalate:</strong> "we're using Kubernetes elsewhere," "Cloud Run feels too magic," "we want more control over networking." None of these justify the operational cost. Stay on Cloud Run until one of the five above forces your hand. M5 covers GKE properly when you're ready.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 2.3</div>
+    <h2 class="section-title">Deploy a real service and a real Job</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🚀 From registry to running</div>
+      <ol class="exercise-steps">
+        <li>You should have <code class="code-inline">hello-flask:0.2.0</code> pushed to your practice registry from M2L2. Confirm:<br>
+          <code class="code-inline">gcloud artifacts docker images list us-west1-docker.pkg.dev/$PROJECT/practice</code>
+        </li>
+        <li>Create a dedicated service account for the workload (per M1L3 — never use the default compute SA):<br>
+          <code class="code-inline">gcloud iam service-accounts create hello-flask-sa --display-name="hello-flask runtime"</code>
+        </li>
+        <li>Grant it nothing yet (it doesn't need any roles to run a stateless app). When we add Secret Manager below, we'll add one binding.</li>
+        <li><strong>Deploy.</strong> Authenticated, scoped, small:<br>
+          <code class="code-inline">IMG=us-west1-docker.pkg.dev/$PROJECT/practice/hello-flask:0.2.0</code><br>
+          <code class="code-inline">gcloud run deploy hello-flask --image=$IMG --region=us-west1 --service-account=hello-flask-sa@$PROJECT.iam.gserviceaccount.com --no-allow-unauthenticated --memory=256Mi --concurrency=80 --max-instances=10</code>
+        </li>
+        <li>Call it (auth required — the gcloud token works):<br>
+          <code class="code-inline">URL=$(gcloud run services describe hello-flask --region=us-west1 --format='value(status.url)')</code><br>
+          <code class="code-inline">curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" $URL/</code>
+        </li>
+        <li><strong>Watch logs in real time</strong> from another shell:<br>
+          <code class="code-inline">gcloud beta logging tail "resource.type=cloud_run_revision AND resource.labels.service_name=hello-flask"</code>
+        </li>
+        <li><strong>Add a secret, mount it.</strong> Create a Secret Manager secret, grant the SA accessor on it, redeploy with the binding:<br>
+          <code class="code-inline">echo -n "shhh-test-value" | gcloud secrets create hello-api-key --data-file=-</code><br>
+          <code class="code-inline">gcloud secrets add-iam-policy-binding hello-api-key --member="serviceAccount:hello-flask-sa@$PROJECT.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"</code><br>
+          <code class="code-inline">gcloud run services update hello-flask --region=us-west1 --update-secrets=API_KEY=hello-api-key:latest</code>
+        </li>
+        <li><strong>Create a Cloud Run Job</strong> from the same image (it will just run Flask and exit when the run completes — fine for the exercise):<br>
+          <code class="code-inline">gcloud run jobs create hello-once --image=$IMG --region=us-west1 --service-account=hello-flask-sa@$PROJECT.iam.gserviceaccount.com --max-retries=0 --task-timeout=2m</code>
+        </li>
+        <li>Execute it once and watch:<br>
+          <code class="code-inline">gcloud run jobs execute hello-once --region=us-west1 --wait</code>
+        </li>
+        <li><strong>Tear it all down</strong> when done:<br>
+          <code class="code-inline">gcloud run services delete hello-flask --region=us-west1</code><br>
+          <code class="code-inline">gcloud run jobs delete hello-once --region=us-west1</code><br>
+          <code class="code-inline">gcloud secrets delete hello-api-key</code><br>
+          <code class="code-inline">gcloud iam service-accounts delete hello-flask-sa@$PROJECT.iam.gserviceaccount.com</code>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Commands you used</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud run deploy</span>
+        <span class="tag">gcloud run services describe</span>
+        <span class="tag">gcloud run services update --update-secrets</span>
+        <span class="tag">gcloud run jobs create</span>
+        <span class="tag">gcloud run jobs execute</span>
+        <span class="tag">gcloud secrets create</span>
+        <span class="tag">gcloud secrets add-iam-policy-binding</span>
+        <span class="tag">gcloud beta logging tail</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Your XAI service's first request after an hour of idle takes 18 seconds. Subsequent requests take 200 ms. Walk through what's happening and three things you could change.</span>
+        <a href="#" class="check-btn" onclick="alert('Cold start. The service scaled to zero, so the next request waits for: image pull, container start, app init (model weights load from GCS, framework warmup). Three levers: (1) --min-instances=1 to keep one container always warm (you pay for the idle instance), (2) shrink the image (M2L2) so pull + start is faster, (3) lazy-load the model on first request rather than at import, so the container becomes "ready" before the model is needed.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why is mounting a secret via Secret Manager strictly better than passing an API key via <code class="code-inline">--set-env-vars</code>?</span>
+        <a href="#" class="check-btn" onclick="alert('Three reasons. (1) Secret Manager values are versioned, IAM-controlled, and audit-logged on every access — you can answer "who pulled this key in the last 90 days." Env vars from --set-env-vars are stored in plaintext in the Cloud Run service spec, visible to anyone with viewer on the service. (2) Rotation: bump the secret version, redeploy — the key never leaves Secret Manager. With env vars you have to edit the service spec. (3) HIPAA evidence: Secret Manager access is a clean log line; env-var inspection is invisible.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You're tempted to put your nightly HIPIMR ingest in a Cloud Run service that polls. Why is a Cloud Run Job + Cloud Scheduler the right call?</span>
+        <a href="#" class="check-btn" onclick="alert('A polling service has to be running between polls — you pay for idle, or you sleep loops eat the request timeout. A Job runs only when triggered, exits when done, costs nothing in between. Cloud Scheduler is the right trigger because cron is a solved problem and you get retry semantics, time-zone handling, and dead-letter on failure for free.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your collaborator argues you should "just move everything to GKE so it's consistent." Give them two concrete reasons why Cloud Run for the API + a Job for the nightly batch is the better default.</span>
+        <a href="#" class="check-btn" onclick="alert('1) Operational cost: GKE Autopilot is the most managed GKE flavour but still has cluster lifecycle, node pool decisions, RBAC, network policies, and Helm/manifests to maintain. Cloud Run is "give it an image, get an HTTPS endpoint" and you go back to research. 2) Cost: Cloud Run scales to zero — the nightly Job costs pennies. GKE Autopilot has per-pod minimums and the cluster control plane is a fixed monthly cost. For workloads that fit Cloud Run, the GKE complexity is unpaid overhead.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Module 2 close                              -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Closing Module 2</div>
+    <h2 class="section-title">You can now ship containers like a serverless engineer</h2>
+    <div class="callout">
+      <strong>The arc of M2:</strong> L1 — what a container is and how to build a working one. L2 — how to build one you'd actually ship: small, pinned, scanned, in Artifact Registry, built by Cloud Build on every push. L3 — how to run it: Cloud Run for services, Cloud Run Jobs for batch, GKE when (and only when) you outgrow them. The image is the unit; the runtime is the variable.
+    </div>
+    <p style="margin-top: 1rem;">Module 3 takes the architectural skeleton from M1 and the container skeleton from M2 and turns them into a HIPAA-compliant environment: VPC Service Controls perimeters, CMEK, the audit posture, and the BAA-enrollment workflow. Everything you've built so far has been the prerequisite for that conversation.</p>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m2-lesson2.html" class="btn">← Lesson 2.2: Production images &amp; CI</a>
+    <a href="m3.html" class="btn btn-primary">M3: HIPAA-compliant GCP environment →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
