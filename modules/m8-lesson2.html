@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M8 · Lesson 2: DLP / Sensitive Data Protection at scale — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* InfoType chips */
+.itype-set {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: 1rem 0 1.5rem;
+}
+.itype {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  padding: 4px 10px; border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text2); background: var(--bg2);
+}
+.itype.med { background: rgba(63,185,80,.08); color: var(--green); border-color: rgba(63,185,80,.25); }
+.itype.us  { background: rgba(88,166,255,.08); color: var(--blue); border-color: rgba(88,166,255,.25); }
+.itype.custom { background: rgba(240,165,0,.1); color: var(--amber); border-color: rgba(240,165,0,.3); }
+
+/* Operation card */
+.opcard {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--green);
+}
+.opcard h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.opcard .ot {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--green); letter-spacing: .04em; margin-bottom: .55rem;
+  display: block;
+}
+.opcard p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.opcard code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* Pipeline shape */
+.dpipe {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.8; overflow-x: auto;
+}
+.dpipe .src { color: var(--blue); }
+.dpipe .step { color: var(--green); }
+.dpipe .sink { color: var(--teal); }
+.dpipe .arr { color: var(--text3); }
+.dpipe .ann { color: var(--text3); font-style: italic; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M8 · Lesson 2 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 8</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 2 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">DLP / Sensitive<br>Data Protection at scale</h1>
+    <p class="lesson-sub">L1 used DLP as "the thing the Healthcare API de-id calls under the hood." This lesson is DLP standalone — InfoTypes, templates, the inspect/de-id/redact operations, and how to run DLP across petabytes of unstructured text with Dataflow.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 Cloud DLP / Sensitive Data Protection, Dataflow, BigQuery</span>
+      <span>📍 Module 8 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: What DLP is                      -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The framing</div>
+    <h2 class="section-title">DLP is the pattern-matching layer, not the data store</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#dlp">Cloud DLP</a> (also called Sensitive Data Protection) is a managed service that scans text, images, and structured data for <strong>InfoTypes</strong> — patterns like phone numbers, SSNs, MRNs — and can mask, redact, tokenize, or hash matches. It does not store your data; it consumes it, returns findings or transformed output, and forgets.</p>
+
+    <p style="margin-bottom: 1rem;">Three things DLP is good at, ranked by frequency of use:</p>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>De-identifying free text.</strong> The clinical-note de-id step in M8L1's Healthcare API de-id config calls DLP under the hood. Direct API access for custom pipelines.</li>
+      <li>→ <strong>Inspecting a corpus for PHI leaks.</strong> Audit a GCS bucket or BigQuery table for accidental PHI; report findings; remediate.</li>
+      <li>→ <strong>Discovering sensitive columns automatically.</strong> Run DLP against a new dataset to flag which columns hold what kinds of sensitive data — useful for IRB review of new data sources.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>What DLP is not.</strong> It's not a database for sensitive data. It's not an encryption service (that's Cloud KMS / CMEK from M3L3). It's not a real-time PHI detector at the network layer (that's a different problem). It's pattern matching at scale, applied to content you hand it.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: InfoTypes                        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">What DLP detects</div>
+    <h2 class="section-title">InfoTypes — built-in and custom</h2>
+    <p style="margin-bottom: 1rem;">DLP comes with hundreds of built-in <strong>InfoTypes</strong> — named patterns plus the detector logic for each. They split into categories. For clinical research, three categories matter most.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Medical / health InfoTypes</h3>
+
+    <div class="itype-set">
+      <span class="itype med">MEDICAL_RECORD_NUMBER</span>
+      <span class="itype med">US_HEALTHCARE_NPI</span>
+      <span class="itype med">US_DEA_NUMBER</span>
+      <span class="itype med">ICD9_CODE</span>
+      <span class="itype med">ICD10_CODE</span>
+      <span class="itype med">MEDICAL_TERM</span>
+      <span class="itype med">FDA_CODE</span>
+    </div>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">US PII InfoTypes (most overlap with HIPAA's 18 identifiers)</h3>
+
+    <div class="itype-set">
+      <span class="itype us">PERSON_NAME</span>
+      <span class="itype us">DATE_OF_BIRTH</span>
+      <span class="itype us">US_SOCIAL_SECURITY_NUMBER</span>
+      <span class="itype us">PHONE_NUMBER</span>
+      <span class="itype us">EMAIL_ADDRESS</span>
+      <span class="itype us">STREET_ADDRESS</span>
+      <span class="itype us">US_DRIVERS_LICENSE_NUMBER</span>
+      <span class="itype us">US_PASSPORT</span>
+      <span class="itype us">CREDIT_CARD_NUMBER</span>
+      <span class="itype us">IP_ADDRESS</span>
+    </div>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Custom InfoTypes — for UH-specific patterns</h3>
+
+    <div class="itype-set">
+      <span class="itype custom">UH_INTERNAL_PATIENT_ID</span>
+      <span class="itype custom">QUEENS_MRN_PATTERN</span>
+      <span class="itype custom">UH_PROVIDER_INITIALS</span>
+    </div>
+
+    <p style="font-size:13.5px;margin-bottom: 1rem;">Custom InfoTypes are defined as either <em>regex</em>, <em>dictionary</em> (a list of known terms), or <em>stored</em> (compiled and reused). Useful when your institution has identifier patterns that don't match the built-ins.</p>
+
+<pre class="code-block"><span class="cm"># A regex-based custom InfoType for UH internal patient IDs</span>
+{
+  <span class="str">"infoType"</span>: {<span class="str">"name"</span>: <span class="str">"UH_INTERNAL_PATIENT_ID"</span>},
+  <span class="str">"regex"</span>: {<span class="str">"pattern"</span>: <span class="str">"UHID-[0-9]{8}"</span>},
+  <span class="str">"likelihood"</span>: <span class="str">"VERY_LIKELY"</span>
+}
+
+<span class="cm"># A dictionary-based custom InfoType for UH provider initials</span>
+{
+  <span class="str">"infoType"</span>: {<span class="str">"name"</span>: <span class="str">"UH_PROVIDER_INITIALS"</span>},
+  <span class="str">"dictionary"</span>: {
+    <span class="str">"wordList"</span>: {<span class="str">"words"</span>: [<span class="str">"JS-MD"</span>, <span class="str">"TS-MD"</span>, <span class="str">"RG-MD"</span>, <span class="str">"PB-PhD"</span>]}
+  }
+}</pre>
+
+    <div class="callout">
+      <strong>The likelihood field.</strong> DLP returns a likelihood per finding (POSSIBLE, LIKELY, VERY_LIKELY). You configure inspection to filter at a threshold — usually LIKELY for high-recall PHI removal, VERY_LIKELY for lower-noise reporting. Setting it to POSSIBLE produces lots of false positives; setting it to VERY_LIKELY may miss real PHI. Tune per workload.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Operations                       -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Three operations</div>
+    <h2 class="section-title">Inspect, de-identify, redact</h2>
+
+    <div class="opcard">
+      <span class="ot">inspect</span>
+      <h4>"What sensitive content is here?"</h4>
+      <p>Scans the content, returns the locations and types of every match. Does not modify the content. The diagnostic operation — use to audit a corpus or to discover the InfoType distribution before designing a de-id config.</p>
+<pre class="code-block">gcloud dlp jobs create inspect-gcs \
+  --project=<span class="am">$PROJECT</span> \
+  --gcs-uri=gs://srl-shepbert-landing/notes/ \
+  --info-types=PERSON_NAME,MEDICAL_RECORD_NUMBER,PHONE_NUMBER \
+  --output-table=bq://<span class="am">$PROJECT</span>.dlp_findings.scan_results</pre>
+    </div>
+
+    <div class="opcard">
+      <span class="ot">deidentify</span>
+      <h4>"Replace matches with surrogates."</h4>
+      <p>Transforms content according to a config — replace each PERSON_NAME with <code>[NAME-1]</code>, replace each PHONE_NUMBER with <code>[REDACTED-PHONE]</code>, etc. Returns the transformed content. The operation you call from production de-id pipelines.</p>
+<pre class="code-block">{
+  <span class="str">"deidentifyConfig"</span>: {
+    <span class="str">"infoTypeTransformations"</span>: {
+      <span class="str">"transformations"</span>: [
+        {
+          <span class="str">"infoTypes"</span>: [{<span class="str">"name"</span>: <span class="str">"PERSON_NAME"</span>}],
+          <span class="str">"primitiveTransformation"</span>: {
+            <span class="str">"replaceConfig"</span>: {<span class="str">"newValue"</span>: {<span class="str">"stringValue"</span>: <span class="str">"[NAME]"</span>}}
+          }
+        },
+        {
+          <span class="str">"infoTypes"</span>: [{<span class="str">"name"</span>: <span class="str">"PHONE_NUMBER"</span>}],
+          <span class="str">"primitiveTransformation"</span>: {<span class="str">"redactConfig"</span>: {}}
+        },
+        {
+          <span class="str">"infoTypes"</span>: [{<span class="str">"name"</span>: <span class="str">"DATE"</span>}],
+          <span class="str">"primitiveTransformation"</span>: {
+            <span class="str">"dateShiftConfig"</span>: {<span class="str">"upperBoundDays"</span>: 30, <span class="str">"lowerBoundDays"</span>: -30}
+          }
+        }
+      ]
+    }
+  }
+}</pre>
+    </div>
+
+    <div class="opcard">
+      <span class="ot">redact</span>
+      <h4>"Remove matches from images."</h4>
+      <p>Specifically for image content — DLP runs OCR + redacts identified bounding boxes. Used in the Healthcare API DICOM de-id for burned-in PHI; rarely called standalone.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Transformation types worth knowing</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>replaceConfig</strong> — substitute a constant string</li>
+      <li>→ <strong>replaceWithInfoTypeConfig</strong> — substitute the InfoType name (e.g., "John" → "[PERSON_NAME]")</li>
+      <li>→ <strong>redactConfig</strong> — remove the match entirely</li>
+      <li>→ <strong>characterMaskConfig</strong> — partial mask (e.g., XXXX-XXXX-4321)</li>
+      <li>→ <strong>cryptoHashConfig</strong> — keyed hash; consistent across occurrences with the same key, can be linked but not reversed</li>
+      <li>→ <strong>cryptoDeterministicConfig</strong> — encrypted with a CMEK key; reversible by anyone with the key</li>
+      <li>→ <strong>dateShiftConfig</strong> — shift by a random offset (preserves intervals)</li>
+    </ul>
+
+    <p style="font-size:13.5px;">The right combination depends on the use case: cryptoHash for linkability without reversibility (research surrogate IDs), dateShift for temporal preservation, redact for "this should not exist," replaceWithInfoType for readability when humans review.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Templates                        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Reuse</div>
+    <h2 class="section-title">DLP templates — configurations as code</h2>
+    <p style="margin-bottom: 1rem;">Configuring 15 transformations inline on every API call is tedious and error-prone. DLP <strong>templates</strong> let you save a configuration once and reference it by ID. Two kinds:</p>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>InspectTemplate</strong> — a named inspect configuration (InfoTypes + likelihood threshold + custom InfoTypes).</li>
+      <li>→ <strong>DeidentifyTemplate</strong> — a named de-identify configuration (transformations + surrogate keys).</li>
+    </ul>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Creating reusable templates</h3>
+
+<pre class="code-block"><span class="cm"># A shared DeidentifyTemplate for all SRL clinical-text de-id</span>
+cat &gt; srl-deid-template.json &lt;&lt;EOF
+{
+  "displayName": "SRL clinical text de-id v2",
+  "deidentifyConfig": {
+    "infoTypeTransformations": {
+      "transformations": [
+        {"infoTypes":[{"name":"PERSON_NAME"}],
+         "primitiveTransformation":{"replaceWithInfoTypeConfig":{}}},
+        {"infoTypes":[{"name":"MEDICAL_RECORD_NUMBER"},{"name":"UH_INTERNAL_PATIENT_ID"}],
+         "primitiveTransformation":{
+           "cryptoHashConfig":{
+             "cryptoKey":{"kmsWrapped":{"cryptoKeyName":"projects/srl-shared-services/locations/us-west1/keyRings/dlp-keys/cryptoKeys/srl-surrogate"}}}}},
+        {"infoTypes":[{"name":"PHONE_NUMBER"}],"primitiveTransformation":{"redactConfig":{}}},
+        {"infoTypes":[{"name":"DATE_OF_BIRTH"},{"name":"DATE"}],
+         "primitiveTransformation":{"dateShiftConfig":{"upperBoundDays":30,"lowerBoundDays":-30,
+           "cryptoKey":{"kmsWrapped":{"cryptoKeyName":"projects/srl-shared-services/locations/us-west1/keyRings/dlp-keys/cryptoKeys/srl-dateshift"}}}}}
+      ]
+    }
+  }
+}
+EOF
+
+gcloud dlp deidentify-templates create --location=us-west1 \
+  --project=<span class="am">$PROJECT</span> \
+  --template-file=srl-deid-template.json \
+  --template-id=srl-clinical-text-v2</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Now every pipeline references <code class="code-inline">projects/$PROJECT/locations/us-west1/deidentifyTemplates/srl-clinical-text-v2</code> instead of duplicating the config. Update the template once; every pipeline picks up the new behaviour.</p>
+
+    <div class="callout">
+      <strong>The shared-services play.</strong> Put the canonical SRL de-id template in <code class="code-inline">srl-shared-services</code> (same pattern as the Artifact Registry, KMS keyring, OMOP vocabulary from M1L2). Per-study de-id pipelines reference the shared template. The lab gets one place to evolve the de-id rule set; every study inherits improvements automatically.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: DLP + Dataflow                   -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Scaling out</div>
+    <h2 class="section-title">DLP + Dataflow for petabyte-scale work</h2>
+    <p style="margin-bottom: 1rem;">DLP's per-request API is fine for thousands of items. For tens of millions of records — a multi-year EHR backfill, a full historical DICOM pixel scan, a corpus migration — you wrap DLP in a <a class="g-term" href="../glossary.html#dataflow">Dataflow</a> pipeline that parallelises calls and writes results back to BigQuery or GCS.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The pattern</h3>
+
+    <div class="dpipe">
+<span class="src">BigQuery / GCS source</span>     <span class="ann"># 100M clinical notes</span>
+       <span class="arr">▼</span>
+<span class="step">Dataflow pipeline</span>           <span class="ann"># auto-scaling workers</span>
+  <span class="arr">├─ Read source</span>
+  <span class="arr">├─ Batch into chunks (~500 items per request)</span>
+  <span class="arr">├─ Call DLP deidentify with template "srl-clinical-text-v2"</span>
+  <span class="arr">├─ Receive transformed content</span>
+  <span class="arr">└─ Write to sink</span>
+       <span class="arr">▼</span>
+<span class="sink">BigQuery / GCS sink</span>       <span class="ann"># de-id\'d note corpus</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Dataflow templates — Google ships pre-built ones</h3>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">Google maintains pre-built Dataflow templates for the most common DLP shapes — you don't have to write the Apache Beam code yourself:</p>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;margin-bottom:1rem;">
+      <li>→ <code class="code-inline">Data Masking/Tokenization from Cloud Storage to BigQuery</code> — flat-file in, BQ out.</li>
+      <li>→ <code class="code-inline">BigQuery to BigQuery (DLP)</code> — table in, transformed table out.</li>
+      <li>→ <code class="code-inline">Pub/Sub to BigQuery (DLP)</code> — streaming de-id on ingest.</li>
+    </ul>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">Launching one of these is a single gcloud command:</p>
+
+<pre class="code-block">gcloud dataflow flex-template run srl-deid-backfill \
+  --template-file-gcs-location=gs://dataflow-templates/latest/flex/Stream_DLP_GCS_Text_to_BigQuery \
+  --region=us-west1 \
+  --parameters=^~^inputFilePattern=gs://srl-shepbert-landing/notes/*.txt~outputTableSpec=<span class="am">$PROJECT</span>:demo_dlp.deid_notes~deidentifyTemplateName=projects/<span class="am">$PROJECT</span>/locations/us-west1/deidentifyTemplates/srl-clinical-text-v2~datasetName=demo_dlp \
+  --service-account-email=dataflow-sa@<span class="am">$PROJECT</span>.iam.gserviceaccount.com \
+  --subnetwork=https://www.googleapis.com/compute/v1/projects/<span class="am">$PROJECT</span>/regions/us-west1/subnetworks/srl-prod-subnet</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Cost reality at scale</h3>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">DLP per-request pricing is by content size + InfoType complexity. Rough order-of-magnitude:</p>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>100K clinical notes</strong> with standard InfoTypes: ~$5-10. Fits in a single Dataflow run; turnaround minutes to an hour.</li>
+      <li>→ <strong>10M notes</strong>: ~$500-1000. Plan it; run during off-hours; checkpoint.</li>
+      <li>→ <strong>Full 5-year UH backfill</strong>: ~$5K-15K depending on note volume. Budget it like a major data-engineering effort; design + dry-run a 1% sample first.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>The discipline:</strong> always dry-run a 0.1–1% sample, inspect the de-id output by eye for the first run of any new template, validate the cost projection before authorising the full scan. Custom InfoTypes can be expensive; the validation step catches regex backreferences that scale poorly.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 8.2</div>
+    <h2 class="section-title">DLP template + inspect + deidentify</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🛡 The de-id pipeline in miniature</div>
+      <ol class="exercise-steps">
+        <li>Enable DLP:<br>
+          <code class="code-inline">gcloud services enable dlp.googleapis.com</code>
+        </li>
+        <li><strong>Inspect a synthetic note</strong> with a built-in DLP request (no PHI in the test text):
+<pre class="code-block">cat &gt; inspect-req.json &lt;&lt;EOF
+{
+  "item": {"value": "Patient John Doe was seen by Dr. Smith. Phone: 808-555-1234. MRN: UHID-12345678."},
+  "inspectConfig": {
+    "infoTypes": [
+      {"name": "PERSON_NAME"},
+      {"name": "PHONE_NUMBER"},
+      {"name": "MEDICAL_RECORD_NUMBER"}
+    ],
+    "minLikelihood": "LIKELY",
+    "includeQuote": true
+  }
+}
+EOF
+
+curl -X POST -H <span class="str">"Authorization: Bearer $(gcloud auth print-access-token)"</span> \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d @inspect-req.json \
+  <span class="str">"https://dlp.googleapis.com/v2/projects/$PROJECT/locations/us-west1/content:inspect"</span></pre>
+          The response shows each finding with type, likelihood, and the matched substring.
+        </li>
+        <li><strong>De-identify the same text</strong> with a one-shot config:
+<pre class="code-block">cat &gt; deid-req.json &lt;&lt;EOF
+{
+  "item": {"value": "Patient John Doe was seen by Dr. Smith. Phone: 808-555-1234. MRN: UHID-12345678."},
+  "deidentifyConfig": {
+    "infoTypeTransformations": {
+      "transformations": [
+        {"infoTypes":[{"name":"PERSON_NAME"}],"primitiveTransformation":{"replaceWithInfoTypeConfig":{}}},
+        {"infoTypes":[{"name":"PHONE_NUMBER"}],"primitiveTransformation":{"redactConfig":{}}},
+        {"infoTypes":[{"name":"MEDICAL_RECORD_NUMBER"}],"primitiveTransformation":{"characterMaskConfig":{"maskingCharacter":"*","numberToMask":-1}}}
+      ]
+    }
+  },
+  "inspectConfig": {"infoTypes":[{"name":"PERSON_NAME"},{"name":"PHONE_NUMBER"},{"name":"MEDICAL_RECORD_NUMBER"}],"minLikelihood":"LIKELY"}
+}
+EOF
+
+curl -X POST -H <span class="str">"Authorization: Bearer $(gcloud auth print-access-token)"</span> \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d @deid-req.json \
+  <span class="str">"https://dlp.googleapis.com/v2/projects/$PROJECT/locations/us-west1/content:deidentify"</span></pre>
+          The response includes the de-id'd text: <code class="code-inline">Patient [PERSON_NAME] was seen by Dr. [PERSON_NAME]. Phone:. MRN: ****************.</code>
+        </li>
+        <li><strong>Add a custom InfoType</strong> for UHID and rerun:
+<pre class="code-block">cat &gt; deid-with-custom.json &lt;&lt;EOF
+{
+  "item": {"value": "Patient ID is UHID-12345678 visited on 2025-04-15."},
+  "deidentifyConfig": {
+    "infoTypeTransformations": {
+      "transformations": [
+        {"infoTypes":[{"name":"UH_INTERNAL_PATIENT_ID"}],"primitiveTransformation":{"replaceWithInfoTypeConfig":{}}}
+      ]
+    }
+  },
+  "inspectConfig": {
+    "customInfoTypes": [{
+      "infoType":{"name":"UH_INTERNAL_PATIENT_ID"},
+      "regex":{"pattern":"UHID-[0-9]{8}"},
+      "likelihood":"VERY_LIKELY"
+    }]
+  }
+}
+EOF
+
+curl -X POST -H <span class="str">"Authorization: Bearer $(gcloud auth print-access-token)"</span> \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d @deid-with-custom.json \
+  <span class="str">"https://dlp.googleapis.com/v2/projects/$PROJECT/locations/us-west1/content:deidentify"</span></pre>
+          The UHID is now masked as <code class="code-inline">[UH_INTERNAL_PATIENT_ID]</code>.
+        </li>
+        <li><strong>Save a reusable DeidentifyTemplate</strong> using the gcloud CLI (or the API), then call the deidentify endpoint with <code class="code-inline">deidentifyTemplateName</code> instead of inline config.</li>
+        <li><strong>Bonus — launch a Dataflow DLP job.</strong> Drop a few synthetic .txt files into a GCS bucket; run the <code class="code-inline">Stream_DLP_GCS_Text_to_BigQuery</code> Dataflow template; verify a BigQuery output table with de-identified content.</li>
+        <li><strong>Tear down</strong>: delete the DLP templates, any Dataflow jobs, the test bucket/dataset.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">DLP content:inspect</span>
+        <span class="tag">DLP content:deidentify</span>
+        <span class="tag">Custom InfoType (regex)</span>
+        <span class="tag">DLP DeidentifyTemplate</span>
+        <span class="tag">Dataflow flex template (DLP)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>You\'re asked to de-identify 50M clinical notes for a new HALO cohort. Why is calling the per-request DLP API in a Cloud Function fan-out the wrong shape?</span>
+        <a href="#" class="check-btn" onclick="alert('Three reasons. (1) Throughput: 50M requests is way past where per-call rate limits start to matter; you\'ll hit DLP\'s API quotas before completing. (2) Reliability: failure-handling and retries on 50M independent function invocations are a nightmare; you want orchestrated batch processing. (3) Cost visibility: per-call invocation lacks the consolidated reporting Dataflow provides for the same workload. The right shape: Dataflow with one of the pre-built DLP templates, autoscaling workers, write to BigQuery sink, single coherent job to monitor.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You want to keep "patient X mentioned in two notes" linkable in the de-id\'d output, but you also do not want anyone to reverse the surrogate back to the real MRN. Which DLP transformation?</span>
+        <a href="#" class="check-btn" onclick="alert('cryptoHashConfig with a KMS-wrapped key. Hashing with a stable key means the same MRN always maps to the same surrogate (linkable within and across notes), but the hash is one-way (not reversible without breaking SHA-256 - infeasible). Compared to cryptoDeterministicConfig which is REVERSIBLE with the key (different threat model), hashing is the right choice for research surrogate IDs where you never want to recover the original.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your DLP de-id template uses likelihood threshold POSSIBLE. The de-id\'d output looks weird - too many things are being masked, including non-PII text like the word "Hawaii" being flagged. What\'s the fix?</span>
+        <a href="#" class="check-btn" onclick="alert('Raise the likelihood threshold to LIKELY (or even VERY_LIKELY for very clean output). POSSIBLE includes weak matches - place names that incidentally match person-name patterns, common phrases that look like medical codes. Most clinical de-id workflows use LIKELY: high enough to suppress false positives, low enough to catch most real PHI. Validate with a sample manual review. Custom InfoTypes specific to your institution (UH provider initials, UHID format) often need VERY_LIKELY because their patterns are sharper.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You\'re tempted to inline the de-id config into each pipeline\'s code rather than use a shared DeidentifyTemplate. Two operational reasons that\'s a bad idea.</span>
+        <a href="#" class="check-btn" onclick="alert('(1) Drift: when you improve the de-id rules (add a new custom InfoType, tighten a transformation), you have to find and update every pipeline; in practice some get missed and the lab ends up with N different versions of "the de-id rules" in production. (2) Audit: "which de-id config was in use on date X for study Y?" is harder to answer when each pipeline has its own config history; with a shared template, you have one version-history to consult. The shared template is cheap structure; the inline version costs forever.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m8-lesson1.html" class="btn">← Lesson 8.1: Healthcare API depth</a>
+    <a href="m8-lesson3.html" class="btn btn-primary">Lesson 8.3: End-to-end pipeline →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

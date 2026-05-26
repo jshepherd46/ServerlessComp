@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M8 · Lesson 3: End-to-end pipeline + Phase 2 close — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Big architecture diagram */
+.archview {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.8; overflow-x: auto;
+}
+.archview .tier {
+  border: 2px dashed; border-radius: var(--r2);
+  padding: 1rem; margin: .5rem 0;
+}
+.archview .prod-tier { border-color: var(--coral); background: rgba(248,113,113,.04); }
+.archview .deid-tier { border-color: var(--green); background: rgba(63,185,80,.04); }
+.archview .tier-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  letter-spacing: .06em; text-transform: uppercase;
+  margin-bottom: .65rem; display: block;
+}
+.archview .prod-tier .tier-label { color: var(--coral); }
+.archview .deid-tier .tier-label { color: var(--green); }
+.archview .step { color: var(--blue); }
+.archview .data { color: var(--teal); }
+.archview .arr { color: var(--text3); }
+.archview .ann { color: var(--text3); font-style: italic; }
+
+/* Cohort flow */
+.cohort-step {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .9rem 1.15rem; margin-bottom: 8px;
+  display: grid; grid-template-columns: 110px 1fr;
+  gap: 1rem; align-items: start;
+}
+.cohort-step .cn {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--green); letter-spacing: .04em; padding-top: 2px;
+}
+.cohort-step .cb { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.cohort-step .cb strong { color: var(--text); }
+.cohort-step .cb code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+@media (max-width: 640px) {
+  .cohort-step { grid-template-columns: 1fr; }
+  .cohort-step .cn { color: var(--amber); }
+}
+
+/* Metric */
+.opm {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .9rem 1.15rem; margin-bottom: 8px;
+}
+.opm h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+  text-transform: none; letter-spacing: 0;
+}
+.opm p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .3rem; }
+.opm code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M8 · Lesson 3 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 8</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 3</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot done" title="Lesson 2"></div>
+      <div class="progress-dot active" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 3 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">The end-to-end<br>secure data pipeline</h1>
+    <p class="lesson-sub">Eight modules in, you have all the parts. This lesson assembles them into one coherent picture: the two-tier production-PHI/research-de-id architecture; the cohort-instantiation pattern that lets researchers actually get data; and the operational metrics that tell you whether it's working. Closes Phase 2.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~45 min reading + exercise</span>
+      <span>🔧 Everything from M3, M6, M7, M8 — together</span>
+      <span>📍 Module 8 of 12 · Phase 2 close</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Two-tier architecture            -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The whole picture</div>
+    <h2 class="section-title">Two tiers, one architecture</h2>
+    <p style="margin-bottom: 1rem;">The single most important architectural commitment SRL makes is the <strong>production-PHI / research-de-id split</strong>. Production PHI lives in a tightly contained tier; every research workload reads from a sibling de-id'd tier. Data moves <em>once</em>, from production into research, through controlled de-identification. Researchers never touch production PHI; production never accumulates research workloads.</p>
+
+    <div class="archview">
+<span class="tier-label">═══ Production-PHI tier ═══</span>
+<div class="prod-tier">
+<span class="ann">Inside VPC SC perimeter "srl-phi" (M3L1)</span>
+&nbsp;
+<span class="step">[Ingest]</span>     <span class="data">EHR / PACS</span> <span class="arr">─▶</span> Cloud Run Job <span class="arr">─▶</span> <span class="data">Healthcare API (FHIR + DICOM)</span>
+                                          <span class="ann"># CMEK, audit logs, SA-scoped (M3L3)</span>
+<span class="step">[Stream]</span>     <span class="data">FHIR store</span> <span class="arr">─▶</span> <span class="data">BigQuery (analytics_v2)</span>
+                <span class="ann"># M8L1 streaming; PHI dataset, restricted IAM</span>
+&nbsp;
+<span class="step">[Run de-id]</span>  Healthcare API <code>deidentify</code> <span class="arr">+</span> DLP template <span class="arr">─▶</span> de-id\'d siblings
+                <span class="ann"># M8L1 + M8L2; consistent surrogates; runs nightly or on-event</span>
+</div>
+&nbsp;
+<span class="tier-label">═══ Research-de-id tier ═══</span>
+<div class="deid-tier">
+<span class="ann">Inside a different VPC SC perimeter or non-perimeter; broader access</span>
+&nbsp;
+<span class="data">De-id\'d FHIR store</span>           <span class="data">De-id\'d DICOM store</span>           <span class="data">De-id\'d BigQuery</span>
+       <span class="arr">│</span>                              <span class="arr">│</span>                            <span class="arr">│</span>
+       <span class="arr">▼ Vertex Pipeline</span>            <span class="arr">▼ Vertex Pipeline</span>            <span class="arr">▼ Cohort queries</span>
+<span class="data">Sharded GCS training</span>           <span class="data">GCS training mirrors</span>           <span class="data">ATLAS / HALO analytics</span>
+       <span class="arr">│</span>                              <span class="arr">│</span>                            <span class="arr">│</span>
+       <span class="arr">▼ ShepBERT LoRA (M7)</span>          <span class="arr">▼ CBM training (M6)</span>           <span class="arr">▼ Cohort definitions</span>
+<span class="data">Adapter in Registry</span>            <span class="data">Model in Registry</span>             <span class="data">Linked cohorts</span>
+</div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Why the two-tier shape wins</h3>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">🔒</div>
+        <div class="principle-title">PHI never moves laterally</div>
+        <div class="principle-body">Researchers, training pipelines, exploratory notebooks all read the de-id tier. PHI lives in one place and stays there.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">📊</div>
+        <div class="principle-title">Audit posture is clean</div>
+        <div class="principle-body">Every read of PHI happens in the production tier and is Data Access logged (M3L3). Research-tier reads are still logged but the data is no longer PHI.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">⚖️</div>
+        <div class="principle-title">Scale-independent</div>
+        <div class="principle-body">Heavy ML training in the research tier never competes with production ingest for resources. Different projects, different quotas, different IAM.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🧬</div>
+        <div class="principle-title">Reproducibility</div>
+        <div class="principle-body">De-id tier snapshots are versioned (date-stamped exports + Vertex Pipeline runs). A paper from 2024 can be re-derived from the 2024 snapshot, not the 2026 live state.</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>The discipline this requires.</strong> Every new study answers two questions on day one: <em>which production-tier resources does this study consume?</em> and <em>which de-id'd resources does this study produce / use?</em> The shape is decided up-front, in the M1L4 runbook, before any data flows.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Cohort instantiation             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">From request to dataset</div>
+    <h2 class="section-title">The cohort instantiation pattern</h2>
+    <p style="margin-bottom: 1rem;">A researcher emails: <em>"For our manuscript I need DICOM studies of women 40-65 with prior screening mammograms in 2020-2024 with biopsy-confirmed outcomes."</em> Eight steps from request to working cohort.</p>
+
+    <div class="cohort-step">
+      <div class="cn">Step 1 — IRB</div>
+      <div class="cb">Researcher files an IRB protocol describing the cohort, the data fields needed, the analysis plan, and (critically) what counts as a successful end-of-study data retirement. Without an approved protocol, no further steps fire.</div>
+    </div>
+
+    <div class="cohort-step">
+      <div class="cn">Step 2 — Cohort spec</div>
+      <div class="cb">A formal cohort definition - SQL against the production-tier BigQuery (PHI), or an ATLAS cohort (M9) against OMOP. The query is <em>reviewed</em> by the data steward and stored in a versioned cohort-specs repository. The query is run against PHI but its <strong>output is just patient IDs + study UIDs</strong>, not data.</div>
+    </div>
+
+    <div class="cohort-step">
+      <div class="cn">Step 3 — De-id'd corpus build</div>
+      <div class="cb">A Vertex Pipeline (M6L2 pattern) reads the cohort patient list, fetches the corresponding records from the production tier under a tightly-scoped audit-logged SA, runs DLP + Healthcare API de-id (M8L2), writes a per-cohort GCS / BigQuery dataset into the research tier. The cohort\'s patient surrogates are <em>derived from</em> the global surrogate map, so linkage to other cohorts works.</div>
+    </div>
+
+    <div class="cohort-step">
+      <div class="cn">Step 4 — Grant access</div>
+      <div class="cb">The de-id\'d cohort dataset gets bound to a per-cohort group (e.g. <code>halo-cohort-2026-mammo@</code>). Researchers added to the group; IAM Conditions limit access by date (matching the IRB-approved timeline). Per M1L3 — groups, not individuals.</div>
+    </div>
+
+    <div class="cohort-step">
+      <div class="cn">Step 5 — Researcher consumes</div>
+      <div class="cb">Researcher queries BigQuery, trains models, exports figures. All inside the research tier; Data Access logging captures who read what within the cohort dataset. Outputs (figures, model artifacts) stay in research tier projects.</div>
+    </div>
+
+    <div class="cohort-step">
+      <div class="cn">Step 6 — Publish</div>
+      <div class="cb">Figures and aggregate results from the cohort can leave for the manuscript. Per HIPAA Safe Harbor + IRB rules, what specifically leaves is reviewed by the steward (and the IRB if specified). Individual-level data never leaves.</div>
+    </div>
+
+    <div class="cohort-step">
+      <div class="cn">Step 7 — Archive</div>
+      <div class="cb">At paper acceptance, the cohort dataset snapshots into a research-archive bucket (CMEK, immutable, in shared-services). The Vertex Pipeline run that produced it is preserved with its parameters. <em>Re-deriving</em> the figure five years later from the archive snapshot is one pipeline rerun.</div>
+    </div>
+
+    <div class="cohort-step">
+      <div class="cn">Step 8 — Retire</div>
+      <div class="cb">Per the IRB-defined end-of-study, the cohort dataset is deleted from active research tier; the access group is dissolved; access logs are retained per institutional policy. The archive snapshot persists; current access goes to zero.</div>
+    </div>
+
+    <div class="callout">
+      <strong>What this discipline gives you.</strong> Every research-tier dataset answers: "What\'s the IRB protocol? Who\'s allowed in? What surrogates? Where\'s the spec? When does it retire?" From M1L4\'s runbook through to the archive bucket, every cohort has a single canonical record. The next grant audit, the next paper revision, the next student joining the lab — all are easier when the answer to each question is documented.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Operational metrics              -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowing it works</div>
+    <h2 class="section-title">Operational metrics for the data pipeline</h2>
+    <p style="margin-bottom: 1rem;">M4L3 set up SLOs for serving services. The same discipline applies to the data pipeline — different metrics, same shape. Four worth tracking from the day the pipeline goes live.</p>
+
+    <div class="opm">
+      <h4>1. Ingest freshness</h4>
+      <p>The lag from "an EHR or PACS produced data at time T" to "that data is in the production-tier store." Goal: usually &lt;1 hour for streaming ingest, &lt;24 hours for nightly batch. Alert when freshness exceeds the goal — a stuck ingest means the next 24 hours of research operates on stale data.</p>
+      <p><code>FRESHNESS = NOW - MAX(resource.last_updated)</code>. Run as a scheduled BigQuery query against the FHIR store\'s BQ streaming tier; emit to Cloud Monitoring.</p>
+    </div>
+
+    <div class="opm">
+      <h4>2. De-id completeness</h4>
+      <p>The fraction of production-tier records that have been propagated through de-id to the research tier. A drop here means the de-id pipeline is failing silently — records are flowing in but not getting de-id\'d for research use. Alert when completeness drops below a threshold (95% within 24 hours of ingest).</p>
+      <p><code>COMPLETENESS = COUNT(deid_resources) / COUNT(production_resources)</code> over a recent window.</p>
+    </div>
+
+    <div class="opm">
+      <h4>3. De-id quality (sample-based)</h4>
+      <p>A scheduled inspect pass against a random sample of de-id\'d records, looking for missed PHI. Should be near zero. Any non-zero finding triggers a manual review and possibly a de-id template revision (M8L2).</p>
+      <p>Run DLP inspect on a 0.1% sample weekly; emit findings count to Cloud Monitoring; alert on any finding above LIKELY threshold.</p>
+    </div>
+
+    <div class="opm">
+      <h4>4. Cohort-build SLO</h4>
+      <p>From "researcher submits cohort spec" to "researcher has access to the de-id\'d cohort dataset": typically 24-72 hours, including the data-steward review. Track per-cohort; surface the median + 90th percentile monthly. The trend matters more than any single value — increasing build time signals the pipeline is under-resourced.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The dashboard</h3>
+
+    <p style="font-size:13.5px;margin-bottom:.75rem;">Each metric in Cloud Monitoring as a custom metric; one dashboard per pipeline (HIPIMR ingest, ShepBERT corpus, HALO OMOP). The metric you check on Monday morning answers "is the pipeline still working?" without you reading individual logs.</p>
+
+    <div class="callout">
+      <strong>The discipline tradeoff.</strong> Each metric costs to set up — 1-2 hours of engineering. Skipping them costs ~one incident before the lab regrets it. Build them when the pipeline goes live, not after the first time you scramble to answer "did anything go wrong last week?"
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 8.3</div>
+    <h2 class="section-title">Map your own study's data pipeline end to end</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📐 Architecture-on-paper, then implementation gaps</div>
+      <ol class="exercise-steps">
+        <li><strong>Pick a real study</strong> you run (or want to run). HIPIMR, Makawalu, HALO, ShepBERT, MAPS — whichever has the freshest pipeline in your head.</li>
+        <li><strong>Map the production tier</strong>: source system (EHR/PACS), ingest mechanism, Healthcare API store(s) used, streaming destinations (BigQuery), CMEK keys, perimeter membership.</li>
+        <li><strong>Map the research tier</strong>: de-id\'d stores, what training corpora they materialize into, who reads them (which groups, which workload SAs), the Vertex Pipeline(s) that produce them.</li>
+        <li><strong>Map the data-steward review path</strong>: who reviews cohort specs, who approves access, who runs the de-id pipeline, who archives at end of study. If any of these are "the same person" or "nobody," that\'s a gap.</li>
+        <li><strong>List the operational metrics you currently track</strong> vs the four from Section 3. Note the gaps.</li>
+        <li><strong>Pick two metrics</strong> from the gap list and design how you\'d implement them: query, scheduling, alerting policy, who gets paged. This is the M1L4 runbook\'s data-pipeline section.</li>
+        <li><strong>Optional — implement one.</strong> Pick the cheapest metric (probably ingest freshness via a scheduled BQ query); set up the Cloud Monitoring custom metric + dashboard tile; verify it produces a number.</li>
+        <li><strong>Document the cohort-instantiation workflow</strong> for your study: who reviews requests, what an accepted cohort spec looks like, where the de-id pipeline runs, how access is granted. Save as part of the lab\'s runbook (M1L4).</li>
+        <li><strong>One sanity check.</strong> For the next cohort that lands on your desk, walk through the eight steps of Section 2 explicitly. Note any step where your process doesn\'t match the template — that\'s the next improvement.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">What this exercise produces</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">Per-study architecture diagram</span>
+        <span class="tag">Gap list (process + metrics)</span>
+        <span class="tag">Cohort-instantiation runbook section</span>
+        <span class="tag">First operational metric in place</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>A new postdoc says "let me query the production FHIR store directly — it\'ll be faster than waiting for a cohort build." Push back in one paragraph.</span>
+        <a href="#" class="check-btn" onclick="alert('Production FHIR is PHI. Direct query by an exploring researcher means: a PHI-tier access grant the IRB protocol may not allow; full Data Access logs cluttered with exploratory queries; potential for incidental disclosure if the researcher copies a query result. The cohort-build workflow exists specifically so research can be fast without compromising the perimeter. A cohort that needs to ship "today" is a cohort whose IRB protocol and steward review can\'t be done in a day - either the request can wait, or it gets a fast-track review path. Either way, "skip the review" is not on the table.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your de-id completeness metric drops from 99% to 85% over a weekend. What\'s probably happening, and what do you check first?</span>
+        <a href="#" class="check-btn" onclick="alert('The Healthcare API de-id operation or the DLP-Dataflow pipeline has stalled. New ingest records are landing in the production tier, but the de-id step is not running or is failing on a subset. Check: (1) the de-id pipeline\'s last successful run timestamp; (2) errors in Cloud Logging for the de-id workload SA; (3) any DLP API quota issues. The pipeline is probably stuck on a specific record (a malformed FHIR resource, a new tag in DICOM the de-id config doesn\'t handle); fix the record handling and resume. Until fixed, the research tier is operating on stale data.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why does the cohort instantiation pattern require the cohort spec query to run against PHI, but only return patient IDs + study UIDs - never data?</span>
+        <a href="#" class="check-btn" onclick="alert('Because the cohort spec asks: "which patients/studies match these criteria?" Answering that requires reading PHI tables (e.g. condition codes, lab values). But the cohort spec\'s output is just a list of IDs - the same IDs that exist in the de-id\'d tier as surrogates. From that point on, the actual data the researcher consumes comes from the de-id tier. The PHI is read once, by an audited workload SA, to produce a list of IDs - never to produce data that flows to research. The IRB protocol authorises the ID-list query; the rest is research-tier.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You\'re looking at the four metrics from Section 3. Which one would you pick as the FIRST to implement for a new study\'s pipeline, and why?</span>
+        <a href="#" class="check-btn" onclick="alert('Ingest freshness. It is the cheapest to implement (one scheduled BQ query) and the most diagnostic: if ingest is broken, EVERYTHING downstream is wrong. De-id completeness and quality both depend on ingest being healthy; cohort-build SLO assumes there\'s data to build from. Freshness alarm = the single most actionable signal that something needs attention. Implement freshness on day one of any new pipeline; layer on the others as the pipeline matures.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Phase 2 close                               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Closing Phase 2</div>
+    <h2 class="section-title">You can stand up a research-grade data pipeline</h2>
+    <div class="callout">
+      <strong>The arc of Phase 2.</strong> M5 — Kubernetes for research workloads. M6 — deep learning, imaging, and the Vertex training-and-serving stack. M7 — clinical NLP, fine-tuning, and frontier-model deployment. M8 — secure data pipelines and de-identification at scale. Combined: a lab can ingest PHI, train CNN and LLM models on it, deploy those models with audit and lifecycle discipline, and run an institution-grade data pipeline that an IRB will approve and an auditor can verify.
+    </div>
+    <p style="margin-top: 1rem;">Phase 3 takes you into analytics, federated learning, MLOps, and the capstone. <strong>M9</strong> is OMOP CDM &amp; ATLAS on GCP — the analytics layer for clinical cohorts that\'s referenced throughout this course. <strong>M10</strong> is federated learning patterns — the PacificFed pattern for training across institutions without moving data. <strong>M11</strong> is MLOps: reusable patterns &amp; automation — Terraforming the whole stack. <strong>M12</strong> is the capstone, where you build the research cloud for one of your own studies, end to end.</p>
+    <p style="margin-top: 1rem;">Everything in M1–M8 is the substrate. Phase 3 is composing it.</p>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m8-lesson2.html" class="btn">← Lesson 8.2: DLP at scale</a>
+    <a href="m9.html" class="btn btn-primary">M9: OMOP CDM &amp; ATLAS on GCP →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

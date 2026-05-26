@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M8 · Lesson 1: Cloud Healthcare API in depth — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Modality grid */
+.mod-row {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px; margin: 1rem 0 1.5rem;
+}
+.mod {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+}
+.mod.dicom { border-left: 3px solid var(--teal); }
+.mod.fhir  { border-left: 3px solid var(--blue); }
+.mod.hl7   { border-left: 3px solid var(--amber); }
+.mod h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.mod .mtag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  letter-spacing: .04em; display: block; margin-bottom: .5rem;
+}
+.mod.dicom .mtag { color: var(--teal); }
+.mod.fhir  .mtag { color: var(--blue); }
+.mod.hl7   .mtag { color: var(--amber); }
+.mod p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.mod .use { font-size: 11.5px; color: var(--text3); font-style: italic; }
+@media (max-width: 720px) { .mod-row { grid-template-columns: 1fr; } }
+
+/* Operation row */
+.op {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .9rem 1.15rem; margin-bottom: 8px;
+  display: grid; grid-template-columns: 150px 1fr;
+  gap: 1rem; align-items: start;
+}
+.op .on {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); padding-top: 2px;
+}
+.op .ob { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.op .ob strong { color: var(--text); }
+.op .ob code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--am); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+@media (max-width: 640px) {
+  .op { grid-template-columns: 1fr; }
+  .op .on { color: var(--amber); }
+}
+
+/* De-id rule */
+.deidr {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .85rem 1.15rem; margin-bottom: 8px;
+}
+.deidr h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+  text-transform: none; letter-spacing: 0;
+}
+.deidr p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .3rem; }
+.deidr code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M8 · Lesson 1 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 8</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot active" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 1 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Cloud Healthcare API<br>in depth</h1>
+    <p class="lesson-sub">M3 used the Healthcare API as "the place PHI lives." M6 and M7 used it as a data source. This lesson is the API itself — the three modalities, what each is for, the operations that move data between them, and the de-identification operation that makes the rest of the course possible.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 Cloud Healthcare API, DICOMweb, FHIR R4, HL7v2</span>
+      <span>📍 Module 8 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Three modalities                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The three doors</div>
+    <h2 class="section-title">DICOM, FHIR, and HL7v2 — which lives where</h2>
+    <p style="margin-bottom: 1rem;">The <a class="g-term" href="../glossary.html#healthcare-api">Cloud Healthcare API</a> wraps three healthcare data modalities under a single project + dataset hierarchy. Each modality is a different store type, optimized for a different kind of data. Knowing which is which is the difference between "I can ingest this" and "I can't even tell what the data is."</p>
+
+    <div class="mod-row">
+      <div class="mod dicom">
+        <span class="mtag">Imaging</span>
+        <h4>DICOM store</h4>
+        <p>For medical imaging. Studies → Series → Instances hierarchy. Pixels + extensive metadata in DICOM SOP classes. Queried via DICOMweb (QIDO-RS, WADO-RS, STOW-RS).</p>
+        <div class="use">Used by: HIPIMR mammography, Makawalu POCUS, any imaging-bearing study.</div>
+      </div>
+      <div class="mod fhir">
+        <span class="mtag">Structured clinical</span>
+        <h4>FHIR store</h4>
+        <p>For clinical data — patients, encounters, observations, conditions, medications, documents. FHIR R4 (or R5) resource model. Native REST API plus search, bulk export, and BigQuery streaming.</p>
+        <div class="use">Used by: HALO (clinical data + cohorts), ShepBERT (notes via DocumentReference), Queen's interop.</div>
+      </div>
+      <div class="mod hl7">
+        <span class="mtag">Legacy interop</span>
+        <h4>HL7v2 store</h4>
+        <p>For HL7 v2.x messages — the format most older EHR systems still emit. Pipe-and-hat encoded message segments. Mostly used as an inbound shim; the canonical path is HL7v2 → FHIR transformation.</p>
+        <div class="use">Used when: ingesting from systems that won't emit FHIR directly. Less common in greenfield SRL workflows.</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>The relationship.</strong> One Healthcare <em>dataset</em> contains many stores; stores are independent and typed (DICOM, FHIR, HL7v2). A study's data may use one, two, or all three. They reference each other by ID, not by import — a FHIR <code class="code-inline">ImagingStudy</code> resource can reference a DICOM study UID without copying pixels.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: DICOM operations                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">DICOM in depth</div>
+    <h2 class="section-title">DICOMweb operations + bulk paths</h2>
+    <p style="margin-bottom: 1rem;">DICOM stores support the DICOMweb spec — REST endpoints for query (QIDO-RS), retrieve (WADO-RS), and store (STOW-RS) — plus Google-specific bulk operations for import/export.</p>
+
+    <div class="op">
+      <div class="on">STOW-RS</div>
+      <div class="ob"><strong>Store one or more instances.</strong> <code>POST /studies</code> with multipart/related content. Used by ingest pipelines streaming new DICOMs in real time. From M3L2: every STOW request is audit-logged and perimeter-protected.</div>
+    </div>
+
+    <div class="op">
+      <div class="on">QIDO-RS</div>
+      <div class="ob"><strong>Query by DICOM tag.</strong> <code>GET /studies?PatientID=...&amp;ModalitiesInStudy=MG</code> returns matching study metadata. The query language is the DICOM-spec subset; useful for "find all mammography studies on this patient." Returns metadata only, not pixels.</div>
+    </div>
+
+    <div class="op">
+      <div class="on">WADO-RS</div>
+      <div class="ob"><strong>Retrieve a study, series, or instance.</strong> <code>GET /studies/{uid}</code> for the whole study, or down to <code>/instances/{uid}/frames/1</code> for one frame. Returns multipart/related DICOM content (or JSON metadata-only via <code>/metadata</code>).</div>
+    </div>
+
+    <div class="op">
+      <div class="on">import gcs</div>
+      <div class="ob"><strong>Bulk ingest from a GCS bucket.</strong> Faster than per-instance STOW for backfills. <code class="code-inline">gcloud healthcare dicom-stores import gcs ...</code>.</div>
+    </div>
+
+    <div class="op">
+      <div class="on">export gcs / bq</div>
+      <div class="ob"><strong>Bulk export.</strong> Pixels to GCS or metadata to BigQuery. The path that materialises a training-mirror snapshot for M6L1's data plane.</div>
+    </div>
+
+    <div class="op">
+      <div class="on">deidentify</div>
+      <div class="ob"><strong>Produce a de-identified sibling store.</strong> Runs Google's de-id rule set (or a custom config) against every instance; pixel-burn-in redaction for known modalities; outputs to a new store. The operation that creates the training-tier store for HIPIMR/Makawalu.</div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">A typical DICOM STOW + export workflow</h3>
+
+<pre class="code-block"><span class="cm"># Ingest path: site → GCS landing → Cloud Run Job → STOW into DICOM store</span>
+TOKEN=$(gcloud auth print-access-token)
+curl -X POST \
+  -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
+  -H <span class="str">"Content-Type: application/dicom"</span> \
+  --data-binary @study.dcm \
+  <span class="str">"https://healthcare.googleapis.com/v1/projects/$PROJECT/locations/us-west1/datasets/hipimr/dicomStores/mammo-prod/dicomWeb/studies"</span>
+
+<span class="cm"># Export DICOM metadata to BigQuery for cohort queries</span>
+gcloud healthcare dicom-stores export bq mammo-prod \
+  --dataset=hipimr --location=us-west1 \
+  --bq-table=bq://srl-hipimr-prod.imaging.dicom_meta \
+  --overwrite-table
+
+<span class="cm"># Create a de-id'd sibling store using Google\'s default rules</span>
+gcloud healthcare dicom-stores deidentify mammo-prod \
+  --dataset=hipimr --location=us-west1 \
+  --destination-store=mammo-deid \
+  --default-config</pre>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: FHIR in depth                    -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">FHIR in depth</div>
+    <h2 class="section-title">Resources, references, and streaming to BigQuery</h2>
+
+    <p style="margin-bottom: 1rem;">A FHIR store holds <strong>resources</strong>. Each resource is a JSON document with a defined schema — Patient, Encounter, Observation, Condition, MedicationRequest, DocumentReference, ImagingStudy, etc. Resources reference each other by ID, forming a graph.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">A typical resource graph for a clinical encounter</h3>
+
+<pre class="code-block">Patient/srl-patient-123
+  └─ <span class="ok">subject</span> of:
+     ├── Encounter/srl-enc-789 (inpatient admission)
+     │   ├── <span class="ok">encounter</span> of: Observation/lab-glucose-2026-05-01
+     │   ├── <span class="ok">encounter</span> of: Condition/diabetes-type-2
+     │   ├── <span class="ok">encounter</span> of: MedicationRequest/metformin
+     │   └── <span class="ok">encounter</span> of: DocumentReference/discharge-summary
+     └── <span class="ok">subject</span> of: ImagingStudy/study-uid-...</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">FHIR operations you'll use</h3>
+
+    <div class="op">
+      <div class="on">POST /fhir/Patient</div>
+      <div class="ob">Create a new resource. The server assigns an ID and returns the persisted version.</div>
+    </div>
+
+    <div class="op">
+      <div class="on">GET /fhir/Patient/{id}</div>
+      <div class="ob">Read a resource. Versioned read available via <code>/_history/{vid}</code> for audit.</div>
+    </div>
+
+    <div class="op">
+      <div class="on">GET /fhir/Observation?patient={id}&amp;code=...</div>
+      <div class="ob"><strong>Search.</strong> FHIR's main querying interface. Filterable by resource attributes; supports chained references for graph queries.</div>
+    </div>
+
+    <div class="op">
+      <div class="on">POST /fhir (Bundle)</div>
+      <div class="ob"><strong>Atomic batch.</strong> Multiple resources in one transaction. Common ingest pattern: package an encounter + all child resources as a Bundle.</div>
+    </div>
+
+    <div class="op">
+      <div class="on">$export</div>
+      <div class="ob"><strong>Bulk export to GCS.</strong> Emit a snapshot of the store (or a cohort subset) as NDJSON files. The path to research-tier datasets.</div>
+    </div>
+
+    <div class="op">
+      <div class="on">streaming to BigQuery</div>
+      <div class="ob"><strong>Configure a streaming config on the store</strong> and every change writes a row to BigQuery in near-real-time. Same FHIR-native schema, queryable via SQL. The standard analytic path for HALO cohorts.</div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Enabling BigQuery streaming</h3>
+
+<pre class="code-block">gcloud healthcare fhir-stores update halo-fhir \
+  --dataset=halo --location=us-west1 \
+  --stream-config-pubsub-topic=projects/<span class="am">$PROJECT</span>/topics/fhir-events \
+  --stream-config-bq-destination=bq://<span class="am">$PROJECT</span>.fhir_analytics.resources \
+  --stream-config-schema-type=ANALYTICS_V2</pre>
+
+    <p style="font-size:13.5px;">After this, every FHIR write streams into BigQuery within seconds. The <code class="code-inline">ANALYTICS_V2</code> schema is denormalised for cohort queries. Pair with Pub/Sub notifications for downstream pipelines (M4L2 patterns).</p>
+
+    <div class="callout">
+      <strong>The pattern this enables.</strong> Live FHIR ingest → real-time BigQuery analytics. A clinician researcher can write a SQL query against the FHIR <code class="code-inline">Patient</code> + <code class="code-inline">Condition</code> + <code class="code-inline">Observation</code> tables and answer "how many T2DM patients with HbA1c &gt; 8.5 in the last 30 days" without any ETL pipeline. The Healthcare API does the heavy lifting.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: De-identification                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The most important operation</div>
+    <h2 class="section-title">The de-identify operation</h2>
+    <p style="margin-bottom: 1rem;">The Healthcare API's <code class="code-inline">deidentify</code> operation is what makes everything downstream possible. It applies a configurable rule set to PHI and produces a sibling store (DICOM or FHIR) that is no longer subject to the same HIPAA constraints — research-grade, training-grade, exportable to research projects.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">What the default rule set does (FHIR, briefly)</h3>
+
+    <div class="deidr">
+      <h4>Direct identifiers — replaced or redacted</h4>
+      <p>Patient names, MRNs, account numbers, full addresses, phone numbers, email addresses, contact relationships. Mapped to consistent surrogates (Patient X always maps to the same surrogate "Patient-XYZ123") for cohort coherence.</p>
+    </div>
+
+    <div class="deidr">
+      <h4>Quasi-identifiers — date-shifted</h4>
+      <p>Dates of service, birth dates, admission dates. Shifted by a per-patient random offset, preserving relative intervals (a 30-day follow-up is still 30 days) while removing absolute calendar alignment.</p>
+    </div>
+
+    <div class="deidr">
+      <h4>Geographic identifiers — truncated</h4>
+      <p>ZIP codes truncated to first three digits (per HIPAA Safe Harbor for non-rare regions). Full addresses removed.</p>
+    </div>
+
+    <div class="deidr">
+      <h4>Free text — DLP integration</h4>
+      <p>For DocumentReference and Observation notes, the de-id config invokes <a class="g-term" href="../glossary.html#dlp">Cloud DLP</a> to detect and redact PII patterns. M8L2 covers DLP in depth.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">DICOM de-id specifics</h3>
+
+    <div class="deidr">
+      <h4>Tag-level redaction</h4>
+      <p>DICOM has well-defined PHI tags (PatientName, PatientID, PatientBirthDate, AccessionNumber, etc.). The de-id operation removes or anonymises these per the configured profile.</p>
+    </div>
+
+    <div class="deidr">
+      <h4>Burned-in PHI in pixels</h4>
+      <p>Some imaging modalities (especially ultrasound, screening mammography) burn patient identifiers into the pixel data. The de-id operation can run OCR + redaction on the pixels themselves for known modality types.</p>
+    </div>
+
+    <div class="deidr">
+      <h4>Modality-specific profiles</h4>
+      <p>DICOM Supplement 142 defines tag profiles for different research uses. The Healthcare API supports custom profiles plus several predefined ones (basic, clinical-trials, etc.).</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Running a custom de-id config</h3>
+
+<pre class="code-block"><span class="cm"># A custom config that uses DLP + applies surrogates</span>
+cat &gt; deid-config.json &lt;&lt;EOF
+{
+  "fhir": {
+    "fieldMetadataList": [
+      {"paths": ["Patient.name"], "action": "TRANSFORM"},
+      {"paths": ["Patient.birthDate"], "action": "DATE_SHIFT"}
+    ]
+  },
+  "text": {
+    "transformations": [
+      {"infoTypes": ["PERSON_NAME"], "replaceWithInfoTypeConfig": {}},
+      {"infoTypes": ["PHONE_NUMBER"], "redactConfig": {}}
+    ]
+  }
+}
+EOF
+
+gcloud healthcare fhir-stores deidentify halo-fhir \
+  --dataset=halo --location=us-west1 \
+  --destination-store=halo-deid \
+  --config-file=deid-config.json</pre>
+
+    <div class="callout">
+      <strong>The output is a sibling de-id'd store.</strong> Different store name, different IAM, different perimeter posture allowed. Research projects can be granted read access to the de-id'd store without ever touching the PHI-bearing original. This is the operational boundary that makes research data flow work.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 8.1</div>
+    <h2 class="section-title">FHIR ingest + BigQuery streaming + de-identify</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🏥 The Healthcare API end-to-end</div>
+      <ol class="exercise-steps">
+        <li>Enable APIs:<br>
+          <code class="code-inline">gcloud services enable healthcare.googleapis.com bigquery.googleapis.com pubsub.googleapis.com</code>
+        </li>
+        <li>Create a dataset + FHIR store:<br>
+          <code class="code-inline">gcloud healthcare datasets create demo-hc --location=us-west1</code><br>
+          <code class="code-inline">gcloud healthcare fhir-stores create demo-fhir --dataset=demo-hc --location=us-west1 --version=R4 --enable-update-create</code>
+        </li>
+        <li>Create a BigQuery dataset for the FHIR stream + a Pub/Sub topic:<br>
+          <code class="code-inline">bq mk --location=us-west1 demo_fhir</code><br>
+          <code class="code-inline">gcloud pubsub topics create fhir-events</code>
+        </li>
+        <li>Wire FHIR streaming to BigQuery:<br>
+<pre class="code-block">gcloud healthcare fhir-stores update demo-fhir \
+  --dataset=demo-hc --location=us-west1 \
+  --stream-config-pubsub-topic=projects/<span class="am">$PROJECT</span>/topics/fhir-events \
+  --stream-config-bq-destination=bq://<span class="am">$PROJECT</span>.demo_fhir.resources \
+  --stream-config-schema-type=ANALYTICS_V2</pre>
+        </li>
+        <li>Create a synthetic Patient (no real PHI):<br>
+<pre class="code-block">TOKEN=$(gcloud auth print-access-token)
+curl -X POST \
+  -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
+  -H <span class="str">"Content-Type: application/fhir+json"</span> \
+  -d '{
+    "resourceType": "Patient",
+    "name": [{"family": "TestPatient", "given": ["Alpha"]}],
+    "gender": "female",
+    "birthDate": "1985-06-15",
+    "address": [{"city": "Honolulu", "state": "HI", "postalCode": "96813"}]
+  }' \
+  <span class="str">"https://healthcare.googleapis.com/v1/projects/$PROJECT/locations/us-west1/datasets/demo-hc/fhirStores/demo-fhir/fhir/Patient"</span></pre>
+        </li>
+        <li>Wait ~30 seconds, then query the BigQuery table:<br>
+          <code class="code-inline">bq query --use_legacy_sql=false 'SELECT * FROM `demo_fhir.resources` WHERE resourceType="Patient"'</code><br>
+          You should see the Patient streamed through.
+        </li>
+        <li><strong>Run a de-identification</strong> to a sibling store:<br>
+          <code class="code-inline">gcloud healthcare fhir-stores create demo-fhir-deid --dataset=demo-hc --location=us-west1 --version=R4</code><br>
+<pre class="code-block">gcloud healthcare fhir-stores deidentify demo-fhir \
+  --dataset=demo-hc --location=us-west1 \
+  --destination-store=projects/<span class="am">$PROJECT</span>/locations/us-west1/datasets/demo-hc/fhirStores/demo-fhir-deid</pre>
+        </li>
+        <li>Fetch the de-id'd Patient and compare to the original — the names should be replaced, birth date shifted, address truncated:<br>
+<pre class="code-block">curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
+  <span class="str">"https://healthcare.googleapis.com/v1/projects/$PROJECT/locations/us-west1/datasets/demo-hc/fhirStores/demo-fhir-deid/fhir/Patient/$PATIENT_ID"</span></pre>
+        </li>
+        <li><strong>Tear down:</strong><br>
+          <code class="code-inline">gcloud healthcare fhir-stores delete demo-fhir-deid --dataset=demo-hc --location=us-west1</code><br>
+          <code class="code-inline">gcloud healthcare fhir-stores delete demo-fhir --dataset=demo-hc --location=us-west1</code><br>
+          <code class="code-inline">gcloud healthcare datasets delete demo-hc --location=us-west1</code><br>
+          <code class="code-inline">bq rm -r -d demo_fhir</code><br>
+          <code class="code-inline">gcloud pubsub topics delete fhir-events</code>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud healthcare datasets / fhir-stores</span>
+        <span class="tag">FHIR REST API</span>
+        <span class="tag">stream-config-bq-destination</span>
+        <span class="tag">ANALYTICS_V2 schema</span>
+        <span class="tag">gcloud healthcare fhir-stores deidentify</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>For HALO\'s OMOP analytics, you want clinicians to be able to query patient + observation data in BigQuery without an ETL pipeline. What\'s the shape?</span>
+        <a href="#" class="check-btn" onclick="alert('Enable BigQuery streaming on the HALO FHIR store with ANALYTICS_V2 schema. Every FHIR resource write streams into BigQuery within seconds; tables for Patient, Observation, Condition, MedicationRequest, etc. become directly queryable in SQL. Add audit logging on the FHIR store to track who read what. Grant clinicians roles/bigquery.dataViewer on the dataset, scoped to the de-id\'d version of the streamed data for research access.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>An external collaborator says "just give me bulk export from your FHIR store." Why is the right answer "from the de-id\'d FHIR store, not the production one"?</span>
+        <a href="#" class="check-btn" onclick="alert('The production FHIR store contains PHI. Bulk export from it would either need to (a) go to a destination inside your perimeter, accessible only to BAA-covered identities - which the external collaborator is unlikely to be, or (b) require running de-id on the export. The cleaner architecture: maintain a sibling de-id\'d FHIR store (refreshed nightly or streaming); grant external collaborators read access there; bulk export from de-id, not from PHI. Same shape as Makawalu\'s de-id DICOM store from M6.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You\'re asked to "just export Patient names and DOBs to a CSV for the registry team." Three reasons why this is a non-starter as stated.</span>
+        <a href="#" class="check-btn" onclick="alert('(1) Patient names + DOBs are direct identifiers under HIPAA - a CSV outside the perimeter is a breach. (2) CSV destinations bypass the audit chain - you cannot answer "who read this row of patient data on date X" later. (3) "Registry team" likely doesn\'t have BAA-covered identities or a perimeter-protected destination. The right shape: a de-id\'d cohort table in BigQuery inside the perimeter; the registry team gets bigquery.dataViewer on that table, scoped, audited, with date-shifted birth dates only.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>What does the de-id operation\'s "consistent surrogate" promise buy you for cohort research?</span>
+        <a href="#" class="check-btn" onclick="alert('Patient A always maps to surrogate Patient-XYZ across every resource and every export. That means: longitudinal cohort analysis still works after de-id (you can still link encounters, observations, conditions for the same patient), the de-id\'d data is research-usable for outcome tracking, and joining multiple de-id\'d exports for the same patient is possible. Without surrogate consistency, each de-id call would produce a fresh random ID and the patient becomes an unjoinable mass of disconnected resources - useless for longitudinal research.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="../index.html" class="btn">← All modules</a>
+    <a href="m8-lesson2.html" class="btn btn-primary">Lesson 8.2: DLP at scale →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
