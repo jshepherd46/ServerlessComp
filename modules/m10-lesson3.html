@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M10 · Lesson 3: Privacy, ops, the PacificFed playbook — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Privacy layers */
+.layer-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--coral);
+}
+.layer-card h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.layer-card .lt {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--coral); letter-spacing: .04em; display: block; margin-bottom: .55rem;
+}
+.layer-card p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.layer-card code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* Runbook list */
+.runbook {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--purple);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: 1rem 1.5rem; margin: 1rem 0 1.5rem;
+}
+.runbook h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); text-transform: none; letter-spacing: 0; margin-bottom: .5rem;
+}
+.runbook ol { list-style: none; counter-reset: rb; padding-left: 0; }
+.runbook li {
+  counter-increment: rb;
+  position: relative; padding: .4rem 0 .4rem 2rem;
+  font-size: 13px; color: var(--text2); line-height: 1.6;
+  border-bottom: 1px solid var(--border);
+}
+.runbook li:last-child { border-bottom: none; }
+.runbook li::before {
+  content: counter(rb);
+  position: absolute; left: 0; top: 7px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(165,168,255,.15); color: var(--purple);
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M10 · Lesson 3 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 10</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 3</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot done" title="Lesson 2"></div>
+      <div class="progress-dot active" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 3 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Privacy, ops,<br>and the PacificFed playbook</h1>
+    <p class="lesson-sub">L1 + L2 made FL work mechanically. This lesson hardens it: DP-SGD as the privacy guarantee, secure aggregation to keep the aggregator honest, the operational story across federated runs, and the actual playbook section a multi-site FL study lives in.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 DP-SGD (Opacus / TF-Privacy), secure aggregation, Cloud Monitoring</span>
+      <span>📍 Module 10 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Why vanilla FL is not enough     -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The privacy gap</div>
+    <h2 class="section-title">Why FL alone is not a privacy guarantee</h2>
+    <p style="margin-bottom: 1rem;">M10L1 noted: vanilla FL ships model updates in the clear. Those updates contain information about local training data. Two classes of attack matter:</p>
+
+    <div class="layer-card">
+      <span class="lt">Gradient inversion</span>
+      <h4>Reconstructing training samples from gradient updates</h4>
+      <p>A motivated adversary with access to gradient updates from a small-batch local training step can sometimes reconstruct individual training examples — especially when batches are small and the model is over-parameterized. Demonstrated for image classifiers; clinical NLP and tabular outcomes are also susceptible.</p>
+    </div>
+
+    <div class="layer-card">
+      <span class="lt">Membership inference</span>
+      <h4>Determining whether a specific record was in training</h4>
+      <p>Given access to the global model and a candidate record, infer whether that record was used to train. For a patient who was in the cohort vs not, membership inference can confirm participation — itself a privacy leak in a small site like Marshall Islands where the cohort might be 200 patients.</p>
+    </div>
+
+    <p style="margin-top: 1rem; margin-bottom: 1rem;">Two defences, stacked:</p>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>DP-SGD</strong> — adds calibrated noise to per-example gradients during local training. Provides a formal (ε, δ) <em>differential privacy</em> guarantee. Even with full access to model updates, an attacker cannot reliably distinguish whether any single example was in training.</li>
+      <li>→ <strong>Secure aggregation</strong> — uses cryptographic protocols so the aggregator can compute the SUM of site updates without seeing any individual site\'s contribution. Even if the aggregator is curious or compromised, individual site updates are protected.</li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: DP-SGD                           -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">DP-SGD in practice</div>
+    <h2 class="section-title">DP-SGD — clip, noise, account</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#dp-sgd">DP-SGD</a> is the standard recipe for differentially-private deep learning. Three modifications to vanilla SGD:</p>
+
+    <ol style="padding-left: 1.5rem; margin-bottom: 1rem; font-size: 13.5px; color: var(--text2); line-height: 1.8;">
+      <li><strong>Compute per-example gradients</strong>, not per-batch.</li>
+      <li><strong>Clip each per-example gradient</strong> to a max L2 norm <code class="code-inline">C</code> (bounds the maximum influence of any single example).</li>
+      <li><strong>Sum the clipped gradients + add Gaussian noise</strong> with scale proportional to <code class="code-inline">C × σ</code>, then average.</li>
+    </ol>
+
+    <p style="margin-bottom: 1rem;">The result is a noisy gradient update that\'s still useful for training but no longer reflects any single training example with reliability.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The privacy budget</h3>
+
+    <p style="margin-bottom: .5rem; font-size: 13.5px;">DP-SGD comes with a privacy accountant. After N training steps with noise scale σ and clipping C, the accountant produces an <strong>(ε, δ)</strong> guarantee:</p>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>ε (epsilon)</strong> — the privacy budget. Lower = more private; common health-domain targets are ε ≤ 8 (loose) to ε ≤ 1 (very strict).</li>
+      <li>→ <strong>δ (delta)</strong> — the probability the guarantee fails entirely; typically set to <code class="code-inline">1 / (10 × dataset_size)</code> or smaller.</li>
+    </ul>
+
+    <p style="margin-top:.75rem;margin-bottom: 1rem; font-size: 13.5px;">For FL: each round of local training spends some privacy budget. The total study budget is the composition of per-round budgets across all rounds. A typical FL study aims for ε ≤ 8 across 100 rounds — implying tight per-round budgets that DP-SGD\'s accountant tracks.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">DP-SGD in your training loop (PyTorch + Opacus)</h3>
+
+<pre class="code-block"><span class="kw">from</span> opacus <span class="kw">import</span> PrivacyEngine
+
+privacy_engine = PrivacyEngine()
+model, optimizer, dataloader = privacy_engine.make_private(
+    module=model,
+    optimizer=optimizer,
+    data_loader=dataloader,
+    noise_multiplier=1.0,        <span class="cm"># sigma — higher = more privacy, less utility</span>
+    max_grad_norm=1.0,            <span class="cm"># C — per-example clipping</span>
+)
+
+<span class="cm"># Normal training loop, no other changes</span>
+<span class="kw">for</span> x, y <span class="kw">in</span> dataloader:
+    optimizer.zero_grad()
+    loss = criterion(model(x), y)
+    loss.backward()
+    optimizer.step()
+
+<span class="cm"># After training, query the accountant</span>
+epsilon = privacy_engine.get_epsilon(delta=1e-5)
+print(<span class="str">f"After {N} steps, (epsilon, delta) = ({epsilon:.2f}, 1e-5)"</span>)</pre>
+
+    <div class="callout">
+      <strong>The honest trade.</strong> DP-SGD costs accuracy. The noise added at each step degrades the model; how much depends on σ, C, and your dataset size. For a small-cohort site (Marshall Islands with 200 cohort patients), the privacy budget for a single round may produce too-noisy gradients to train usefully. Mitigations: train fewer rounds, larger batches, lower target ε at the cost of more rounds with less noise per round.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Secure aggregation               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Keeping the aggregator honest</div>
+    <h2 class="section-title">Secure aggregation</h2>
+    <p style="margin-bottom: 1rem;">DP-SGD protects against an attacker who sees gradients but doesn\'t know which site they came from. <strong>Secure aggregation</strong> goes further: the aggregator computes the SUM of site updates without seeing any individual site\'s contribution. Even a fully compromised aggregator learns only the sum.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The cryptographic shape (intuition)</h3>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Each pair of sites agrees on a random mask. Site A adds the mask, site B subtracts it, before sending updates to the aggregator. When the aggregator sums all sites\' (now-masked) updates, the masks cancel and only the legitimate sum remains. Individual site updates, viewed alone, look like random noise.</p>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Real protocols (Bonawitz et al.) use Diffie-Hellman key exchange + shamir secret sharing for robustness against dropouts. Flower\'s <code class="code-inline">SecAgg+</code> implementation handles this; you opt into it with a strategy parameter.</p>
+
+<pre class="code-block"><span class="kw">from</span> flwr.server.strategy <span class="kw">import</span> FedAvg
+<span class="kw">from</span> flwr.server.strategy.aggregate <span class="kw">import</span> aggregate_inplace
+
+<span class="cm"># Aggregator strategy with secure aggregation enabled</span>
+strategy = FedAvg(
+    fraction_fit=1.0, min_fit_clients=5, min_available_clients=7,
+    <span class="cm"># SecAgg+ workflow (see Flower docs for full secure-aggregation example)</span>
+)
+
+<span class="cm"># Combined with Opacus on the client side</span>
+<span class="cm"># Plus pyflower-secure-aggregation on both sides for the SecAgg+ protocol</span></pre>
+
+    <div class="callout">
+      <strong>When to use secure aggregation.</strong> Always for clinical FL across institutions. The aggregator at <code class="code-inline">srl-pacificfed-infra</code> is trusted today, but the assumption "trust the aggregator" is a single point of compliance failure. Secure aggregation removes the assumption; even if <code class="code-inline">srl-pacificfed-infra</code> is breached, individual sites\' updates are unrecoverable. Cost: 10-20% protocol overhead per round; well worth it for clinical-grade FL.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Operations                       -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Running it in production</div>
+    <h2 class="section-title">Monitoring + cross-site observability</h2>
+    <p style="margin-bottom: 1rem;">A 100-round FL run across 7 sites generates dozens of failure modes that don\'t exist in single-site training. The minimum observability for production FL:</p>
+
+    <div class="layer-card">
+      <span class="lt">Per-round dashboard (aggregator side)</span>
+      <h4>Round timing + participation + metrics</h4>
+      <p>For each round: number of sites that checked in, sites that timed out, round duration, global loss / metric, per-site loss spread. Cloud Monitoring dashboard fed by the aggregator\'s structured logs.</p>
+    </div>
+
+    <div class="layer-card">
+      <span class="lt">Per-site dashboard (each site\'s view)</span>
+      <h4>Local participation + local resource use</h4>
+      <p>For each site\'s perspective: rounds participated in vs total rounds, local GPU utilisation, local data dimensionality, local model fit metrics. Each site\'s ops team monitors this.</p>
+    </div>
+
+    <div class="layer-card">
+      <span class="lt">Privacy budget tracker</span>
+      <h4>How much ε has each site spent</h4>
+      <p>Per the DP-SGD accountant, each site is spending budget every round. A site that started with ε=8 budget is at ε=5 after 50 rounds. The dashboard surfaces remaining budget; when a site\'s budget exhausts, it stops participating.</p>
+    </div>
+
+    <div class="layer-card">
+      <span class="lt">Alert policies</span>
+      <h4>Page when things go meaningfully wrong</h4>
+      <p>Aggregator: round duration &gt; 4× baseline → page coordinator. Site: local training failure → page site engineer. Privacy: any site\'s residual ε falls below 1.0 → notify protocol owner.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The runbook section</h3>
+
+    <p style="margin-bottom: .75rem; font-size: 13.5px;">Per M1L4 — every FL study\'s runbook section answers the operational questions before the FL run begins.</p>
+
+    <div class="runbook">
+      <h4>PacificFed FL study runbook — minimum table of contents</h4>
+      <ol>
+        <li><strong>Protocol overview.</strong> Hypothesis, primary outcome, secondary outcomes, cohort definition (link to ATLAS / Capr cohort), exclusion criteria.</li>
+        <li><strong>IRB and DUA status.</strong> Per-site IRB approval dates, the data-use agreement that authorises the federation, signed-by-whom, expiry.</li>
+        <li><strong>Privacy budget.</strong> Target (ε, δ); how budget is consumed per round; the per-site budget tracker location; what happens when a site\'s budget exhausts.</li>
+        <li><strong>Participating sites.</strong> Site IDs, contact engineers, last-known GKE cluster health, last ACHILLES run date.</li>
+        <li><strong>Topology.</strong> Aggregator project + cluster + LB IP; per-site project + cluster + VPC peering status. Diagram included.</li>
+        <li><strong>Training container.</strong> Image URL + version; reproducible build instructions; LoRA / DP-SGD / SecAgg configuration.</li>
+        <li><strong>Operations.</strong> How to start a run, how to pause / resume, how to abort. Dashboard URLs. Alert-channel routing.</li>
+        <li><strong>Incident response.</strong> Specific to FL: "a site drops out for 3 rounds in a row," "the aggregator pod restarts mid-round," "DP accountant says budget exhausted unexpectedly."</li>
+        <li><strong>Outputs.</strong> Where the final model lands (Vertex Model Registry). Where per-round checkpoints land. Where audit logs land. Retention policy.</li>
+        <li><strong>End-of-study.</strong> Tear-down checklist; archive snapshot location; how the protocol\'s data is retained per IRB.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 10.3</div>
+    <h2 class="section-title">Add DP-SGD to the M10L1 simulation</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🔐 Privacy without losing the model</div>
+      <ol class="exercise-steps">
+        <li>Install Opacus:<br>
+          <code class="code-inline">pip install opacus</code>
+        </li>
+        <li><strong>Take the <code class="code-inline">fl_demo.py</code> from M10L1</strong> and add DP-SGD to the client\'s fit method:
+<pre class="code-block"><span class="kw">from</span> opacus <span class="kw">import</span> PrivacyEngine
+<span class="kw">from</span> torch.utils.data <span class="kw">import</span> DataLoader
+
+<span class="kw">class</span> SiteClient(fl.client.NumPyClient):
+    <span class="kw">def</span> __init__(self, dataset):
+        self.model = make_model()
+        self.dataset = dataset
+        self.privacy_engine = PrivacyEngine()
+
+    <span class="kw">def</span> fit(self, params, config):
+        self.set_parameters(params)
+        loader = DataLoader(self.dataset, batch_size=32, shuffle=<span class="kw">True</span>)
+        opt = torch.optim.SGD(self.model.parameters(), lr=0.01)
+        model, opt, loader = self.privacy_engine.make_private(
+            module=self.model, optimizer=opt, data_loader=loader,
+            noise_multiplier=1.0, max_grad_norm=1.0,
+        )
+        <span class="kw">for</span> _ <span class="kw">in</span> range(2):
+            <span class="kw">for</span> x, y <span class="kw">in</span> loader:
+                opt.zero_grad()
+                loss = nn.functional.binary_cross_entropy_with_logits(model(x).squeeze(), y)
+                loss.backward(); opt.step()
+        eps = self.privacy_engine.get_epsilon(delta=1e-5)
+        <span class="kw">return</span> self.get_parameters({}), len(loader.dataset), {<span class="str">"epsilon"</span>: eps}</pre>
+        </li>
+        <li>Run the FL simulation as before. Watch the log — each round now reports the privacy ε spent at each site. Add up across rounds for the total spent.</li>
+        <li><strong>Tune the noise.</strong> Try <code class="code-inline">noise_multiplier=2.0</code> — more private, less accurate. Try <code class="code-inline">0.5</code> — less private, more accurate. Notice the trade.</li>
+        <li><strong>Track residual budget.</strong> Set a target ε of 8.0; print "remaining budget" each round. After how many rounds is the budget exhausted at each noise setting?</li>
+        <li><strong>Add a SecAgg simulator</strong> (Flower has documentation for SecAgg+ workflows). Watch the per-round timing — secure aggregation adds latency. Quantify the overhead.</li>
+        <li><strong>Document the protocol</strong>: write a one-paragraph summary of the chosen privacy + secure-aggregation configuration as it would appear in the PacificFed runbook. Include: target ε, noise multiplier, clipping norm, dataset size, number of rounds, SecAgg enabled.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">Opacus PrivacyEngine</span>
+        <span class="tag">DP-SGD (noise_multiplier, max_grad_norm)</span>
+        <span class="tag">privacy_engine.get_epsilon</span>
+        <span class="tag">Flower SecAgg+ workflow</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>An IRB reviewer asks "what privacy guarantee does PacificFed provide?" Vanilla FedAvg is not enough — what is the correct answer?</span>
+        <a href="#" class="check-btn" onclick="alert('Two-layer defence: (1) DP-SGD at each site provides a formal (ε, δ) differential-privacy guarantee — at the agreed budget (e.g. ε ≤ 8 across the study, δ ≤ 1e-5), the probability of distinguishing the inclusion of any single patient in training is mathematically bounded. (2) Secure aggregation at the protocol level means the aggregator cannot see individual sites\' contributions in the clear — only the cryptographically protected sum. The combination is what makes FL "private" in a way the IRB can defend, vs vanilla FL which is just "data does not move" but lets gradients leak.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Marshall Islands has only ~200 patients in the cohort. DP-SGD with ε=8 across 100 rounds gives them per-round noise that swamps useful gradient signal. Three options?</span>
+        <a href="#" class="check-btn" onclick="alert('(1) Loosen the per-site budget for that site (ε=16 say) and document the trade-off in the protocol. (2) Reduce rounds (say 30 instead of 100) so each round can afford less noise; potentially accept lower convergence in exchange for usable signal. (3) Skip DP-SGD at the small site and rely on secure aggregation + governance for that site\'s privacy posture — usually defended only when the site\'s data has independent legal protections that obviate DP. None are perfect; the right answer is study-specific and IRB-negotiated.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why does the runbook need a "what happens when a site\'s privacy budget exhausts" section, separate from "what happens when a site drops out"?</span>
+        <a href="#" class="check-btn" onclick="alert('They have different remediations. A dropped-out site is an operational issue - the site engineer fixes the cluster, restarts the client, the site rejoins the next round. A budget-exhausted site is a protocol limit - the site has spent its agreed privacy budget for this study and CANNOT participate further without re-negotiating the IRB-approved privacy posture. The aggregator must stop sending rounds to that site; the meta-analysis must account for that site\'s reduced participation. Different decision tree; different stakeholders; needs its own runbook entry.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your aggregator pod restarts mid-round and loses the current round\'s state. What\'s the cleanest recovery, and what should be checkpointed to make recovery possible?</span>
+        <a href="#" class="check-btn" onclick="alert('Resume from the previous round\'s checkpoint. The aggregator should checkpoint to GCS every round: the global model weights, the privacy-budget state per site, the list of participating sites in the current round, the round number. On restart, the aggregator reads the latest checkpoint and announces "we are restarting round N" - sites that had already uploaded for the current round resubmit (idempotent); sites that hadn\'t continue normally. The Vertex Model Registry every-10-rounds checkpoint from M10L2 is the upper bound on data loss; in-GCS per-round state lets you resume more granularly.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- M10 close                                   -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Closing M10</div>
+    <h2 class="section-title">You can run federated learning across institutions</h2>
+    <div class="callout">
+      <strong>The arc of M10.</strong> L1 — FL fundamentals, why it matters for clinical research, the Flower framework, the PacificFed architecture. L2 — the GCP infrastructure: multi-cluster GKE, VPC peering, aggregator + per-site client deployments, model versioning across rounds. L3 — DP-SGD, secure aggregation, observability, the runbook section that turns a working FL system into a defensible research instrument.
+    </div>
+    <p style="margin-top: 1rem;">M11 takes everything from M1-M10 and asks: how do you build it as code, instead of clicking through consoles? Terraform, Vertex AI Pipelines, Cloud Build CI/CD applied to the whole platform. The reusable patterns + automation layer that lets the next study launch in days, not weeks.</p>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m10-lesson2.html" class="btn">← Lesson 10.2: FL on GCP</a>
+    <a href="m11.html" class="btn btn-primary">M11: MLOps &amp; reusable patterns →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

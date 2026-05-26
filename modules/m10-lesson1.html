@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M10 · Lesson 1: Federated learning fundamentals — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Compare row */
+.cmpr-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin: 1rem 0 1.5rem;
+}
+.cmpr {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+}
+.cmpr.fa { border-left: 3px solid var(--amber); }
+.cmpr.fl { border-left: 3px solid var(--coral); }
+.cmpr h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.cmpr .ct {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  letter-spacing: .04em; margin-bottom: .55rem; display: block;
+}
+.cmpr.fa .ct { color: var(--amber); }
+.cmpr.fl .ct { color: var(--coral); }
+.cmpr p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.cmpr .use { font-size: 11.5px; color: var(--text3); font-style: italic; }
+@media (max-width: 640px) { .cmpr-row { grid-template-columns: 1fr; } }
+
+/* Round flow */
+.round {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.8; overflow-x: auto;
+}
+.round .agg { color: var(--amber); }
+.round .site { color: var(--blue); }
+.round .upd { color: var(--coral); }
+.round .arr { color: var(--text3); }
+.round .ann { color: var(--text3); font-style: italic; }
+.round .step { color: var(--teal); }
+
+/* Reason card */
+.reason {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .9rem 1.15rem; margin-bottom: 8px;
+}
+.reason h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+  text-transform: none; letter-spacing: 0;
+}
+.reason p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M10 · Lesson 1 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 10</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot active" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 1 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Federated learning<br>fundamentals</h1>
+    <p class="lesson-sub">M9L3 was federated analytics — summary stats travel between sites. M10 is federated learning — model updates travel between sites. Both keep patient data local; FL trains a global model that benefits from every site\'s data. The PacificFed ML layer, made concrete.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 Flower framework, FedAvg, PyTorch / TensorFlow</span>
+      <span>📍 Module 10 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: FL vs FA                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The framing</div>
+    <h2 class="section-title">Federated analytics vs federated learning</h2>
+    <p style="margin-bottom: 1rem;">Both keep data local. Both ship only derived quantities across sites. The difference is what kind of derived quantity:</p>
+
+    <div class="cmpr-row">
+      <div class="cmpr fa">
+        <span class="ct">M9L3 — federated analytics</span>
+        <h4>Summary stats per site</h4>
+        <p>Each site runs the same SQL cohort definition; ships cohort sizes, demographics breakdowns, prevalence rates. The aggregator combines them into a meta-analysis. <strong>Static cohort question.</strong></p>
+        <p class="use">"How many HCC patients on immunotherapy across the seven sites?"</p>
+      </div>
+      <div class="cmpr fl">
+        <span class="ct">M10 — federated learning</span>
+        <h4>Model updates per site</h4>
+        <p>Each site trains a model locally on its own data; ships <em>gradient updates</em> (not data, not predictions). The aggregator combines updates into a global model; ships the global model back. Repeat. <strong>Iterative training process.</strong></p>
+        <p class="use">"Train a 5-year HCC outcome predictor that learned from every site\'s data."</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The core FL algorithm — FedAvg</h3>
+
+    <div class="round">
+<span class="step">Round t = 0:</span> <span class="agg">aggregator initialises a global model w_0</span>
+&nbsp;
+<span class="step">For each round t in [1..R]:</span>
+   <span class="agg">aggregator</span> selects K sites and broadcasts <span class="upd">w_{t-1}</span> to them
+       <span class="arr">│</span>
+       <span class="arr">▼ each site</span>
+   <span class="site">site_k</span> trains on its local data for E epochs, producing <span class="upd">w_k</span>
+       <span class="arr">│</span>
+       <span class="arr">▼ each site uploads its update</span>
+   <span class="agg">aggregator</span> averages: <span class="upd">w_t = Σ (n_k / N) * w_k</span>   <span class="ann"># weighted by local dataset size</span>
+       <span class="arr">│</span>
+       <span class="arr">▼ next round, w_t becomes the broadcast model</span>
+&nbsp;
+<span class="step">After R rounds:</span> <span class="agg">global model w_R is the converged FL model</span>
+    </div>
+
+    <p style="font-size:13.5px;">That\'s it. The whole algorithm — FedAvg, the foundation everything else builds on — fits in eight lines. The complexity is in (a) the systems that move weights between sites securely, (b) the privacy guarantees (M10L3), and (c) handling the realities of heterogeneous data and unreliable sites.</p>
+
+    <div class="callout">
+      <strong>What FL is not.</strong> It is not encryption — data is in the clear at each site, just doesn\'t leave. It is not differential privacy by itself — model updates can leak information; you add DP-SGD on top (M10L3). It is not "send data to the cloud anonymously" — patient data never goes to the cloud at all. The benefit is institutional: each site\'s data contributes to one model without the data leaving the institution.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Why FL matters for health        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Why bother</div>
+    <h2 class="section-title">Why federated learning matters for health data specifically</h2>
+
+    <div class="reason">
+      <h4>1. Legal: PHI cannot freely move between institutions</h4>
+      <p>HIPAA, IRBs, and equivalent international rules make cross-institutional patient-data sharing slow and contentious. FL bypasses the problem — no data sharing means no data-sharing agreement.</p>
+    </div>
+
+    <div class="reason">
+      <h4>2. Institutional: sites want their own data to stay theirs</h4>
+      <p>Even when legal sharing is possible, institutions are reluctant to release raw EHR data. FL lets them contribute meaningfully without giving up data sovereignty — especially important for USAPI / NHPI institutions where data control is part of community trust.</p>
+    </div>
+
+    <div class="reason">
+      <h4>3. Statistical: more sites = more diverse training</h4>
+      <p>A model trained on one site\'s data over-fits that site\'s demographics, scanner models, documentation conventions. A federated model has seen the full diversity of all sites — it generalises better than any single-site model on out-of-distribution patients.</p>
+    </div>
+
+    <div class="reason">
+      <h4>4. Operational: each site retains its own audit and compliance posture</h4>
+      <p>Each site\'s training happens inside that site\'s perimeter, with that site\'s IAM, that site\'s audit logs. The institution\'s compliance officer can audit one site\'s FL training run the same way they\'d audit any other ML workload — no special cross-institutional review needed.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">What FL costs you</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Slower training.</strong> Round-trip latency between sites + bandwidth for model updates. A 100-round FL training might take 24-48 hours where centralised training would take 4.</li>
+      <li>→ <strong>Statistical heterogeneity.</strong> Sites have different patient distributions; vanilla FedAvg converges slower or to a worse model when distributions diverge. Mitigations: FedProx, FedAdam, personalisation layers.</li>
+      <li>→ <strong>Systems complexity.</strong> M10L2\'s GKE multi-cluster + VPC peering setup is non-trivial. The first FL deployment takes weeks; subsequent ones reuse the infrastructure.</li>
+      <li>→ <strong>Imperfect privacy.</strong> Vanilla FL does NOT guarantee privacy — model updates can be inverted to leak training data. M10L3\'s DP-SGD + secure aggregation closes the gap.</li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Flower                           -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The framework</div>
+    <h2 class="section-title">Flower — the FL framework SRL uses</h2>
+    <p style="margin-bottom: 1rem;"><strong>Flower</strong> is an open-source FL framework that\'s framework-agnostic (PyTorch, TensorFlow, JAX, scikit-learn) and well-suited to the kind of cross-institutional FL PacificFed needs. The mental model: you write a <strong>client</strong> (your training code at one site) + a <strong>strategy</strong> (the aggregation logic at the aggregator); Flower handles the gRPC plumbing, round orchestration, and serialisation.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">A minimal Flower client (PyTorch)</h3>
+
+<pre class="code-block"><span class="kw">import</span> flwr <span class="kw">as</span> fl
+<span class="kw">import</span> torch
+<span class="kw">from</span> torch <span class="kw">import</span> nn, optim
+
+<span class="kw">class</span> HCCOutcomeClient(fl.client.NumPyClient):
+    <span class="kw">def</span> __init__(self, model, train_loader, val_loader):
+        self.model = model
+        self.train_loader = train_loader
+        self.val_loader = val_loader
+
+    <span class="kw">def</span> get_parameters(self, config):
+        <span class="kw">return</span> [p.detach().cpu().numpy() <span class="kw">for</span> p <span class="kw">in</span> self.model.parameters()]
+
+    <span class="kw">def</span> set_parameters(self, parameters):
+        <span class="kw">for</span> p, new_p <span class="kw">in</span> zip(self.model.parameters(), parameters):
+            p.data = torch.tensor(new_p)
+
+    <span class="kw">def</span> fit(self, parameters, config):
+        self.set_parameters(parameters)
+        opt = optim.SGD(self.model.parameters(), lr=config[<span class="str">"lr"</span>])
+        <span class="kw">for</span> _ <span class="kw">in</span> range(config[<span class="str">"local_epochs"</span>]):
+            <span class="kw">for</span> x, y <span class="kw">in</span> self.train_loader:
+                opt.zero_grad()
+                loss = nn.functional.binary_cross_entropy_with_logits(self.model(x), y)
+                loss.backward()
+                opt.step()
+        <span class="kw">return</span> self.get_parameters({}), len(self.train_loader.dataset), {}
+
+    <span class="kw">def</span> evaluate(self, parameters, config):
+        self.set_parameters(parameters)
+        <span class="cm"># compute val loss + metric</span>
+        <span class="kw">return</span> val_loss, len(self.val_loader.dataset), {<span class="str">"auc"</span>: val_auc}
+
+<span class="cm"># Start the client</span>
+fl.client.start_client(
+    server_address=<span class="str">"halo-fl-aggregator.srl-pacificfed-infra:8080"</span>,
+    client=HCCOutcomeClient(model, train_loader, val_loader).to_client(),
+)</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">A minimal Flower aggregator</h3>
+
+<pre class="code-block"><span class="kw">import</span> flwr <span class="kw">as</span> fl
+
+strategy = fl.server.strategy.FedAvg(
+    fraction_fit=1.0,                <span class="cm"># all sites participate each round</span>
+    min_fit_clients=5,               <span class="cm"># at least 5 sites must check in</span>
+    min_available_clients=7,         <span class="cm"># PacificFed: 7 sites</span>
+    on_fit_config_fn=<span class="kw">lambda</span> rnd: {<span class="str">"lr"</span>: 1e-3, <span class="str">"local_epochs"</span>: 2},
+)
+
+fl.server.start_server(
+    server_address=<span class="str">"0.0.0.0:8080"</span>,
+    config=fl.server.ServerConfig(num_rounds=50),
+    strategy=strategy,
+)</pre>
+
+    <p style="font-size:13.5px;margin-bottom: 1rem;">Each side runs as a container. The aggregator runs in <code class="code-inline">srl-pacificfed-infra</code> on GKE. Clients run at each site (UH, Queen\'s, Guam, etc.) inside their own GKE clusters. M10L2 covers the deployment.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Beyond FedAvg — when you need more</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>FedProx</strong> — adds a proximal term to local optimisation; helps when sites have very different data distributions (statistical heterogeneity).</li>
+      <li>→ <strong>FedAdam / FedAdagrad</strong> — server-side adaptive optimisers; faster convergence on harder problems.</li>
+      <li>→ <strong>FedAvgM (with momentum)</strong> — adds server-side momentum; modest improvement at no protocol cost.</li>
+      <li>→ <strong>Personalisation (FedPer, Per-FedAvg)</strong> — train shared base layers + site-specific head layers; useful when sites need a globally-shared representation but locally-tuned predictions.</li>
+    </ul>
+
+    <p style="font-size:13.5px;">Start with FedAvg. Switch to FedProx if statistical heterogeneity is a problem (vanilla FedAvg fails to converge or converges to a poor model). The rest are refinements for specific failure modes.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: PacificFed architecture          -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The worked example</div>
+    <h2 class="section-title">PacificFed — seven sites, one global model</h2>
+
+    <p style="margin-bottom: 1rem;">PacificFed\'s ML layer trains shared models for cancer outcome prediction across the CCPI/USAPI network without any patient data leaving its institution. The architectural shape:</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The roles</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Coordinator (UH, in <code>srl-pacificfed-infra</code>):</strong> hosts the Flower aggregator on GKE; owns the cohort definition + training script + study protocol; ships the initial model and orchestrates rounds.</li>
+      <li>→ <strong>Sites (UH, Queen\'s, Guam, Am. Samoa, CNMI, Palau, Marshall Is.):</strong> each hosts a Flower client on its own GKE cluster, training against its local OMOP-shaped data. Each site has its own IRB approval, its own data steward, its own BAA situation.</li>
+    </ul>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The shared assets</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Cohort definition</strong> — Capr (M9L2) committed to the shared git repo.</li>
+      <li>→ <strong>Training container</strong> — built once in <code class="code-inline">srl-shared-services</code> Artifact Registry; pulled by each site\'s GKE cluster.</li>
+      <li>→ <strong>FL protocol contract</strong> — what each site\'s client sends each round (gradient update + dataset size), what it receives (broadcast model + round config). Specified once; durable across runs.</li>
+      <li>→ <strong>Training script</strong> — runs at each site; reads from the site\'s local OMOP dataset; trains the local model; communicates with the central aggregator via Flower\'s gRPC.</li>
+    </ul>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">What does NOT cross site boundaries</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ Patient identifiers, records, demographics — anything PHI.</li>
+      <li>→ Site-specific aggregated counts that would be re-identifiable (small cells).</li>
+      <li>→ Raw gradients without DP noise (M10L3) for models trained on small cohorts.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>What does cross.</strong> Model weights (gradient updates) and dataset-size scalars used in FedAvg weighting. With DP-SGD (M10L3), even the gradients are noised to provide formal privacy guarantees. With secure aggregation, the aggregator never sees individual sites\' updates in the clear — only the sum.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 10.1</div>
+    <h2 class="section-title">Run a tiny FL simulation with Flower</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🌐 The whole loop, locally</div>
+      <ol class="exercise-steps">
+        <li>Install Flower + dependencies in a Vertex Workbench (or any Python env):<br>
+          <code class="code-inline">pip install flwr torch torchvision scikit-learn</code>
+        </li>
+        <li><strong>Write a tiny training script</strong> — single file with client + simulator. Save as <code class="code-inline">fl_demo.py</code>:
+<pre class="code-block"><span class="kw">import</span> flwr <span class="kw">as</span> fl
+<span class="kw">import</span> torch, torch.nn <span class="kw">as</span> nn
+<span class="kw">from</span> torch.utils.data <span class="kw">import</span> DataLoader, TensorDataset
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> make_classification
+
+<span class="cm"># Generate a synthetic binary classification dataset, split into 3 "sites"</span>
+X, y = make_classification(n_samples=3000, n_features=20, n_informative=10, random_state=0)
+X = torch.tensor(X, dtype=torch.float32); y = torch.tensor(y, dtype=torch.float32)
+
+site_datasets = [
+    TensorDataset(X[0:1000], y[0:1000]),
+    TensorDataset(X[1000:2000], y[1000:2000]),
+    TensorDataset(X[2000:3000], y[2000:3000]),
+]
+
+<span class="kw">def</span> make_model():
+    <span class="kw">return</span> nn.Sequential(nn.Linear(20, 32), nn.ReLU(), nn.Linear(32, 1))
+
+<span class="kw">class</span> SiteClient(fl.client.NumPyClient):
+    <span class="kw">def</span> __init__(self, dataset):
+        self.model = make_model()
+        self.loader = DataLoader(dataset, batch_size=32, shuffle=<span class="kw">True</span>)
+
+    <span class="kw">def</span> get_parameters(self, config):
+        <span class="kw">return</span> [p.detach().numpy() <span class="kw">for</span> p <span class="kw">in</span> self.model.parameters()]
+
+    <span class="kw">def</span> set_parameters(self, params):
+        <span class="kw">for</span> p, new <span class="kw">in</span> zip(self.model.parameters(), params):
+            p.data = torch.tensor(new)
+
+    <span class="kw">def</span> fit(self, params, config):
+        self.set_parameters(params)
+        opt = torch.optim.SGD(self.model.parameters(), lr=0.01)
+        <span class="kw">for</span> _ <span class="kw">in</span> range(2):  <span class="cm"># 2 local epochs</span>
+            <span class="kw">for</span> x, y <span class="kw">in</span> self.loader:
+                opt.zero_grad()
+                loss = nn.functional.binary_cross_entropy_with_logits(self.model(x).squeeze(), y)
+                loss.backward(); opt.step()
+        <span class="kw">return</span> self.get_parameters({}), len(self.loader.dataset), {}
+
+    <span class="kw">def</span> evaluate(self, params, config):
+        self.set_parameters(params)
+        <span class="kw">with</span> torch.no_grad():
+            preds = torch.cat([self.model(x).squeeze() <span class="kw">for</span> x, _ <span class="kw">in</span> self.loader])
+            ys = torch.cat([y <span class="kw">for</span> _, y <span class="kw">in</span> self.loader])
+            loss = nn.functional.binary_cross_entropy_with_logits(preds, ys)
+            acc = ((torch.sigmoid(preds) &gt; 0.5).float() == ys).float().mean()
+        <span class="kw">return</span> float(loss), len(self.loader.dataset), {<span class="str">"acc"</span>: float(acc)}
+
+<span class="kw">def</span> client_fn(cid):
+    <span class="kw">return</span> SiteClient(site_datasets[int(cid)]).to_client()
+
+<span class="cm"># Run the FL simulation: 3 sites, 5 rounds, all participate each round</span>
+fl.simulation.start_simulation(
+    client_fn=client_fn,
+    num_clients=3,
+    config=fl.server.ServerConfig(num_rounds=5),
+    strategy=fl.server.strategy.FedAvg(
+        fraction_fit=1.0, min_fit_clients=3, min_available_clients=3,
+        evaluate_metrics_aggregation_fn=<span class="kw">lambda</span> ms: {<span class="str">"acc"</span>: sum(n*m[<span class="str">"acc"</span>] <span class="kw">for</span> n, m <span class="kw">in</span> ms) / sum(n <span class="kw">for</span> n, _ <span class="kw">in</span> ms)},
+    ),
+)</pre>
+        </li>
+        <li>Run it:<br>
+          <code class="code-inline">python fl_demo.py</code><br>
+          You\'ll see 5 rounds; each round logs per-site fit + evaluate. Final accuracy should be a few percent better than any single site could achieve on 1000 examples alone.
+        </li>
+        <li><strong>Perturb the site distributions.</strong> Make site 0\'s labels much rarer (skew the class balance). Re-run. Watch how the global model has to balance the diverging distributions; this is the statistical-heterogeneity problem in miniature.</li>
+        <li><strong>Switch the strategy</strong> from FedAvg to FedProx (one line change). Re-run with the same perturbed data. Compare convergence behaviour.</li>
+        <li><strong>Read the per-round logs.</strong> Note what gets reported: per-site dataset size, per-site fit loss, aggregate eval metric. That\'s exactly the audit surface you\'d see in a real PacificFed run.</li>
+        <li><strong>Tear down</strong>: nothing to tear down. It was all local.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">Flower (flwr)</span>
+        <span class="tag">fl.client.NumPyClient</span>
+        <span class="tag">fl.server.strategy.FedAvg / FedProx</span>
+        <span class="tag">fl.simulation.start_simulation</span>
+        <span class="tag">PyTorch + sklearn synthetic data</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>A funder argues "you could just centralise everyone\'s OMOP data into one BigQuery dataset and train a model that way — it would be faster." Three reasons to push back for PacificFed.</span>
+        <a href="#" class="check-btn" onclick="alert('(1) Legal: getting seven institutional BAAs (across multiple US jurisdictions plus USAPI territories with their own rules) is years of work and likely impossible for some sites. FL needs only a data-use agreement covering aggregated model parameters. (2) Trust: USAPI / NHPI institutions retain data sovereignty, which is part of the partnership terms. Asking them to upload raw data damages the partnership. (3) Generalisation: a model trained on centralised data overfits the aggregate distribution; an FL model is naturally encouraged to generalise across sites because the loss landscape is the average across heterogeneous local optimisations.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You run vanilla FedAvg across PacificFed; the global model has high accuracy on UH (the largest site) but poor accuracy on Guam (a smaller, distributionally different site). What\'s probably happening?</span>
+        <a href="#" class="check-btn" onclick="alert('Statistical heterogeneity dominated by the largest site. FedAvg weights each site\'s update by its dataset size; UH\'s much larger dataset dominates the average, so the global model converges toward what UH\'s distribution wants. Guam\'s distinctive features (different demographics, different scanner mix, different disease prevalence) get washed out. Fixes: (1) switch to FedProx to penalise large local moves, (2) cap UH\'s weight in the aggregation strategy, (3) personalisation - shared base layers + per-site heads, (4) ensure cohort definitions weren\'t inadvertently biased toward UH-specific coding patterns.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why does a vanilla Flower deployment NOT guarantee privacy, and what do you add in M10L3 to fix that?</span>
+        <a href="#" class="check-btn" onclick="alert('Vanilla FL sends model weight updates in the clear from each site to the aggregator. Those updates contain information about the local training data - in extreme cases, training-data reconstruction attacks can invert gradients to recover individual training samples. M10L3 adds: (1) DP-SGD at each site, which clips per-example gradients and adds noise, providing a formal (epsilon, delta) privacy guarantee. (2) Secure aggregation, where the aggregator can only see the SUM of all sites\' updates - not any individual site\'s contribution. Both together give a defence-in-depth posture.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>In your tiny FL simulation, after 5 rounds the global model accuracy is barely better than a single-site model trained on the union. Two diagnostic questions?</span>
+        <a href="#" class="check-btn" onclick="alert('(1) Was the synthetic data actually heterogeneous between sites? If all three sites have IID samples from the same distribution, FedAvg converges to roughly the same model as centralised training would - the FL win comes from heterogeneity that gets averaged. (2) Are you running enough rounds? 5 rounds with 2 local epochs each may not have converged yet; try 50 rounds and watch the convergence curve. Real PacificFed runs are 100+ rounds with strategically chosen learning rates per phase.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="../index.html" class="btn">← All modules</a>
+    <a href="m10-lesson2.html" class="btn btn-primary">Lesson 10.2: FL on GCP →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M10 · Lesson 2: FL on GCP — clusters, networking, deployment — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Topology */
+.topo {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.8; overflow-x: auto;
+}
+.topo .agg { color: var(--amber); }
+.topo .site { color: var(--blue); }
+.topo .net { color: var(--green); }
+.topo .arr { color: var(--text3); }
+.topo .ann { color: var(--text3); font-style: italic; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M10 · Lesson 2 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 10</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 2 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">FL on GCP — clusters,<br>networking, deployment</h1>
+    <p class="lesson-sub">L1 was the algorithm. This lesson is the infrastructure — multi-cluster GKE across sites, VPC peering for the inter-site comms, deploying the Flower aggregator + per-site clients, and the model-versioning + audit posture that makes federated training reproducible.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 GKE Autopilot, VPC peering, Flower, Vertex Model Registry</span>
+      <span>📍 Module 10 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Topology                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The infrastructure shape</div>
+    <h2 class="section-title">Multi-cluster GKE with one aggregator</h2>
+    <p style="margin-bottom: 1rem;">Each PacificFed site runs its own <a class="g-term" href="../glossary.html#gke">GKE</a> cluster inside the site\'s own GCP project (or on-prem, but for SRL we assume GCP at each site). The aggregator lives in a separate project, <code class="code-inline">srl-pacificfed-infra</code>, with its own cluster. Inter-site communication happens over private IP via VPC peering.</p>
+
+    <div class="topo">
+<span class="agg">┌─────────────────────────────────────┐</span>
+<span class="agg">│ Aggregator (srl-pacificfed-infra)   │</span>
+<span class="agg">│   GKE cluster: pf-aggregator        │</span>
+<span class="agg">│   Flower server pod (port 8080)     │</span>
+<span class="agg">│   ILB: 10.0.0.10                    │</span>  <span class="ann"># internal LoadBalancer</span>
+<span class="agg">└─────────────────────────────────────┘</span>
+                        <span class="net">▲ VPC peering</span>
+       <span class="net">┌────────────────┼────────────────┬────────────────┐</span>
+       <span class="net">│                │                │                │</span>
+<span class="site">┌──────▼──────┐  ┌──▼──────────┐  ┌─▼─────────┐ ... ┌──▼──────────┐</span>
+<span class="site">│ UH cluster  │  │ Queen\'s     │  │ Guam      │     │ Marshall Is.│</span>
+<span class="site">│ pf-client   │  │ pf-client   │  │ pf-client │     │ pf-client   │</span>
+<span class="site">│ Flower pod  │  │ Flower pod  │  │ ...       │     │ ...         │</span>
+<span class="site">│ local OMOP  │  │ local OMOP  │  │           │     │             │</span>
+<span class="site">└─────────────┘  └─────────────┘  └───────────┘     └─────────────┘</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Why GKE for the FL clients</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Long-running.</strong> A FL training round can take hours; the client is a long-running process that waits for the aggregator\'s next round. Cloud Run\'s 60-min request ceiling rules it out (M4L3 escalation triggers apply).</li>
+      <li>→ <strong>GPU access.</strong> Training the local model at each round usually wants a GPU. GKE Autopilot or Standard with a GPU node pool (M5L3) gives it cleanly.</li>
+      <li>→ <strong>Site-local identity.</strong> The FL client at each site runs as a workload SA scoped to <em>that site\'s</em> OMOP data + the FL coordination network — same M1L3 patterns.</li>
+      <li>→ <strong>Consistent operations.</strong> The same M5 patterns apply everywhere: same Helm chart, same upgrade story, same observability.</li>
+    </ul>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Why a separate aggregator project</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Isolation.</strong> The aggregator sees aggregate updates but no patient data. Different IAM, different audit posture, different IRB protocol context.</li>
+      <li>→ <strong>Shared service.</strong> One aggregator project can host the aggregators for many concurrent FL studies, each a separate Deployment/Service inside the same cluster.</li>
+      <li>→ <strong>Lifecycle clarity.</strong> When a particular FL study ends, you tear down the corresponding aggregator Deployment; sites can stay configured for the next study.</li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: VPC peering                      -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The wiring</div>
+    <h2 class="section-title">VPC peering across sites</h2>
+    <p style="margin-bottom: 1rem;">Each site\'s Flower client needs to reach the aggregator. Options: public internet over HTTPS (cheap, exposed); GCP <strong>VPC peering</strong> (private, secure, free between regions); GCP <strong>VPN tunnels</strong> (private, encrypted, has cost). For PacificFed: VPC peering between each site\'s VPC and the aggregator\'s VPC.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Setting up peering</h3>
+
+<pre class="code-block"><span class="cm"># In the aggregator project: peer with UH\'s VPC</span>
+gcloud compute networks peerings create pf-uh-peering \
+  --network=pf-aggregator-vpc \
+  --peer-project=srl-pacificfed-uh \
+  --peer-network=uh-fl-vpc \
+  --export-custom-routes --import-custom-routes
+
+<span class="cm"># In UH\'s project: peer back</span>
+gcloud compute networks peerings create pf-aggregator-peering \
+  --network=uh-fl-vpc \
+  --peer-project=srl-pacificfed-infra \
+  --peer-network=pf-aggregator-vpc \
+  --export-custom-routes --import-custom-routes</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Both directions of the peering must be created. Once both exist, private IPs in one VPC can reach private IPs in the other. The aggregator\'s internal LB (10.0.0.10) becomes addressable from UH\'s GKE cluster.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The connectivity matrix</h3>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">Each site only needs to reach the aggregator — sites do not talk to each other directly. So PacificFed needs N pairs of peerings (one per site), not N² pairs:</p>
+
+<pre class="code-block">aggregator ←→ UH         <span class="cm"># 1 pair</span>
+aggregator ←→ Queen\'s    <span class="cm"># 1 pair</span>
+aggregator ←→ Guam       <span class="cm"># 1 pair</span>
+aggregator ←→ Am. Samoa  <span class="cm"># ...</span>
+aggregator ←→ CNMI
+aggregator ←→ Palau
+aggregator ←→ Marshall Is.
+<span class="cm"># Total: 7 peering pairs for 7 sites + 1 aggregator</span></pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">When peering is not possible</h3>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">For sites that are NOT on GCP (or are on a different GCP org without policy approval for cross-org peering), the alternatives in order of preference:</p>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>HA VPN tunnel.</strong> Encrypted, predictable cost, well-documented setup.</li>
+      <li>→ <strong>Public endpoint with mTLS + IP allow-list.</strong> Aggregator exposes a public Cloud Armor-protected endpoint; site authenticates via client certificate.</li>
+      <li>→ <strong>Cross-cloud Anthos or workload-identity federation.</strong> Complex; only for institutional FL networks crossing multiple cloud providers.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>The thing peering buys you operationally.</strong> Communication between aggregator and clients shows up as same-VPC traffic from each side\'s perspective. <a class="g-term" href="../glossary.html#vpc-sc">VPC SC</a> perimeter rules apply on each side; the aggregator never sees per-site PHI. The connection itself is implicit; no tunnel state to monitor.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Aggregator deployment            -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Deploying the aggregator</div>
+    <h2 class="section-title">Flower aggregator on GKE</h2>
+    <p style="margin-bottom: 1rem;">The aggregator is a long-running gRPC server. One Deployment, one Service (internal LoadBalancer), one ServiceAccount with Workload Identity for the GCP service account that has registry write + Pub/Sub publish rights.</p>
+
+<pre class="code-block">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pf-aggregator-halo-hcc
+  namespace: pf-active-studies
+spec:
+  replicas: 1                  <span class="cm"># Flower aggregator is single-instance per study</span>
+  selector: {matchLabels: {app: pf-aggregator-halo-hcc}}
+  template:
+    metadata: {labels: {app: pf-aggregator-halo-hcc, study: halo-hcc-fl-v3}}
+    spec:
+      serviceAccountName: pf-aggregator-ksa
+      containers:
+        - name: aggregator
+          image: us-west1-docker.pkg.dev/srl-shared-services/research/pf-aggregator:0.4
+          args:
+            - --study=halo-hcc-fl-v3
+            - --rounds=100
+            - --strategy=fedprox
+            - --min-clients=5      <span class="cm"># at least 5 of 7 sites must check in per round</span>
+            - --port=8080
+          ports: [{containerPort: 8080}]
+          resources:
+            requests: {memory: 4Gi, cpu: 2000m}
+            limits:   {memory: 8Gi, cpu: 4000m}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pf-aggregator-halo-hcc
+  namespace: pf-active-studies
+  annotations: {networking.gke.io/load-balancer-type: <span class="str">"Internal"</span>}
+spec:
+  type: LoadBalancer
+  selector: {app: pf-aggregator-halo-hcc}
+  ports: [{port: 8080, targetPort: 8080, protocol: TCP}]</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">The internal LB gets a private IP reachable by peered VPCs. Sites configure their Flower clients to point at <code class="code-inline">pf-aggregator-halo-hcc.pf-active-studies.svc</code> or directly at the LB IP.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Multiple concurrent FL studies</h3>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">PacificFed can host many simultaneous FL studies — HCC outcome predictor, breast cancer screening adherence, NLP entity extractor. Each gets its own Deployment + Service in the same aggregator cluster. Per-study namespaces give per-study RBAC.</p>
+
+<pre class="code-block">pf-active-studies/
+├── pf-aggregator-halo-hcc        <span class="cm"># HCC outcomes</span>
+├── pf-aggregator-screening-bc    <span class="cm"># breast cancer screening</span>
+└── pf-aggregator-shepbert-fl     <span class="cm"># clinical NLP FL</span></pre>
+
+    <p style="font-size:13.5px;">One cluster, many studies, clean isolation. The M5L2 namespace strategy applies directly.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Site client deployment           -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Per-site clients</div>
+    <h2 class="section-title">Deploying the Flower client at each site</h2>
+    <p style="margin-bottom: 1rem;">Each site\'s GKE cluster hosts one Flower client Pod per FL study it participates in. The Pod runs the same training container as every other site (built once in <code class="code-inline">srl-shared-services</code>); it differs in the workload SA (site-specific), the data path (site\'s own OMOP dataset), and the connection to the aggregator (via the peered VPC).</p>
+
+<pre class="code-block">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pf-client-halo-hcc
+  namespace: pf-uh   <span class="cm"># site-specific namespace at UH</span>
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: pf-client-halo-hcc}}
+  template:
+    metadata: {labels: {app: pf-client-halo-hcc}}
+    spec:
+      serviceAccountName: pf-client-uh-ksa  <span class="cm"># bound via WI to pf-client-uh-sa@srl-pacificfed-uh.iam</span>
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-l4
+      containers:
+        - name: client
+          image: us-west1-docker.pkg.dev/srl-shared-services/research/pf-client:0.4
+          args:
+            - --study=halo-hcc-fl-v3
+            - --aggregator-host=10.0.0.10:8080      <span class="cm"># internal LB IP, reachable via peering</span>
+            - --site-id=uh
+            - --data-source=bq://srl-pacificfed-uh.omop_deid.training_cohort_v3
+            - --rounds-to-participate=100
+          resources:
+            requests: {memory: 16Gi, cpu: 4000m, nvidia.com/gpu: 1}
+            limits:   {memory: 16Gi, cpu: 4000m, nvidia.com/gpu: 1}</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Each site deploys this manifest into its own GKE cluster. The image is identical across sites; the arguments and the workload SA are per-site. Bring up the aggregator first; then each site\'s client starts and connects.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The per-site data path</h3>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">The training container reads from the site\'s local <em>de-identified</em> OMOP cohort table (the M8L3 + M9L3 patterns produced these). The data never leaves the site. The site\'s workload SA reads BigQuery via Workload Identity — same M3L3 + M5L1 patterns.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Configuration via Helm</h3>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">Per M5L2 — the per-site client Deployment is a Helm chart shipped from the shared lab repo. Each site customizes with a small values file:</p>
+
+<pre class="code-block"><span class="cm"># values-uh.yaml</span>
+site:
+  id: uh
+  dataSource: bq://srl-pacificfed-uh.omop_deid.training_cohort_v3
+study:
+  id: halo-hcc-fl-v3
+  aggregatorHost: 10.0.0.10:8080
+  rounds: 100
+serviceAccount:
+  gcpServiceAccount: pf-client-uh-sa@srl-pacificfed-uh.iam.gserviceaccount.com</pre>
+
+<pre class="code-block">helm install pf-client-halo-hcc charts/pf-client/ \
+  --namespace=pf-uh --create-namespace \
+  --values=values-uh.yaml</pre>
+
+    <p style="font-size:13.5px;">One chart; per-site values; clean reproduction at every site.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Versioning + observability       -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Per-round discipline</div>
+    <h2 class="section-title">Model versioning and observability across rounds</h2>
+
+    <p style="margin-bottom: 1rem;">A 100-round FL run produces 100 intermediate global models, each one a checkpoint that someone might want to roll back to or analyze later. Treat each round\'s output the same as a Vertex training job\'s output: register, version, log metrics.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The per-round flow</h3>
+
+<pre class="code-block"><span class="cm"># Inside the aggregator: end of each round</span>
+<span class="kw">def</span> on_round_end(round_num, aggregated_weights, metrics):
+    <span class="cm"># 1. Save the global model snapshot</span>
+    save_weights_to_gcs(aggregated_weights, <span class="str">f"gs://srl-pacificfed-infra/runs/halo-hcc-fl-v3/round-{round_num}.pt"</span>)
+
+    <span class="cm"># 2. Log metrics to Vertex Experiments</span>
+    aiplatform.log_metrics({
+        <span class="str">"global_loss"</span>: metrics[<span class="str">"loss"</span>],
+        <span class="str">"global_auroc"</span>: metrics[<span class="str">"auroc"</span>],
+        <span class="str">"min_site_loss"</span>: min(m[<span class="str">"loss"</span>] <span class="kw">for</span> m <span class="kw">in</span> per_site_metrics),
+        <span class="str">"max_site_loss"</span>: max(m[<span class="str">"loss"</span>] <span class="kw">for</span> m <span class="kw">in</span> per_site_metrics),
+        <span class="str">"participating_sites"</span>: len(per_site_metrics),
+    }, step=round_num)
+
+    <span class="cm"># 3. Register every Nth round as a Vertex Model version</span>
+    <span class="kw">if</span> round_num % 10 == 0 <span class="kw">or</span> round_num == final_round:
+        register_in_model_registry(
+            display_name=<span class="str">"halo-hcc-fl"</span>,
+            artifact_uri=<span class="str">f"gs://srl-pacificfed-infra/runs/halo-hcc-fl-v3/round-{round_num}.pt"</span>,
+            version_aliases=[<span class="str">f"v3-round-{round_num}"</span>] + ([<span class="str">"candidate"</span>] <span class="kw">if</span> round_num == final_round <span class="kw">else</span> []),
+        )</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The per-site audit</h3>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">Each site\'s client logs its own per-round events to Cloud Logging — round number received, local training start/end, gradient upload completed. Combined with the aggregator\'s round-level logs, the full federated run is reconstructable forensically.</p>
+
+<pre class="code-block"><span class="cm"># From any site\'s perspective, the audit trail is:</span>
+[round 12] received broadcast model from aggregator (sha256=<span class="am">$HASH</span>)
+[round 12] local training started, dataset_size=4127, GPU L4
+[round 12] local training completed in 312s, local loss=0.42 → 0.38
+[round 12] gradient update uploaded to aggregator (sha256=<span class="am">$HASH</span>)
+[round 13] received broadcast model from aggregator (sha256=<span class="am">$HASH</span>)
+...</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The dashboard the lab actually reads</h3>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">Per M4L3\'s SLO patterns — a Cloud Monitoring dashboard per active FL study, showing:</p>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ Global metric trajectory (loss / AUROC across rounds) — convergence sanity check.</li>
+      <li>→ Per-site participation rate (how often each site checked in vs how often it should have).</li>
+      <li>→ Spread of per-site losses each round (large spread = statistical heterogeneity warning).</li>
+      <li>→ Round duration (mean + worst) — flags when one slow site is dragging the whole run.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>The discipline payoff.</strong> A converged FL run with the above instrumentation is rerunnable end-to-end, traceable per round, comparable across iterations, and registerable as a Vertex Model that downstream serving (M6L3) picks up automatically. The complexity of FL is contained by treating each round as a small, well-instrumented unit of work.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 10.2</div>
+    <h2 class="section-title">Deploy a 2-cluster Flower setup on GKE</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">⚙️ Two clusters, one peering, one FL run</div>
+      <ol class="exercise-steps">
+        <li><strong>Create two GKE Autopilot clusters</strong> — one as "aggregator," one as "site" (in the same project for the exercise; in real PacificFed they\'d be in different projects):<br>
+          <code class="code-inline">gcloud container clusters create-auto demo-agg --location=us-west1 --network=demo-vpc --subnetwork=demo-subnet</code><br>
+          <code class="code-inline">gcloud container clusters create-auto demo-site --location=us-west2 --network=demo-vpc --subnetwork=demo-subnet-us-west2</code><br>
+          (Same VPC for simplicity. Add a us-west2 subnet first if you don\'t have one.)
+        </li>
+        <li>Get credentials for both clusters; use kubectl contexts to switch:<br>
+          <code class="code-inline">gcloud container clusters get-credentials demo-agg --location=us-west1</code><br>
+          <code class="code-inline">kubectl config rename-context $(kubectl config current-context) demo-agg</code><br>
+          <code class="code-inline">gcloud container clusters get-credentials demo-site --location=us-west2</code><br>
+          <code class="code-inline">kubectl config rename-context $(kubectl config current-context) demo-site</code>
+        </li>
+        <li><strong>Build a tiny Flower image.</strong> Take the <code class="code-inline">fl_demo.py</code> from M10L1, split it into a server script and a client script, package each as a small Docker image, push to Artifact Registry.</li>
+        <li><strong>Deploy the aggregator</strong> on demo-agg:<br>
+          <code class="code-inline">kubectl --context demo-agg create namespace fl-demo</code><br>
+<pre class="code-block">cat &lt;&lt;EOF | kubectl --context demo-agg apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: fl-server, namespace: fl-demo}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: fl-server}}
+  template:
+    metadata: {labels: {app: fl-server}}
+    spec:
+      containers:
+        - name: server
+          image: <span class="am">$IMG_SERVER</span>
+          ports: [{containerPort: 8080}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fl-server
+  namespace: fl-demo
+  annotations: {networking.gke.io/load-balancer-type: <span class="str">"Internal"</span>}
+spec:
+  type: LoadBalancer
+  selector: {app: fl-server}
+  ports: [{port: 8080, targetPort: 8080, protocol: TCP}]
+EOF</pre>
+          Get the assigned internal LB IP:<br>
+          <code class="code-inline">kubectl --context demo-agg get svc fl-server -n fl-demo</code><br>
+          Note <code>EXTERNAL-IP</code> — that\'s the internal LB IP your site cluster can reach.
+        </li>
+        <li><strong>Deploy the client</strong> on demo-site, pointing at the aggregator\'s LB IP:<br>
+          <code class="code-inline">kubectl --context demo-site create namespace fl-demo</code><br>
+<pre class="code-block">cat &lt;&lt;EOF | kubectl --context demo-site apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: fl-client, namespace: fl-demo}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: fl-client}}
+  template:
+    metadata: {labels: {app: fl-client}}
+    spec:
+      containers:
+        - name: client
+          image: <span class="am">$IMG_CLIENT</span>
+          env: [{name: SERVER, value: <span class="str">"AGGREGATOR_LB_IP:8080"</span>}]
+EOF</pre>
+        </li>
+        <li>Watch the FL run unfold:<br>
+          <code class="code-inline">kubectl --context demo-agg logs deployment/fl-server -n fl-demo -f</code><br>
+          (In another shell) <code class="code-inline">kubectl --context demo-site logs deployment/fl-client -n fl-demo -f</code>
+        </li>
+        <li><strong>Bonus</strong> — add a second client cluster (us-central1?), peer it in (if you split into separate VPCs), and watch the aggregator wait for both clients before each round.</li>
+        <li><strong>Tear down</strong>:<br>
+          <code class="code-inline">gcloud container clusters delete demo-agg --location=us-west1</code><br>
+          <code class="code-inline">gcloud container clusters delete demo-site --location=us-west2</code>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">Multi-cluster GKE Autopilot</span>
+        <span class="tag">kubectl contexts</span>
+        <span class="tag">Internal LoadBalancer for FL aggregator</span>
+        <span class="tag">Flower server + client in containers</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Why does the FL aggregator live in its own project (<code class="code-inline">srl-pacificfed-infra</code>) rather than in one of the participating sites\' projects?</span>
+        <a href="#" class="check-btn" onclick="alert('Neutrality and isolation. (1) Putting the aggregator in (say) UH\'s project would make UH operationally privileged in a partnership of equals. (2) The aggregator only sees aggregate model updates - never PHI - so it has a different perimeter posture than any site\'s PHI project; mixing them confuses the IAM and audit story. (3) Lifecycle: when one FL study ends, you tear down its Deployment in srl-pacificfed-infra without touching any site\'s configuration. Same shared-services pattern as the registry, KMS, audit sink in M1L2.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>VPC peering for PacificFed needs N peering pairs for N sites + aggregator. Why N pairs, not N²?</span>
+        <a href="#" class="check-btn" onclick="alert('Because sites do not talk to each other - only to the central aggregator. The communication topology is hub-and-spoke, not mesh. Each spoke (site) peers with the hub (aggregator). UH does not need to reach Queen\'s; Queen\'s does not need to reach Guam. If your FL topology were a mesh (rare; some federated optimization algorithms need it), you would need N² pairs. Hub-and-spoke is the right shape for FedAvg and its variants.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>What does it mean that "the same image runs at every site," and why is that important?</span>
+        <a href="#" class="check-btn" onclick="alert('The Flower client container in Artifact Registry is built once in srl-shared-services. Every site pulls THE SAME byte-identical image. This matters because: (1) Reproducibility - the model that comes out depends only on data; site-by-site code differences are eliminated as a confounder. (2) Trust - sites can audit "the code that ran" once, not seven times. (3) Operations - upgrading the client is one image push + per-site Helm upgrade. (4) Per the M10 trust model - if each site ran different code, the FL paper would have to caveat results by site code-version, which defeats the standardization point.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>A site is consistently late or absent for each round - the aggregator hits its min-clients threshold but barely. Two ways to handle this in the strategy config?</span>
+        <a href="#" class="check-btn" onclick="alert('(1) Raise min_fit_clients to require more sites per round so an absent site forces the round to wait or skip - encourages the absent site to fix its operations or formally drop out. (2) Lower min_fit_clients and accept that the slow site participates in fewer rounds; weight FedAvg by data-size so the slow site\'s reduced participation matters proportionally. Pick based on partnership norms - operational pressure vs accepting heterogeneity. Document either choice in the runbook + cite it in the eventual paper\'s methods.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m10-lesson1.html" class="btn">← Lesson 10.1: FL fundamentals</a>
+    <a href="m10-lesson3.html" class="btn btn-primary">Lesson 10.3: Privacy + ops →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
