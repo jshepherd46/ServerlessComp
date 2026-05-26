@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M4 · Lesson 3: Production operations — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Strategy comparison */
+.strat {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px; margin: 1rem 0 1.75rem;
+}
+.st {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+  border-top: 3px solid var(--teal);
+}
+.st:nth-child(2) { border-top-color: var(--blue); }
+.st:nth-child(3) { border-top-color: var(--amber); }
+.st h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.st .stg-tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  letter-spacing: .06em; text-transform: uppercase;
+  display: block; margin-bottom: .55rem;
+}
+.st:nth-child(1) .stg-tag { color: var(--teal); }
+.st:nth-child(2) .stg-tag { color: var(--blue); }
+.st:nth-child(3) .stg-tag { color: var(--amber); }
+.st p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .4rem; }
+.st p:last-child { margin-bottom: 0; }
+@media (max-width: 720px) { .strat { grid-template-columns: 1fr; } }
+
+/* SLO card */
+.slo {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem; margin-bottom: 8px;
+  display: grid; grid-template-columns: 1fr 100px;
+  gap: 1rem; align-items: center;
+}
+.slo .slo-key {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+}
+.slo .slo-body { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.slo .slo-target {
+  font-family: 'IBM Plex Mono', monospace; font-size: 16px;
+  color: var(--amber); text-align: center;
+}
+@media (max-width: 640px) {
+  .slo { grid-template-columns: 1fr; }
+  .slo .slo-target { text-align: left; }
+}
+
+/* Cost lever row */
+.lever {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .85rem 1.1rem; margin-bottom: 8px;
+  display: grid; grid-template-columns: 160px 1fr 90px;
+  gap: 1rem; align-items: center;
+}
+.lever .lv-name {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal);
+}
+.lever .lv-body { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.lever .lv-impact {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  letter-spacing: .04em; text-transform: uppercase;
+  text-align: right;
+}
+.lever .lv-impact.high { color: var(--coral); }
+.lever .lv-impact.mid { color: var(--amber); }
+.lever .lv-impact.low { color: var(--text3); }
+@media (max-width: 640px) {
+  .lever { grid-template-columns: 1fr; }
+  .lever .lv-impact { text-align: left; }
+}
+
+/* Escalation criteria */
+.crit {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--purple);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .85rem 1.15rem; margin-bottom: 8px;
+}
+.crit h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+  text-transform: none; letter-spacing: 0;
+}
+.crit p { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.crit code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M4 · Lesson 3 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 4</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 3</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot done" title="Lesson 2"></div>
+      <div class="progress-dot active" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 3 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Production operations<br>and the GKE escalation playbook</h1>
+    <p class="lesson-sub">Deploying is the easy part. Keeping a serverless lab running is about deployment discipline, the SLOs you actually care about, the cost levers, and knowing the day you'd move a workload to GKE — and how. Closes Phase 1.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 Cloud Run, Cloud Monitoring SLOs, billing exports</span>
+      <span>📍 Module 4 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Deployment patterns              -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Deployment discipline</div>
+    <h2 class="section-title">Three strategies, picked by stakes</h2>
+    <p style="margin-bottom: 1rem;">M4L1 gave you the mechanics (traffic splitting, tags, no-traffic deploys). This lesson gives you the policy: <strong>which strategy you pick for which kind of change.</strong> Three patterns cover almost everything.</p>
+
+    <div class="strat">
+      <div class="st">
+        <span class="stg-tag">Strategy 1</span>
+        <h4>Direct deploy</h4>
+        <p>Push a new revision; 100% traffic instantly. The default.</p>
+        <p style="font-style:italic;color:var(--text3);">Use for: internal dev services, demo apps, anything where a 5-second blip during a redeploy is fine.</p>
+      </div>
+      <div class="st">
+        <span class="stg-tag">Strategy 2</span>
+        <h4>Canary rollout</h4>
+        <p>Deploy with <code>--no-traffic</code>. Smoke-test via tag URL. Shift 10% → 50% → 100% with observation between each step.</p>
+        <p style="font-style:italic;color:var(--text3);">Use for: prod APIs where a regression would affect users; any model-output change you want to watch in flight.</p>
+      </div>
+      <div class="st">
+        <span class="stg-tag">Strategy 3</span>
+        <h4>Blue-green</h4>
+        <p>Run two equivalent revisions, one taking traffic, one warm idle. Flip 100% to green; old blue stays available for instant rollback.</p>
+        <p style="font-style:italic;color:var(--text3);">Use for: clinician-facing services, scheduled-event-window deploys, when a fast bidirectional flip is more important than gradual exposure.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">A canary rollout script you can crib</h3>
+
+<pre class="code-block"><span class="cm">#!/usr/bin/env bash</span>
+set -euo pipefail
+
+SERVICE=xai-serve
+REGION=us-west1
+NEW_IMG=<span class="am">$1</span>
+
+<span class="cm"># 1. Deploy with no traffic and a canary tag</span>
+gcloud run deploy <span class="am">$SERVICE</span> --image=<span class="am">$NEW_IMG</span> --region=<span class="am">$REGION</span> --no-traffic --tag=canary
+
+<span class="cm"># 2. Smoke test on the tag URL</span>
+CANARY_URL=$(gcloud run services describe <span class="am">$SERVICE</span> --region=<span class="am">$REGION</span> \
+  --format=<span class="str">"value(status.traffic[?tag=='canary'].url)"</span>)
+TOKEN=$(gcloud auth print-identity-token)
+curl -sf -H <span class="str">"Authorization: Bearer $TOKEN"</span> <span class="str">"$CANARY_URL/health"</span> &gt; /dev/null \
+  || { <span class="kw">echo</span> <span class="str">"Canary smoke test failed"</span>; exit 1; }
+
+<span class="cm"># 3. Step traffic and observe at each stage</span>
+NEW_REV=$(gcloud run services describe <span class="am">$SERVICE</span> --region=<span class="am">$REGION</span> \
+  --format=<span class="str">"value(status.traffic[?tag=='canary'].revisionName)"</span>)
+
+<span class="kw">for</span> pct <span class="kw">in</span> 10 50 100; <span class="kw">do</span>
+  gcloud run services update-traffic <span class="am">$SERVICE</span> --region=<span class="am">$REGION</span> \
+    --to-revisions=<span class="am">$NEW_REV=$pct</span>
+  <span class="kw">echo</span> <span class="str">"Now $pct% on $NEW_REV. Observing for 5 minutes..."</span>
+  sleep 300
+  <span class="cm"># Check error rate; abort if it spiked</span>
+<span class="kw">done</span></pre>
+
+    <p style="font-size:13.5px;">This is what an operations runbook (M1L4) section looks like in practice. Keep it in your lab repo; every prod service uses the same script with its own service name.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: SLOs                             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">What "working" means</div>
+    <h2 class="section-title">SLOs and error budgets, sized for research</h2>
+    <p style="margin-bottom: 1rem;">A Service Level Objective is a measurable target for "is this service working." For a research lab, you do not need Google-grade five-nines reasoning. You need a couple of crisp numbers that let you say <em>"yes, this is working" or "no, intervene now."</em></p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Reasonable SLO targets for SRL services</h3>
+
+    <div class="slo">
+      <div>
+        <div class="slo-key">Clinician-facing inference API (Makawalu XAI)</div>
+        <div class="slo-body">Successful response within 2 seconds, 99% of requests, over rolling 30 days. The 1% error budget is ~7 hours/month — enough room for deploys, the occasional cold start, and a single bad rev.</div>
+      </div>
+      <div class="slo-target">99.0%</div>
+    </div>
+
+    <div class="slo">
+      <div>
+        <div class="slo-key">Internal-team APIs (ShepBERT serving for Pavel)</div>
+        <div class="slo-body">Successful response, 95% of requests, over rolling 7 days. Anything more strict is wasted effort here — the consumers are humans on the team who will tell you if it's broken.</div>
+      </div>
+      <div class="slo-target">95.0%</div>
+    </div>
+
+    <div class="slo">
+      <div>
+        <div class="slo-key">Nightly batch ingest (HIPIMR pipeline)</div>
+        <div class="slo-body">Job completes successfully, 99% of nights, over rolling 90 days. Failure budget: ~1 missed night per quarter, which a runbook entry covers.</div>
+      </div>
+      <div class="slo-target">99.0%</div>
+    </div>
+
+    <div class="slo">
+      <div>
+        <div class="slo-key">Demo / portfolio services</div>
+        <div class="slo-body">No SLO. Best effort. If it broke at 2am you will not be paged.</div>
+      </div>
+      <div class="slo-target">—</div>
+    </div>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Configure an SLO in Cloud Monitoring</h3>
+
+<pre class="code-block"><span class="cm"># Easiest path: console.
+# Cloud Run service → SLOs → Create SLO → "Availability" or "Latency"
+# Set target, set rolling window, set alert when budget burn rate &gt; threshold
+# The console writes a JSON spec you can also apply via gcloud monitoring slos create</span>
+
+<span class="cm"># Programmatic shape:</span>
+{
+  <span class="str">"displayName"</span>: <span class="str">"xai-serve availability"</span>,
+  <span class="str">"serviceLevelIndicator"</span>: {
+    <span class="str">"requestBased"</span>: {
+      <span class="str">"goodTotalRatio"</span>: {
+        <span class="str">"goodServiceFilter"</span>: <span class="str">"metric.type=\"run.googleapis.com/request_count\" resource.labels.service_name=\"xai-serve\" metric.labels.response_code_class=\"2xx\""</span>,
+        <span class="str">"totalServiceFilter"</span>: <span class="str">"metric.type=\"run.googleapis.com/request_count\" resource.labels.service_name=\"xai-serve\""</span>
+      }
+    }
+  },
+  <span class="str">"goal"</span>: 0.99,
+  <span class="str">"rollingPeriod"</span>: <span class="str">"30d"</span>
+}</pre>
+
+    <div class="callout">
+      <strong>The error budget rule of thumb:</strong> if you're burning the 30-day budget faster than 30% per week (i.e., trending toward exhaustion), pause new feature deploys and focus on stability. If you're consistently coming in well under budget, deploy more freely — you have margin. Treat it as a budget you spend deliberately.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Autoscaling tuning               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Cost vs latency</div>
+    <h2 class="section-title">Tuning the autoscaler for your traffic shape</h2>
+    <p style="margin-bottom: 1rem;">The math from M4L1 told you how Cloud Run scales. The operational question is: for <em>this</em> service, with <em>this</em> traffic, what configuration minimises cost while staying inside the SLO?</p>
+
+    <p style="margin-bottom:.75rem;">Three traffic shapes you'll encounter, and the configuration that fits each:</p>
+
+    <div class="eblock">
+      <div class="eh">Shape 1 — Sparse and bursty</div>
+      <h4>Demo APIs, ad-hoc internal tools</h4>
+      <p>A handful of requests per day. <code>min-instances=0</code>, <code>concurrency=80</code>, <code>max-instances=10</code>. Cold starts happen; you don't care. Cost: near zero between sessions.</p>
+    </div>
+
+    <div class="eblock">
+      <div class="eh">Shape 2 — Steady low traffic with latency SLO</div>
+      <h4>Internal team APIs</h4>
+      <p><code>min-instances=1</code>, <code>concurrency=80</code>, <code>max-instances=20</code>. One always-warm instance handles the steady-state. Cost: ~$30-40/month per always-on instance — the price of meeting the SLO.</p>
+    </div>
+
+    <div class="eblock">
+      <div class="eh">Shape 3 — Heavy ML inference with SLO</div>
+      <h4>Clinician-facing XAI / Makawalu</h4>
+      <p><code>min-instances=1</code> (warm), <code>concurrency=2</code> (model is the bottleneck), <code>max-instances=20</code> (cost cap for sudden demos), CPU memory sized to model + buffer (<code>--memory=4Gi</code>, <code>--cpu=2</code>), <code>--no-cpu-throttling</code> if the model has post-request work.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The data that drives the tuning</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">Cloud Monitoring's pre-built metrics for Cloud Run answer the questions you need. Bookmark a dashboard with these four panels per service:</p>
+
+    <ul style="list-style:none;padding-left:1rem;margin-bottom:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Request count</strong> (per revision, with 2xx/4xx/5xx breakdown)</li>
+      <li>→ <strong>Request latency p50/p95/p99</strong> (where the SLO lives)</li>
+      <li>→ <strong>Container instance count</strong> (vs your max-instances cap)</li>
+      <li>→ <strong>Container CPU + memory utilisation</strong> (drives sizing decisions)</li>
+    </ul>
+
+    <p style="font-size:13.5px;">If p99 latency is high but CPU/memory utilisation is low, you're concurrency-limited — drop concurrency. If utilisation is high and you're hitting max-instances, raise max-instances (and reconsider memory/CPU sizing).</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Cost levers                      -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The bill</div>
+    <h2 class="section-title">Cost levers, in order of impact</h2>
+    <p style="margin-bottom: 1rem;">Cloud Run billing is per request + per vCPU-second + per GB-second of memory. Different levers move the bill in different ways — and most labs are paying for invisible inefficiencies they could fix in an afternoon.</p>
+
+    <div class="lever">
+      <div class="lv-name">--min-instances</div>
+      <div class="lv-body">Each always-warm instance bills ~$30-50/month at 1 vCPU / 2 GB. Audit every prod service: does it actually need warm? Demos and internal tools rarely do.</div>
+      <div class="lv-impact high">HIGH</div>
+    </div>
+
+    <div class="lever">
+      <div class="lv-name">CPU mode</div>
+      <div class="lv-body"><code>--no-cpu-throttling</code> costs ~2-3× per instance-second vs default throttled mode. Default to throttled; turn on always-allocated only when measured background work demands it.</div>
+      <div class="lv-impact high">HIGH</div>
+    </div>
+
+    <div class="lever">
+      <div class="lv-name">Concurrency</div>
+      <div class="lv-body">Higher concurrency = fewer instances for the same load. If your service is I/O-bound, raise it. Caveat: too high for CPU/GPU-bound services causes latency spikes — measure first.</div>
+      <div class="lv-impact mid">MID</div>
+    </div>
+
+    <div class="lever">
+      <div class="lv-name">Region selection</div>
+      <div class="lv-body">Pricing varies modestly across regions. Bigger lever: keep services in the same region as their data to avoid egress charges. Cross-region calls add ~$0.08-0.12/GB on top.</div>
+      <div class="lv-impact mid">MID</div>
+    </div>
+
+    <div class="lever">
+      <div class="lv-name">Image size</div>
+      <div class="lv-body">M2L2's multi-stage builds are not just about security — smaller images mean faster cold starts, less egress on pulls, less storage on Artifact Registry retention.</div>
+      <div class="lv-impact low">LOW</div>
+    </div>
+
+    <div class="lever">
+      <div class="lv-name">Log volume</div>
+      <div class="lv-body">Cloud Logging has a free tier (50 GiB/month) then $0.50/GB. Verbose request logging on a busy service can run hundreds of dollars/month. Filter what you ingest at the sink, not at the source.</div>
+      <div class="lv-impact mid">MID</div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The monthly cost query</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">From M1L4's billing export, the query that surfaces lab-wide Cloud Run spend by service:</p>
+
+<pre class="code-block"><span class="kw">SELECT</span>
+  project.id <span class="kw">AS</span> project,
+  resource.global_name <span class="kw">AS</span> service,
+  <span class="kw">ROUND</span>(<span class="kw">SUM</span>(cost), 2) <span class="kw">AS</span> usd
+<span class="kw">FROM</span> `srl-shared-services.billing.gcp_billing_export_v1_XXXX`
+<span class="kw">WHERE</span> service.description = <span class="str">"Cloud Run"</span>
+  <span class="kw">AND</span> usage_start_time <span class="kw">BETWEEN</span> <span class="str">'2026-04-01'</span> <span class="kw">AND</span> <span class="str">'2026-05-01'</span>
+<span class="kw">GROUP BY</span> project, service
+<span class="kw">ORDER BY</span> usd <span class="kw">DESC</span>;</pre>
+
+    <p style="font-size:13.5px;">Run this on the 1st of every month. The top three services are where to look for tuning wins.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: GKE escalation playbook          -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">When to escalate</div>
+    <h2 class="section-title">The playbook for moving to GKE</h2>
+    <p style="margin-bottom: 1rem;">M2L3 listed the five conditions that mean Cloud Run is the wrong answer. When you hit one, the question becomes <em>how do you move?</em> The path is short and well-trodden.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The four conditions you'll actually hit</h3>
+
+    <div class="crit">
+      <h4>1. Long-running training / serving</h4>
+      <p>You started with Cloud Run Jobs for nightly training; the model has grown to need 6-hour training runs and you're approaching the 24-hour Job ceiling. Or your inference service needs a process that lives between requests for hours. Move to GKE with a dedicated workload.</p>
+    </div>
+
+    <div class="crit">
+      <h4>2. Multi-GPU / specialised GPU pools</h4>
+      <p>Cloud Run GPUs (M4L1) cover single L4 workloads. PacificFed federated aggregation on multi-A100, Makawalu CBM training with mixed-precision multi-GPU — these need GKE with a dedicated GPU node pool. The GKE GPU support is the right floor.</p>
+    </div>
+
+    <div class="crit">
+      <h4>3. Service mesh / complex networking</h4>
+      <p>You've grown to 6+ services that talk to each other by name; you want mTLS between them, traffic-shifting at the mesh level, or per-namespace identity. Cloud Service Mesh on GKE is the answer.</p>
+    </div>
+
+    <div class="crit">
+      <h4>4. Stateful runtime / Persistent Disks</h4>
+      <p>You discover your ATLAS WebAPI install needs a writeable filesystem, or you want to run a self-managed Redis. GKE with <code>PersistentVolumeClaim</code> is the right shape; Cloud Run filesystems are ephemeral.</p>
+    </div>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">The migration shape</h3>
+
+<pre class="code-block"><span class="cm"># 1. Same image, no rebuild. GKE pulls from the same Artifact Registry.</span>
+<span class="cm"># 2. Same service account, with a Workload Identity binding instead of attached SA.</span>
+<span class="cm"># 3. Same secrets, mounted via Workload Identity into the pod (M3L3 patterns hold).</span>
+<span class="cm"># 4. Same network posture: GKE Autopilot in a private cluster inside the VPC SC perimeter.</span>
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xai-serve
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: xai-serve}}
+  template:
+    metadata:
+      labels: {app: xai-serve}
+    spec:
+      serviceAccountName: xai-serve-ksa   <span class="cm"># Workload Identity → xai-serve-sa</span>
+      containers:
+        - name: app
+          image: us-west1-docker.pkg.dev/srl-shared-services/research/hello-flask:0.2.0
+          ports: [{containerPort: 8080}]
+          resources:
+            requests: {memory: 2Gi, cpu: 1000m}
+            limits:   {memory: 4Gi, cpu: 2000m}</pre>
+
+    <p style="font-size:13.5px;margin-bottom:.75rem;">The image, the SA, the secrets, the IAM are all the same. You're trading the Cloud Run service spec for a Kubernetes Deployment + Service. The operational cost goes up (cluster management, pod lifecycle, manifests in version control) but you gain the affordances GKE provides.</p>
+
+    <div class="callout">
+      <strong>The rule:</strong> escalate only when one of the four conditions actively applies. "We might need GKE someday" is not a reason to migrate today. M5 covers GKE properly — that's where you'll learn the apparatus when you actually need it.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 4.3</div>
+    <h2 class="section-title">Stand up an SLO and read the cost</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📊 Observe what you've already built</div>
+      <ol class="exercise-steps">
+        <li>If your <code class="code-inline">hello-flask</code> service from M4L1 is gone, redeploy it.</li>
+        <li>Generate some traffic — both successful and failed. From your laptop:<br>
+          <code class="code-inline">URL=$(gcloud run services describe hello-flask --region=us-west1 --format='value(status.url)')</code><br>
+          <code class="code-inline">for i in $(seq 1 50); do curl -sf -H "Authorization: Bearer $(gcloud auth print-identity-token)" $URL/ &gt; /dev/null &amp;&amp; echo ok || echo fail; done</code><br>
+          Then a few intentional 404s:<br>
+          <code class="code-inline">for i in $(seq 1 5); do curl -sf -H "Authorization: Bearer $(gcloud auth print-identity-token)" $URL/nope &gt; /dev/null || echo fail; done</code>
+        </li>
+        <li><strong>Create an SLO in the console.</strong> Cloud Run → hello-flask → SLOs → Create SLO. Pick "Availability" (request_count). Target 95%. Rolling window: 7 days. Save. Look at the SLO board: you should see your traffic and the budget remaining.</li>
+        <li><strong>Configure an error-rate alert.</strong> Cloud Monitoring → Alerting → Create Policy. Condition: <code class="code-inline">run.googleapis.com/request_count{response_code_class="5xx"}</code> &gt; 0.05 sustained 5 min. Notification channel: your email. Save. Now if the error rate climbs, you get paged.</li>
+        <li><strong>Cost discipline check.</strong> In Cloud Run UI, set <code class="code-inline">--min-instances=1</code> on hello-flask. Wait a few minutes. Check the billing console — your sandbox should accrue a few cents/day for the always-on instance. Confirm the effect; then set it back to 0.</li>
+        <li><strong>Query the billing export</strong> if you set it up in M1L4. Find your Cloud Run costs broken down by service:<br>
+          <code class="code-inline">bq query --use_legacy_sql=false 'SELECT resource.global_name AS service, ROUND(SUM(cost),4) AS usd FROM `[YOUR_BILLING_DATASET].gcp_billing_export_v1_XXXX` WHERE service.description = "Cloud Run" GROUP BY service ORDER BY usd DESC'</code><br>
+          Note how small a number you're at — and how the bill scales if you set min-instances on five services at once.
+        </li>
+        <li><strong>Walk through the GKE escalation playbook on paper.</strong> Pick one of your prod services (or one of the SRL studies). Ask: which of the four GKE escalation triggers applies? If none, what would have to change for one to apply? Write this down in your runbook.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">What you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">Cloud Run service metrics</span>
+        <span class="tag">Cloud Monitoring SLO</span>
+        <span class="tag">Cloud Monitoring alerting policy</span>
+        <span class="tag">--min-instances cost lever</span>
+        <span class="tag">BigQuery billing export query</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Your XAI service has a 99% latency SLO over 30 days and you've burned 80% of the budget by day 10. Two reasonable responses?</span>
+        <a href="#" class="check-btn" onclick="alert('Two responses, often together. (1) Pause new feature deploys to the service; focus engineering on the root cause of latency or errors. The budget you have left should cover deploys for the rest of the month, not ten more risky changes. (2) Look at the failing requests - are they real or artificial (load tests, scanners, misconfigured callers)? If artificial, tighten the SLI to count only requests that matter, or rate-limit at the LB.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>The bill for hello-flask is $0.03/day. Why is that even a useful number to look at?</span>
+        <a href="#" class="check-btn" onclick="alert('Because cost discipline is a habit, not a panic. Three cents today scales to thirty when you have ten of them, three hundred when you have a hundred. The habit of reading the per-service cost weekly catches the moment when a misconfiguration (an always-warm instance accidentally left on, a service stuck in retries, an unexpectedly large min-instances) starts compounding. If you only look at the bill when it is already a problem, you missed the lever.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You realise the Makawalu training pipeline now takes 8 hours per nightly run. Does that warrant a GKE escalation, and if so, what specifically would you move?</span>
+        <a href="#" class="check-btn" onclick="alert('Probably yes for the training step itself - 8 hours fits inside the Cloud Run Job 24-hour ceiling today, but is on the edge for headroom and retries. The pragmatic move: move ONLY the training step to a GKE Job (or Vertex AI Custom Training, which is purpose-built for this). The ingest validator, the audit handlers, the deploy-canary step - all stay on Cloud Run/Functions. Escalate the workload that hit the limit; do not migrate the rest.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>What is the operational cost of always-allocated CPU mode and when does it justify itself?</span>
+        <a href="#" class="check-btn" onclick="alert('Cost: 2-3× per instance-second vs default throttled mode. Justified when: (1) the service does meaningful background work between requests - a Pub/Sub subscriber that processes asynchronously, periodic in-process tasks; or (2) shutdown handling needs full CPU to drain (uncommon). For pure request-handler APIs the default throttled mode is correct.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Phase 1 close                               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Closing Phase 1</div>
+    <h2 class="section-title">You can build a research cloud now</h2>
+    <div class="callout">
+      <strong>The arc of Phase 1.</strong> M1 gave you the architectural skeleton — topology, identity, operations. M2 gave you the unit of compute — containers, built well, shipped through CI, run on Cloud Run. M3 gave you HIPAA — perimeter, network, keys, audit, the breach-response runbook. M4 gave you the runtime depth — revisions, traffic, events, SLOs, the GKE escalation playbook. Combined, you can stand up a HIPAA-grade serverless research environment from scratch, with a runbook that survives turnover.
+    </div>
+    <p style="margin-top: 1rem;">Phase 2 takes you down into <em>Kubernetes</em>, <em>ML workloads</em>, and <em>secure data pipelines</em>. M5 — GKE — picks up exactly where this lesson left off: the escalation you just learned to recognise. M6 and M7 are the ML modules where you train and serve CNN and LLM workloads on the platform you just built. M8 covers de-identification and the data-pipeline side of HIPAA in depth.</p>
+    <p style="margin-top: 1rem;">Everything you've built in Phase 1 is a substrate the rest of the course plugs into. Keep the topology diagram, the IAM matrix, and the runbook in front of you; every Phase 2 module fits inside them.</p>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m4-lesson2.html" class="btn">← Lesson 4.2: Event-driven architecture</a>
+    <a href="m5.html" class="btn btn-primary">M5: Kubernetes (GKE) →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

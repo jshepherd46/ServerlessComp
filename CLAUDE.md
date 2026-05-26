@@ -100,7 +100,7 @@ ServerlessComp/
 | M1 | INFRA | Cloud architecture & systems thinking | 5 | Complete (L1–L4) |
 | M2 | INFRA | Containers: from local to cloud | 8 | Complete (L1–L3) |
 | M3 | HIPAA | HIPAA-compliant GCP environment | 7 | Complete (L1–L3) |
-| M4 | INFRA | Serverless fundamentals: Cloud Run & Cloud Functions | 7 | Stub |
+| M4 | INFRA | Serverless fundamentals: Cloud Run & Cloud Functions | 7 | Complete (L1–L3) — Phase 1 done |
 
 ### Phase 2 — Kubernetes & ML Workloads (M5–M8)
 

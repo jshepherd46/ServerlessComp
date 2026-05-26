@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M4 · Lesson 1: Cloud Run, deeply — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Revisions visual */
+.rev-stack {
+  display: flex; flex-direction: column; gap: 4px;
+  margin: 1rem 0 1.75rem;
+}
+.rev {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: .7rem 1rem;
+  display: grid; grid-template-columns: 150px 80px 1fr;
+  gap: 1rem; align-items: center;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+}
+.rev.active { border-left: 3px solid var(--green); }
+.rev.idle { border-left: 3px solid var(--text3); opacity: 0.75; }
+.rev .rv-name { color: var(--text); }
+.rev .rv-traffic {
+  font-family: 'IBM Plex Mono', monospace; font-size: 14px;
+  font-weight: 500; color: var(--green);
+}
+.rev.idle .rv-traffic { color: var(--text3); }
+.rev .rv-note { color: var(--text2); font-size: 11.5px; line-height: 1.5; }
+@media (max-width: 640px) {
+  .rev { grid-template-columns: 1fr; }
+}
+
+/* Math table */
+.math {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+}
+.math-formula {
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace; font-size: 14px;
+  color: var(--amber); margin-bottom: 1rem; padding: .75rem;
+  background: var(--bg); border-radius: var(--r);
+  border: 1px solid var(--border);
+}
+.math-eg {
+  display: grid; grid-template-columns: 200px 1fr;
+  gap: 12px; padding: .5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.math-eg:last-child { border-bottom: none; }
+.math-eg .e-head {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal);
+}
+.math-eg .e-body { color: var(--text2); line-height: 1.55; }
+.math-eg .e-body code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--amber);
+}
+@media (max-width: 640px) { .math-eg { grid-template-columns: 1fr; } }
+
+/* CPU mode comparison */
+.mode-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin: 1rem 0 1.5rem;
+}
+.mode {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+}
+.mode.req { border-left: 3px solid var(--green); }
+.mode.alw { border-left: 3px solid var(--blue); }
+.mode h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+  text-transform: none; letter-spacing: 0;
+}
+.mode .mt {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  letter-spacing: .04em; margin-bottom: .55rem; display: block;
+}
+.mode.req .mt { color: var(--green); }
+.mode.alw .mt { color: var(--blue); }
+.mode p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.mode .mu { font-size: 11.5px; color: var(--text3); font-style: italic; }
+@media (max-width: 640px) { .mode-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M4 · Lesson 1 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 4</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot active" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 1 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Cloud Run, deeply</h1>
+    <p class="lesson-sub">M2L3 got you deploying. This lesson is the runtime model underneath: how revisions become traffic, how the autoscaler thinks, and the knobs that turn a working service into a tuned one. Same image as before; sharper understanding of what it's doing.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 Cloud Run, Cloud Monitoring, Global Load Balancer</span>
+      <span>📍 Module 4 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Revisions                        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The runtime model</div>
+    <h2 class="section-title">Revisions — every deploy is immutable</h2>
+    <p style="margin-bottom: 1rem;">A Cloud Run <strong>service</strong> is a stable name with a stable URL. A <strong>revision</strong> is a snapshot of everything that defines an instance of that service: container image, env vars, secrets, memory, CPU, concurrency, service account, network settings. Every <code class="code-inline">gcloud run deploy</code> creates a new revision and points the service's traffic at it.</p>
+
+    <div class="rev-stack">
+      <div class="rev active">
+        <div class="rv-name">xai-serve-00006-abc</div>
+        <div class="rv-traffic">100%</div>
+        <div class="rv-note">Current. Image: hello-flask:0.2.3, mem 2Gi, concurrency 4, --min-instances 1.</div>
+      </div>
+      <div class="rev idle">
+        <div class="rv-name">xai-serve-00005-xyz</div>
+        <div class="rv-traffic">0%</div>
+        <div class="rv-note">Previous good. Image 0.2.2. Kept warm by Cloud Run's history for instant rollback.</div>
+      </div>
+      <div class="rev idle">
+        <div class="rv-name">xai-serve-00004-def</div>
+        <div class="rv-traffic">0%</div>
+        <div class="rv-note">Older. Same as 5 but with a smaller concurrency. Retained indefinitely until pruned.</div>
+      </div>
+    </div>
+
+    <p style="margin-bottom: 1rem;">Three properties make this model powerful:</p>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">🧊</div>
+        <div class="principle-title">Immutable</div>
+        <div class="principle-body">A revision, once created, cannot be modified. Want different memory? That's a new revision. The full configuration is captured at deploy time and stays captured.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">↩️</div>
+        <div class="principle-title">Instantly reversible</div>
+        <div class="principle-body">Rollback is a traffic-split command, not a redeploy. The old revision is still there. <code class="code-inline">gcloud run services update-traffic --to-revisions=&lt;rev&gt;=100</code>.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🌗</div>
+        <div class="principle-title">Splittable</div>
+        <div class="principle-body">Send 10% of traffic to a new revision, 90% to the current. Canary deploys are a built-in primitive, not something you script.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🔍</div>
+        <div class="principle-title">Auditable</div>
+        <div class="principle-body">Every revision has a manifest stored in the service's revision history. <code class="code-inline">gcloud run revisions describe</code> shows the exact configuration that ever served traffic.</div>
+      </div>
+    </div>
+
+    <p style="margin-top: 1rem; margin-bottom: .75rem;">Inspect:</p>
+
+<pre class="code-block">gcloud run revisions list --service=xai-serve --region=us-west1
+gcloud run revisions describe xai-serve-00005-xyz --region=us-west1
+gcloud run services describe xai-serve --region=us-west1 --format=<span class="str">"value(status.traffic)"</span></pre>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Traffic splitting                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Operating on revisions</div>
+    <h2 class="section-title">Traffic splitting — canary, blue-green, rollback</h2>
+    <p style="margin-bottom: 1rem;">By default every new deploy gets 100% of traffic. That's fine for low-stakes services. For a HIPAA-tier inference API, you want gradual rollouts.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Deploy a new revision <em>without</em> shifting traffic</h3>
+
+<pre class="code-block">gcloud run deploy xai-serve \
+  --image=<span class="am">$NEW_IMG</span> \
+  --region=us-west1 \
+  <span class="warn">--no-traffic</span>      <span class="cm"># revision is created and ready but receives 0%</span></pre>
+
+    <p style="font-size:13.5px; margin-bottom:.75rem;">The new revision exists, can serve requests via a tag-specific URL, but the production URL still routes to the previous revision.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Address a specific revision for smoke tests</h3>
+
+<pre class="code-block"><span class="cm"># Tag the new revision</span>
+gcloud run services update-traffic xai-serve \
+  --region=us-west1 \
+  --update-tags=canary=xai-serve-00007-ghi
+
+<span class="cm"># Now this URL hits ONLY the tagged revision</span>
+gcloud run services describe xai-serve --region=us-west1 \
+  --format=<span class="str">"value(status.traffic[?tag=='canary'].url)"</span>
+<span class="cm"># https://canary---xai-serve-abc.us-west1.run.app</span></pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Canary — 10% / 90%</h3>
+
+<pre class="code-block">gcloud run services update-traffic xai-serve \
+  --region=us-west1 \
+  --to-revisions=xai-serve-00007-ghi=10,xai-serve-00006-abc=90</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Promote — 100% to the new revision</h3>
+
+<pre class="code-block">gcloud run services update-traffic xai-serve \
+  --region=us-west1 \
+  --to-revisions=xai-serve-00007-ghi=100</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Rollback — back to the previous good revision</h3>
+
+<pre class="code-block">gcloud run services update-traffic xai-serve \
+  --region=us-west1 \
+  --to-revisions=xai-serve-00006-abc=100</pre>
+
+    <div class="callout">
+      <strong>Where the canary pattern matters most:</strong> any time a regression in model output, latency, or error rate could affect care or a publication. Roll out at 10% for an hour, watch metrics + log-based alerts, then promote. If anything goes wrong, the rollback is one command and ~2 seconds — faster than any redeploy.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Scaling internals                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The autoscaler</div>
+    <h2 class="section-title">Scaling internals — the math you actually need</h2>
+    <p style="margin-bottom: 1rem;">Cloud Run's autoscaler is request-based. It adds container instances when in-flight requests exceed what existing instances can handle, removes them when traffic falls. The shape of that behaviour is set by three numbers.</p>
+
+    <div class="math">
+      <div class="math-formula">
+        instances ≈ ⌈ in-flight requests ÷ concurrency ⌉, bounded by [min, max]
+      </div>
+
+      <div class="math-eg">
+        <div class="e-head">Light traffic API</div>
+        <div class="e-body">2 req/s, latency 100 ms → ~0.2 in-flight requests on average. With concurrency=80, one instance handles it. <code>--min-instances=0</code> means most of the day, zero instances run.</div>
+      </div>
+
+      <div class="math-eg">
+        <div class="e-head">Heavy ML inference</div>
+        <div class="e-body">2 req/s, latency 4 s → ~8 in-flight on average. With <code>concurrency=2</code> (model is the bottleneck), you need 4 instances. Set <code>--min-instances=1</code> to hide the cold start from the first request.</div>
+      </div>
+
+      <div class="math-eg">
+        <div class="e-head">Bursty traffic</div>
+        <div class="e-body">A presentation hits the demo: 100 req/s, latency 800 ms → ~80 in-flight. With <code>concurrency=4</code>, the autoscaler wants 20 instances. <code>--max-instances=10</code> caps you and the remaining requests queue (slower) or 429 (depending on your settings).</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The three numbers, in order of impact</h3>
+
+    <div class="hier-accordion">
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">🎚</span>
+          <div class="hier-label">
+            <div class="hier-label-name"><a class="g-term" href="../glossary.html#concurrency">concurrency</a> — the dial that costs you most or saves you most</div>
+            <div class="hier-label-desc">Max in-flight requests per instance. Default 80; ML inference often wants 1–4; cheap APIs can push 200+.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">A model that uses 1.5 GB of GPU memory and saturates a single inference at a time should have <code class="code-inline">concurrency=1</code>. Raising it would cause overlapping requests to thrash. A JSON-API webhook with no heavy state can run <code class="code-inline">concurrency=250</code>, serving thousands of requests on a handful of instances.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-project"></div>
+          <span class="hier-icon">⬇️</span>
+          <div class="hier-label">
+            <div class="hier-label-name">--min-instances — the cold-start mitigation</div>
+            <div class="hier-label-desc">0 = full scale-to-zero, pay nothing idle, accept cold starts. ≥1 = always-warm at the cost of one (or more) idle instance.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">For clinical-facing services where the first request matters (you don't want a clinician demo to spin up the model on stage), <code class="code-inline">--min-instances=1</code>. For internal demos or nightly admin APIs, 0 is right. The cost: a min-instance Cloud Run instance running 24/7 at 1 vCPU + 2 GB memory is roughly $30–50/month per instance — order of magnitude awareness, not a budget.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-resource"></div>
+          <span class="hier-icon">⬆️</span>
+          <div class="hier-label">
+            <div class="hier-label-name">--max-instances — the cost cap</div>
+            <div class="hier-label-desc">Default 100. Set deliberately to your wallet's ceiling.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Max-instances is not a target; it's a safety net. A misconfigured trigger, a load-test runaway, or an upstream attack can push request volume far beyond what the service was sized for. The autoscaler honours max-instances strictly. Set it for prod services where the value is "if traffic exceeds this, queue (or 429) rather than spend."</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: CPU mode + startup probes        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Two configurations that matter</div>
+    <h2 class="section-title">CPU allocation and startup probes</h2>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">CPU allocation — request-time vs always-allocated</h3>
+
+    <div class="mode-row">
+      <div class="mode req">
+        <span class="mt">--cpu-throttling</span>
+        <h4>CPU only during requests (default)</h4>
+        <p>The instance gets full CPU when handling a request, very little between requests. You pay only for the CPU you used during request handling.</p>
+        <div class="mu">Use for: stateless APIs, anything that doesn't run background work between requests.</div>
+      </div>
+      <div class="mode alw">
+        <span class="mt">--no-cpu-throttling</span>
+        <h4>Always-allocated CPU</h4>
+        <p>The instance has full CPU even between requests. You pay for the whole instance-second the container is alive.</p>
+        <div class="mu">Use for: background processing (a goroutine consuming Pub/Sub between requests), services that need to handle SIGTERM gracefully under load, anything with periodic work.</div>
+      </div>
+    </div>
+
+    <p style="font-size:13.5px; margin-bottom:.5rem;">Per Cloud Run pricing, always-allocated costs roughly 2–3× per-instance vs throttled mode. Default to throttled; switch only when you observe a problem.</p>
+
+<pre class="code-block">gcloud run services update xai-serve \
+  --region=us-west1 \
+  <span class="warn">--no-cpu-throttling</span>     <span class="cm"># switch to always-allocated</span></pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Startup probes — telling Cloud Run when you're really ready</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Default: Cloud Run considers an instance "ready" as soon as it starts listening on the port. For services with heavy initialisation (loading a 4 GB model from GCS), you want Cloud Run to wait until the model is in memory before routing real traffic.</p>
+
+<pre class="code-block">gcloud run services update xai-serve \
+  --region=us-west1 \
+  --startup-probe=httpGet.path=/healthz/ready,initialDelaySeconds=10,periodSeconds=5,failureThreshold=24,timeoutSeconds=2</pre>
+
+    <p style="font-size:13.5px;margin-bottom:.5rem;">Now Cloud Run polls <code class="code-inline">/healthz/ready</code> every 5 seconds, gives the instance up to 2 minutes (24×5s) to come back 200, and only then sends real traffic. Your app returns 503 from <code class="code-inline">/healthz/ready</code> until the model load completes.</p>
+
+    <div class="callout">
+      <strong>The pattern this enables:</strong> deploy a new revision with <code class="code-inline">--no-traffic</code>; canary to 10% only after the startup probe has confirmed the new revision is actually ready to serve. Failed probes never receive production traffic.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Custom domains + LB              -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Beyond *.run.app</div>
+    <h2 class="section-title">Custom domains and the global load balancer</h2>
+    <p style="margin-bottom: 1rem;">The default <code class="code-inline">*.run.app</code> URL is fine for internal services and demos. For anything public-facing — a clinician portal, a study landing page — you want your own domain plus the global HTTPS load balancer for Cloud Armor, Identity-Aware Proxy, and multi-region failover.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Domain mapping (simple but limited)</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">For a single region with no LB features:</p>
+
+<pre class="code-block">gcloud beta run domain-mappings create \
+  --service=xai-serve \
+  --region=us-west1 \
+  --domain=xai.makawalu.uhcancercenter.org</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Global HTTPS Load Balancer (production-grade)</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">The full stack — required for Cloud Armor, IAP, multi-region:</p>
+
+<pre class="code-block"><span class="cm"># 1. Serverless NEG pointing at the Cloud Run service</span>
+gcloud compute network-endpoint-groups create xai-serve-neg \
+  --region=us-west1 --network-endpoint-type=serverless \
+  --cloud-run-service=xai-serve
+
+<span class="cm"># 2. Backend service consuming the NEG, with security policy</span>
+gcloud compute backend-services create xai-serve-backend --global
+gcloud compute backend-services add-backend xai-serve-backend \
+  --global --network-endpoint-group=xai-serve-neg --network-endpoint-group-region=us-west1
+gcloud compute backend-services update xai-serve-backend --global \
+  --security-policy=srl-public-policy
+
+<span class="cm"># 3. URL map + HTTPS proxy + forwarding rule (omitting cert + IP setup for brevity)</span>
+gcloud compute url-maps create xai-serve-lb --default-service=xai-serve-backend
+gcloud compute target-https-proxies create xai-serve-https \
+  --url-map=xai-serve-lb --ssl-certificates=xai-makawalu-cert
+gcloud compute forwarding-rules create xai-serve-fwd --global \
+  --target-https-proxy=xai-serve-https --address=<span class="am">$LB_IP</span> --ports=443</pre>
+
+    <p style="font-size:13.5px;">After this, traffic flows: client → global LB IP → Cloud Armor → backend → serverless NEG → Cloud Run service. <a class="g-term" href="../glossary.html#cloud-armor">Cloud Armor</a> from M3L2 attaches at the backend service. IAP attaches as a load balancer feature. Failover to a secondary region is one extra backend.</p>
+
+    <div class="callout">
+      <strong>When to skip the LB:</strong> internal-only services, ad-hoc demos, anything where the <code class="code-inline">*.run.app</code> URL is enough. The LB has real cost (~$25/month minimum) — match it to actual production exposure.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Advanced — GPUs, sidecars        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">When Cloud Run grew up</div>
+    <h2 class="section-title">GPUs and sidecars</h2>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Cloud Run GPUs</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Cloud Run now supports NVIDIA L4 GPUs attached to instances. The use case: serverless model serving without provisioning a GKE GPU node pool. Good fit for Makawalu CBM inference; not a fit for multi-GPU training.</p>
+
+<pre class="code-block">gcloud run deploy makawalu-xai \
+  --image=<span class="am">$IMG</span> \
+  --region=us-west1 \
+  <span class="warn">--gpu=1 --gpu-type=nvidia-l4</span> \
+  --memory=16Gi --cpu=4 \
+  --no-cpu-throttling \
+  --max-instances=4</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Caveats: limited regions, requires <code class="code-inline">--no-cpu-throttling</code>, max-instances capped tightly per project, cost is dramatically higher than CPU-only. Verify the regional availability and quota before designing around it.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Sidecar containers</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">A Cloud Run revision can run up to nine containers in a single instance, sharing local network and an emptyDir-like volume. The main use case: deploying a managed proxy alongside your app (e.g., the Cloud SQL Auth Proxy, or a custom telemetry forwarder).</p>
+
+<pre class="code-block">gcloud run services replace service.yaml --region=us-west1</pre>
+
+    <p style="font-size:13.5px;color:var(--text2);margin-bottom:.5rem;">With a YAML manifest defining multiple <code class="code-inline">containers:</code>:</p>
+
+<pre class="code-block">apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: xai-serve
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          image: <span class="am">$IMG</span>
+          ports: [{containerPort: 8080}]
+        - name: sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
+          args: [<span class="str">"--port=5432"</span>, <span class="str">"$PROJECT:us-west1:srl-omop"</span>]</pre>
+
+    <div class="callout">
+      <strong>Sidecars are a recent addition</strong> and worth knowing about, but the bar for using them is high — most needs are still met by single-container services with managed-service clients (e.g., the BigQuery client library replaces a sidecar proxy). Reach for sidecars when you genuinely have a separate process responsibility, not for code organisation.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 4.1</div>
+    <h2 class="section-title">Canary a new revision and watch it</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🐤 Two revisions, 10/90 split, promote or roll back</div>
+      <ol class="exercise-steps">
+        <li>Start from your hello-flask service from M2L3 in your sandbox project. If you tore it down, redeploy quickly:<br>
+          <code class="code-inline">IMG=us-west1-docker.pkg.dev/$PROJECT/practice/hello-flask:0.2.0</code><br>
+          <code class="code-inline">gcloud run deploy hello-flask --image=$IMG --region=us-west1 --no-allow-unauthenticated</code>
+        </li>
+        <li>Edit <code class="code-inline">app.py</code> from M2L1 — change the response payload (e.g., add a <code class="code-inline">"version": "0.3"</code> field). Build a new image with a different tag:<br>
+          <code class="code-inline">docker build -t hello-flask:0.3.0 .</code><br>
+          <code class="code-inline">IMG2=us-west1-docker.pkg.dev/$PROJECT/practice/hello-flask:0.3.0</code><br>
+          <code class="code-inline">docker tag hello-flask:0.3.0 $IMG2 &amp;&amp; docker push $IMG2</code>
+        </li>
+        <li><strong>Deploy with no traffic:</strong><br>
+          <code class="code-inline">gcloud run deploy hello-flask --image=$IMG2 --region=us-west1 --no-allow-unauthenticated --no-traffic</code>
+        </li>
+        <li>Inspect revisions:<br>
+          <code class="code-inline">gcloud run revisions list --service=hello-flask --region=us-west1</code><br>
+          Note both revision names — call the old one <code class="code-inline">OLD</code> and the new one <code class="code-inline">NEW</code>.
+        </li>
+        <li>Tag the new revision for direct addressability:<br>
+          <code class="code-inline">gcloud run services update-traffic hello-flask --region=us-west1 --update-tags=canary=$NEW</code>
+        </li>
+        <li>Hit the canary URL directly (smoke test):<br>
+          <code class="code-inline">URL=$(gcloud run services describe hello-flask --region=us-west1 --format="value(status.traffic[?tag=='canary'].url)")</code><br>
+          <code class="code-inline">curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" $URL/</code><br>
+          You should see your 0.3 payload — only via this URL.
+        </li>
+        <li>Verify the main service URL still returns 0.2:<br>
+          <code class="code-inline">MAIN=$(gcloud run services describe hello-flask --region=us-west1 --format='value(status.url)')</code><br>
+          <code class="code-inline">curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" $MAIN/</code>
+        </li>
+        <li><strong>Canary 10%:</strong><br>
+          <code class="code-inline">gcloud run services update-traffic hello-flask --region=us-west1 --to-revisions=$NEW=10,$OLD=90</code><br>
+          Hit the main URL 20 times in a loop; ~2 of the responses should be 0.3.
+        </li>
+        <li><strong>Watch metrics:</strong> Cloud Run UI → service → Metrics. Filter by revision. The new revision should show a small request count; latency and error rate should match the old.</li>
+        <li><strong>Promote to 100%:</strong><br>
+          <code class="code-inline">gcloud run services update-traffic hello-flask --region=us-west1 --to-revisions=$NEW=100</code>
+        </li>
+        <li><strong>Practise rollback:</strong> simulate a regression by rolling back to OLD:<br>
+          <code class="code-inline">gcloud run services update-traffic hello-flask --region=us-west1 --to-revisions=$OLD=100</code><br>
+          Confirm the main URL returns 0.2 again. That's your rollback drill.
+        </li>
+        <li><strong>Tune for fun:</strong> set min-instances=1 on the service and observe latency on the next cold request — it should be near-instant. Reset to 0 to scale back to zero between sessions.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Commands you used</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud run deploy --no-traffic</span>
+        <span class="tag">gcloud run revisions list / describe</span>
+        <span class="tag">gcloud run services update-traffic --update-tags</span>
+        <span class="tag">gcloud run services update-traffic --to-revisions</span>
+        <span class="tag">gcloud run services update --min-instances</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 8: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Your latest deploy of the XAI service has a regression — output values are subtly off. Your rollback time is &lt;5 seconds. Why?</span>
+        <a href="#" class="check-btn" onclick="alert('Because the previous good revision still exists, idle but ready, in Cloud Run\'s revision history. Rollback is just a traffic-split command pointing 100% at the old revision — no rebuild, no redeploy, no image pull. The revision model makes rollback structurally cheap.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your CNN inference service has <code class="code-inline">concurrency=80</code> by default. Latency spikes to 30 seconds under any real traffic. What's the lever?</span>
+        <a href="#" class="check-btn" onclick="alert('Drop concurrency to 1 (or 2 if you have memory headroom). 80 concurrent inferences on one instance compete for the same GPU/CPU resources and thrash. With concurrency=1, the autoscaler creates more instances earlier; each one serves one request at a time at the natural model latency. Cost goes up because more instances run; latency comes down because no contention.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You set <code class="code-inline">--min-instances=1</code> on a low-traffic API to avoid cold starts. A month later your bill is $40 higher than expected. Where did it go?</span>
+        <a href="#" class="check-btn" onclick="alert('To the 24/7 idle instance. min-instances=1 means one container is always running, billed for full vCPU and memory regardless of whether traffic exists. At 1 vCPU + 2GB, that\'s roughly $30-50/month per always-on instance. If cold start latency matters but the cost does not justify a permanent warm instance, alternatives: warm-up via Cloud Scheduler pinging the service every few minutes, or accept the cold start and lazy-load the heavy model.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You deploy a revision with a startup probe and it never reaches Ready. What happens to traffic and to the previous revision?</span>
+        <a href="#" class="check-btn" onclick="alert('Traffic stays on the previous revision. Cloud Run will not send production traffic to a revision that hasn\'t passed its startup probe. The new revision is marked unhealthy in the service status and you can debug via its logs and the canary tag URL without affecting users. This is the reason to write a real readiness check rather than relying on "port is open" detection.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m3-lesson3.html" class="btn">← M3L3: Keys, secrets, audit</a>
+    <a href="m4-lesson2.html" class="btn btn-primary">Lesson 4.2: Event-driven architecture →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

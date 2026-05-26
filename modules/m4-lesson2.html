@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M4 · Lesson 2: Event-driven architecture — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Comparison */
+.cmp {
+  display: grid; grid-template-columns: 200px 1fr 1fr;
+  gap: 0; margin: 1rem 0 1.5rem;
+  border: 1px solid var(--border); border-radius: var(--r2); overflow: hidden;
+}
+.cmp > div {
+  padding: .8rem 1.1rem; border-bottom: 1px solid var(--border);
+  font-size: 12.5px; line-height: 1.55;
+}
+.cmp > div:nth-last-child(-n+3) { border-bottom: none; }
+.cmp .ch {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  letter-spacing: .06em; text-transform: uppercase;
+  background: var(--bg2);
+}
+.cmp .ch.svc-cf { color: var(--blue); }
+.cmp .ch.svc-cr { color: var(--teal); }
+.cmp .key {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--text3); background: var(--bg2);
+}
+.cmp .v { color: var(--text2); }
+@media (max-width: 720px) {
+  .cmp { grid-template-columns: 1fr; }
+  .cmp .key { font-weight: 600; color: var(--amber); }
+}
+
+/* Pattern blocks */
+.eblock {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.25rem; margin-bottom: 10px;
+  border-left: 3px solid var(--blue);
+}
+.eblock h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.eblock .eh {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--blue); letter-spacing: .04em; margin-bottom: .5rem;
+}
+.eblock p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .4rem; }
+.eblock p:last-child { margin-bottom: 0; }
+.eblock code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* Pipeline flow */
+.pipeline {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.7; overflow-x: auto;
+}
+.pipeline .step { color: var(--blue); }
+.pipeline .ev { color: var(--amber); }
+.pipeline .data { color: var(--teal); }
+.pipeline .arr { color: var(--text3); }
+.pipeline .ann { color: var(--text3); font-style: italic; }
+.pipeline .branch { color: var(--purple); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M4 · Lesson 2 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 4</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 2 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Event-driven<br>architecture</h1>
+    <p class="lesson-sub">Real research pipelines are not single services — they're chains. A file lands, a job processes it, a model trains, results publish. This lesson is the wiring: Cloud Functions, Eventarc, Pub/Sub, and Workflows, applied to the HIPIMR ingest pipeline end to end.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 Cloud Functions, Eventarc, Pub/Sub, Workflows</span>
+      <span>📍 Module 4 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Functions vs Cloud Run           -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The lay of the land</div>
+    <h2 class="section-title">Cloud Functions vs Cloud Run</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#cloud-functions">Cloud Functions</a> v2 is built on Cloud Run — same runtime, same scaling, same revision model. What differs is the deployment unit and the developer surface: Functions take a single function in your language; Cloud Run takes a container.</p>
+
+    <div class="cmp">
+      <div class="ch"></div>
+      <div class="ch svc-cf">Cloud Functions (v2)</div>
+      <div class="ch svc-cr">Cloud Run</div>
+
+      <div class="key">Deployment unit</div>
+      <div class="v">A single function: <code>def handler(event, context):</code>. GCP builds the container.</div>
+      <div class="v">An OCI image you build yourself. Full control over deps, base image, layers.</div>
+
+      <div class="key">Languages</div>
+      <div class="v">Python, Node, Go, Java, .NET, Ruby, PHP — the supported runtimes only.</div>
+      <div class="v">Any language. Anything that can be a container.</div>
+
+      <div class="key">Triggering</div>
+      <div class="v">First-class Eventarc and HTTP triggers wired by gcloud flags.</div>
+      <div class="v">HTTP by default; Eventarc and Pub/Sub triggers wired separately.</div>
+
+      <div class="key">Build pipeline</div>
+      <div class="v">Cloud Build runs invisibly; you provide source.</div>
+      <div class="v">You own the Dockerfile and the cloudbuild.yaml (M2).</div>
+
+      <div class="key">Best for</div>
+      <div class="v">Glue code, event handlers, "when X happens do Y" — under ~50 LOC.</div>
+      <div class="v">Stateful APIs, custom dependencies, anything beyond a single handler.</div>
+    </div>
+
+    <div class="callout">
+      <strong>Rule of thumb for SRL.</strong> Use Cloud Functions for the "when an object lands, kick off the pipeline" handlers — short, single-purpose, event-shaped. Use Cloud Run for everything else. They share a runtime, share a registry (Artifact Registry), share IAM patterns. Mix freely.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Eventarc                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The universal router</div>
+    <h2 class="section-title">Eventarc — one trigger model for everything</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#eventarc">Eventarc</a> turns GCP into one big event bus. Over 100 event sources — GCS object created, BigQuery job finished, Vertex training completed, Pub/Sub message, a generic Cloud Audit Log — get normalised into the CloudEvents format and routed to a Cloud Run service, Cloud Function, or Workflow.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The mental model</h3>
+
+<pre class="code-block"><span class="cm"># A trigger says: "when THIS happens, call THIS, as THAT identity"</span>
+
+  Event source       <span class="kw">→</span>   Eventarc trigger    <span class="kw">→</span>   Target
+  ──────────────         ─────────────────       ─────────
+  GCS bucket             "new DICOM in              Cloud Run service or
+  BigQuery job            srl-hipimr-landing"        Cloud Function
+  Pub/Sub topic                                      Cloud Workflow
+  Audit log filter                                   (as the trigger's SA)</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Three trigger types you'll use</h3>
+
+    <div class="eblock">
+      <div class="eh">cloud.storage.object.v1.finalized</div>
+      <h4>GCS object created → Cloud Run / Function</h4>
+      <p>The classic "file landed in a bucket, do something with it." Filter by bucket + (optionally) object prefix or content type.</p>
+<pre class="code-block">gcloud eventarc triggers create dicom-ingest-trigger \
+  --location=us-west1 \
+  --destination-run-service=dicom-ingest \
+  --destination-run-region=us-west1 \
+  --event-filters=<span class="str">"type=google.cloud.storage.object.v1.finalized"</span> \
+  --event-filters=<span class="str">"bucket=srl-hipimr-landing"</span> \
+  --service-account=eventarc-trigger-sa@<span class="am">$PROJECT</span>.iam.gserviceaccount.com</pre>
+    </div>
+
+    <div class="eblock">
+      <div class="eh">type=google.cloud.audit.log.v1.written + filters</div>
+      <h4>Audit log event → Cloud Run / Function</h4>
+      <p>Any GCP API call that gets logged can become a trigger. Filter by serviceName + methodName. Powerful for things without first-class triggers: "when someone updates an IAM policy on a PHI project, run the policy-drift checker."</p>
+<pre class="code-block">gcloud eventarc triggers create iam-drift-check \
+  --location=global \
+  --destination-run-service=iam-checker \
+  --destination-run-region=us-west1 \
+  --event-filters=<span class="str">"type=google.cloud.audit.log.v1.written"</span> \
+  --event-filters=<span class="str">"serviceName=cloudresourcemanager.googleapis.com"</span> \
+  --event-filters=<span class="str">"methodName=SetIamPolicy"</span> \
+  --service-account=eventarc-trigger-sa@<span class="am">$PROJECT</span>.iam.gserviceaccount.com</pre>
+    </div>
+
+    <div class="eblock">
+      <div class="eh">type=google.cloud.pubsub.topic.v1.messagePublished</div>
+      <h4>Pub/Sub message → Cloud Run / Function</h4>
+      <p>For your own custom events. Publish to a topic; subscribers (the trigger) receive each message as a CloudEvent. This is the pattern under most decoupled architectures.</p>
+    </div>
+
+    <div class="callout">
+      <strong>Reading event payloads in your handler:</strong> CloudEvents come in as HTTP POSTs with the event in the JSON body. Use the official <code class="code-inline">cloudevents</code> Python / JS library to parse — don't roll your own parser. The metadata fields (eventTime, source, subject) are standardised across all 100+ source types.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Pub/Sub patterns                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The bus underneath</div>
+    <h2 class="section-title">Pub/Sub patterns at depth</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#pubsub">Pub/Sub</a> is the plumbing under most of Eventarc and the right primitive for any custom event flow you design. Four patterns cover almost everything you'll build in a research lab.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Push vs pull subscriptions</h3>
+
+    <div class="mode-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:1rem 0 1.5rem;">
+      <div class="eblock">
+        <div class="eh">PUSH subscription</div>
+        <h4>Pub/Sub calls you</h4>
+        <p>Configure the subscription with an HTTPS endpoint (a Cloud Run service or Function). Pub/Sub POSTs each message and retries on non-2xx.</p>
+        <p style="font-style:italic;color:var(--text3);">Best for: serverless targets, low-volume events, when the consumer scales with traffic.</p>
+      </div>
+      <div class="eblock">
+        <div class="eh">PULL subscription</div>
+        <h4>Your code asks Pub/Sub</h4>
+        <p>The consumer calls <code class="code-inline">subscriber.pull()</code> in a loop or stream. Acknowledges or nacks. More control; needs a long-lived runtime.</p>
+        <p style="font-style:italic;color:var(--text3);">Best for: batch consumers, GKE pods, high-throughput streams, anywhere you need explicit flow control.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Four patterns you'll reach for</h3>
+
+    <div class="eblock">
+      <div class="eh">1. Fan-out — one event, many consumers</div>
+      <h4>Decoupling downstream pipelines</h4>
+      <p>Ingest publishes <code>dicom.received</code> to a topic. Three subscriptions on that topic: de-identification handler, indexing handler, audit notification handler. Each runs independently; one failing doesn't block the others.</p>
+    </div>
+
+    <div class="eblock">
+      <div class="eh">2. Ordering keys — when sequence matters</div>
+      <h4>Per-patient or per-study ordering</h4>
+      <p>Pub/Sub default is at-least-once with no ordering. Set <code>messageOrderingEnabled</code> on the subscription and publish with an <code>orderingKey</code> (e.g., the patient MRN); messages with the same key arrive in order to the same consumer. Use sparingly — ordering reduces throughput.</p>
+    </div>
+
+    <div class="eblock">
+      <div class="eh">3. Dead-letter queue — handling failures</div>
+      <h4>When the handler keeps failing</h4>
+      <p>Configure the subscription with <code>--dead-letter-topic</code> and <code>--max-delivery-attempts=5</code>. After 5 failed deliveries, the message moves to a separate topic for human investigation. Without a DLQ, a poison message can block a subscription forever.</p>
+<pre class="code-block">gcloud pubsub subscriptions create dicom-ingest-sub \
+  --topic=dicom-received \
+  --push-endpoint=<span class="am">$CLOUD_RUN_URL</span> \
+  --push-auth-service-account=ingest-sa@<span class="am">$PROJECT</span>.iam.gserviceaccount.com \
+  --dead-letter-topic=dicom-received-dlq \
+  --max-delivery-attempts=5 \
+  --message-retention-duration=7d</pre>
+    </div>
+
+    <div class="eblock">
+      <div class="eh">4. Exactly-once (with the new flag)</div>
+      <h4>When duplicates would corrupt downstream data</h4>
+      <p>Pub/Sub now supports exactly-once delivery (<code>--enable-exactly-once-delivery</code>) on regional pull subscriptions. Useful when downstream is non-idempotent. Trade-off: lower throughput. Most well-designed pipelines should be idempotent anyway.</p>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Cloud Workflows                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Orchestration without infrastructure</div>
+    <h2 class="section-title">Cloud Workflows — chains of API calls</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#workflows">Cloud Workflows</a> is a serverless state-machine engine. You declare a sequence of steps in YAML; each step calls a GCP API or an HTTP service. Workflows handles retries, conditional branching, parallelism, and waiting on long-running operations — without you running any infrastructure.</p>
+
+    <p style="margin-bottom: 1rem;">When to reach for Workflows instead of a Cloud Function chain: when the pipeline has more than two or three steps, or when you need waits, parallelism, or error recovery that's awkward to write in handler code.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">A real example — post-ingest fan-out</h3>
+
+<pre class="code-block"><span class="cm"># workflow.yaml — chain after DICOM ingest</span>
+main:
+  params: [event]
+  steps:
+    - log_received:
+        call: sys.log
+        args:
+          text: <span class="str">${"Processing " + event.subject}</span>
+          severity: INFO
+
+    - branch_parallel:
+        parallel:
+          shared: [event]
+          branches:
+            - deid_branch:
+                steps:
+                  - run_deid:
+                      call: googleapis.run.v1.namespaces.jobs.run
+                      args:
+                        name: <span class="str">${"namespaces/" + sys.get_env("PROJECT_ID") + "/jobs/deid-job"}</span>
+                        body:
+                          overrides:
+                            containerOverrides:
+                              - env:
+                                  - name: SOURCE_OBJECT
+                                    value: <span class="str">${event.subject}</span>
+            - index_branch:
+                steps:
+                  - bq_load:
+                      call: googleapis.bigquery.v2.jobs.insert
+                      args:
+                        projectId: <span class="str">${sys.get_env("PROJECT_ID")}</span>
+                        body:
+                          configuration:
+                            load:
+                              sourceUris: [<span class="str">${"gs://srl-hipimr-metadata/" + event.subject}</span>]
+                              destinationTable:
+                                projectId: <span class="str">${sys.get_env("PROJECT_ID")}</span>
+                                datasetId: <span class="str">"hipimr_index"</span>
+                                tableId: <span class="str">"dicom_metadata"</span>
+
+    - notify_complete:
+        call: googleapis.pubsub.v1.projects.topics.publish
+        args:
+          topic: <span class="str">${"projects/" + sys.get_env("PROJECT_ID") + "/topics/dicom-processed"}</span>
+          body:
+            messages:
+              - data: <span class="str">${base64.encode(text.encode(json.encode(event)))}</span>
+
+    - done:
+        return: <span class="str">${"Completed processing of " + event.subject}</span></pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Deploy and trigger:</p>
+
+<pre class="code-block">gcloud workflows deploy dicom-post-ingest \
+  --source=workflow.yaml \
+  --location=us-west1 \
+  --service-account=workflow-sa@<span class="am">$PROJECT</span>.iam.gserviceaccount.com
+
+<span class="cm"># Trigger from Eventarc on the same GCS event that fired the Cloud Function</span>
+gcloud eventarc triggers create post-ingest-trigger \
+  --location=us-west1 \
+  --destination-workflow=dicom-post-ingest \
+  --destination-workflow-location=us-west1 \
+  --event-filters=<span class="str">"type=google.cloud.storage.object.v1.finalized"</span> \
+  --event-filters=<span class="str">"bucket=srl-hipimr-landing"</span> \
+  --service-account=eventarc-trigger-sa@<span class="am">$PROJECT</span>.iam.gserviceaccount.com</pre>
+
+    <div class="callout">
+      <strong>Workflows vs Vertex AI Pipelines:</strong> Workflows is for chaining <em>API calls and HTTP services</em>; Vertex Pipelines is for chaining <em>containerised ML steps with artifacts between them</em> (M11). Use Workflows for ingest/notification/orchestration; use Vertex Pipelines for training, evaluation, model deployment.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: HIPIMR end-to-end                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">All together</div>
+    <h2 class="section-title">The HIPIMR ingest pipeline, fully event-driven</h2>
+    <p style="margin-bottom: 1rem;">M3L2 showed the network path for HIPIMR ingest. Here is the same pipeline expressed as events and handlers — the actual sequence of triggers, services, and topics that move a Queen's DICOM batch from the landing bucket to the trained model.</p>
+
+    <div class="pipeline">
+<span class="step">[1]</span> <span class="data">GCS landing bucket</span> srl-hipimr-landing
+       <span class="arr">│</span>
+       <span class="arr">▼ object created</span>
+<span class="step">[2]</span> <span class="ev">Eventarc trigger</span> dicom-landed
+       <span class="arr">│</span>
+       <span class="arr">▼ POST CloudEvent</span>
+<span class="step">[3]</span> <span class="data">Cloud Function</span> dicom-validate
+       <span class="ann">  - Validates the upload (size, format, study UID metadata)</span>
+       <span class="ann">  - Rejects malformed: moves to /quarantine</span>
+       <span class="ann">  - On success: publishes to Pub/Sub</span>
+       <span class="arr">│</span>
+       <span class="arr">▼ message: dicom.validated</span>
+<span class="step">[4]</span> <span class="data">Pub/Sub topic</span> dicom-validated
+       <span class="arr">├──────────────────┬──────────────────┬──────────────────┐</span>
+       <span class="arr">▼ sub: deid</span>      <span class="arr">▼ sub: index</span>     <span class="arr">▼ sub: audit</span>    <span class="arr">▼ sub: notify</span>
+<span class="branch">[5a]</span> <span class="data">Cloud Run Job</span>  <span class="branch">[5b]</span> <span class="data">Cloud Func</span>  <span class="branch">[5c]</span> <span class="data">Cloud Func</span>  <span class="branch">[5d]</span> <span class="data">Cloud Func</span>
+     deid-job              bq-index            audit-log          slack-notify
+       <span class="arr">│</span>                     <span class="arr">│</span>                  <span class="arr">│</span>
+       <span class="arr">▼ publishes</span>          <span class="arr">▼ writes</span>           <span class="arr">▼ writes</span>
+<span class="step">[6]</span> <span class="ev">Pub/Sub</span> dicom-deid'd  <span class="data">BigQuery</span> hipimr_index   <span class="data">BigQuery</span> audit_extra
+       <span class="arr">│</span>
+       <span class="arr">▼ sub: train-trigger</span>
+<span class="step">[7]</span> <span class="data">Cloud Run Job</span> density-cnn-train
+       <span class="ann">  - Pulls latest weights from GCS, runs Vertex training</span>
+       <span class="ann">  - Stores new model in Vertex Model Registry</span>
+       <span class="ann">  - Publishes to Pub/Sub</span>
+       <span class="arr">│</span>
+       <span class="arr">▼ message: model.updated</span>
+<span class="step">[8]</span> <span class="data">Cloud Function</span> deploy-canary
+       <span class="ann">  - Deploys the new model to xai-serve as a 10% canary</span>
+       <span class="ann">  - Notifies the team to validate, then promotes after 24h</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Why this shape works</h3>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">🧩</div>
+        <div class="principle-title">Decoupled</div>
+        <div class="principle-body">Any one step can fail or be rewritten without rebuilding the pipeline. The audit branch failing doesn't block training.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🔁</div>
+        <div class="principle-title">Idempotent</div>
+        <div class="principle-body">Every step is safe to retry. Re-running deid on the same object produces the same output. Pub/Sub's at-least-once delivery is fine.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🔍</div>
+        <div class="principle-title">Fully audited</div>
+        <div class="principle-body">Every event in every topic, every function invocation, every Workflow run lands in the audit sink from M1L4. End-to-end traceability for one DICOM is a single SQL query.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🚪</div>
+        <div class="principle-title">Boundary-respecting</div>
+        <div class="principle-body">Every step runs inside the VPC SC perimeter (M3L1); every SA is workload-scoped (M1L3); every secret in Secret Manager (M3L3). Architecture all the way down.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 4.2</div>
+    <h2 class="section-title">Wire a GCS-triggered Function and a Pub/Sub fan-out</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">⚡ Event in, two consumers out</div>
+      <ol class="exercise-steps">
+        <li>Enable the relevant APIs in your sandbox:<br>
+          <code class="code-inline">gcloud services enable eventarc.googleapis.com pubsub.googleapis.com cloudfunctions.googleapis.com workflows.googleapis.com</code>
+        </li>
+        <li>Create a topic for your custom event:<br>
+          <code class="code-inline">gcloud pubsub topics create demo-validated</code>
+        </li>
+        <li>Create a landing bucket:<br>
+          <code class="code-inline">gcloud storage buckets create gs://$PROJECT-demo-landing --location=us-west1</code>
+        </li>
+        <li><strong>Write the validator function</strong>. Save as <code class="code-inline">main.py</code>:
+<pre class="code-block"><span class="kw">import</span> os, json
+<span class="kw">from</span> google.cloud <span class="kw">import</span> pubsub_v1
+<span class="kw">import</span> functions_framework
+<span class="kw">from</span> cloudevents.http <span class="kw">import</span> CloudEvent
+
+publisher = pubsub_v1.PublisherClient()
+TOPIC = <span class="str">f"projects/{os.environ['PROJECT_ID']}/topics/demo-validated"</span>
+
+<span class="kw">@functions_framework.cloud_event</span>
+<span class="kw">def</span> validate(event: CloudEvent):
+    data = event.data
+    obj = <span class="str">f"gs://{data['bucket']}/{data['name']}"</span>
+    <span class="kw">if</span> data[<span class="str">'size'</span>] < <span class="str">"10"</span>:
+        <span class="kw">print</span>(<span class="str">f"Rejecting {obj}: too small"</span>)
+        <span class="kw">return</span>
+    payload = json.dumps({<span class="str">"object"</span>: obj, <span class="str">"size"</span>: data[<span class="str">'size'</span>]}).encode()
+    publisher.publish(TOPIC, payload).result()
+    <span class="kw">print</span>(<span class="str">f"Validated {obj}, published to demo-validated"</span>)</pre>
+        And a <code class="code-inline">requirements.txt</code>:
+<pre class="code-block">functions-framework==3.*
+google-cloud-pubsub==2.*
+cloudevents==1.*</pre>
+        </li>
+        <li>Deploy it as a Cloud Function with a GCS trigger:<br>
+          <code class="code-inline">gcloud functions deploy demo-validate --gen2 --region=us-west1 --runtime=python312 --source=. --entry-point=validate --trigger-bucket=$PROJECT-demo-landing --set-env-vars=PROJECT_ID=$PROJECT --service-account=eventarc-trigger-sa@$PROJECT.iam.gserviceaccount.com</code>
+        </li>
+        <li>Create two subscriptions on <code class="code-inline">demo-validated</code> — one pulled by a tiny logger, one as a push to a Cloud Run service:<br>
+          <code class="code-inline">gcloud pubsub subscriptions create demo-validated-logger --topic=demo-validated</code><br>
+          <code class="code-inline">gcloud pubsub subscriptions create demo-validated-push --topic=demo-validated --push-endpoint=https://hello-flask-XXX.run.app/ --push-auth-service-account=push-sa@$PROJECT.iam.gserviceaccount.com</code>
+        </li>
+        <li>Trigger the pipeline by uploading a file:<br>
+          <code class="code-inline">echo "hello" &gt; demo.txt &amp;&amp; gcloud storage cp demo.txt gs://$PROJECT-demo-landing/</code>
+        </li>
+        <li>Inspect each step:<br>
+          <code class="code-inline">gcloud functions logs read demo-validate --gen2 --region=us-west1 --limit=10</code><br>
+          <code class="code-inline">gcloud pubsub subscriptions pull demo-validated-logger --auto-ack --limit=5</code><br>
+          <code class="code-inline">gcloud run services logs read hello-flask --region=us-west1 --limit=10</code><br>
+          You should see the validator log the upload, the logger pull the message, and your Cloud Run service log the inbound push.
+        </li>
+        <li><strong>Bonus:</strong> deploy the Workflow from Section 4 with two parallel branches (one logs, one publishes to a third topic) and trigger it from another Eventarc trigger on the same bucket. Watch both pipelines run side-by-side per upload.</li>
+        <li><strong>Tear down</strong> when finished: delete the function, subscriptions, topic, bucket.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Services + commands you used</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud functions deploy --gen2 --trigger-bucket</span>
+        <span class="tag">gcloud pubsub topics create</span>
+        <span class="tag">gcloud pubsub subscriptions create (pull + push)</span>
+        <span class="tag">gcloud eventarc triggers create</span>
+        <span class="tag">gcloud workflows deploy</span>
+        <span class="tag">CloudEvents in Python</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>You're writing a "when a new DICOM lands, kick off de-id" handler. Cloud Function or Cloud Run? Justify in one sentence.</span>
+        <a href="#" class="check-btn" onclick="alert('Cloud Function. It is a single-purpose handler reacting to a single event source, with minimal dependencies and a short execution. Cloud Run is justified when you have non-trivial dependencies, custom base images, or stateful processing - none of which apply to a simple validator. Either would work; Cloud Function is less ceremony.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your de-id pipeline keeps reprocessing the same DICOM occasionally. The audit log shows duplicates. Where does the duplication come from and what fixes it cheaply?</span>
+        <a href="#" class="check-btn" onclick="alert('Pub/Sub at-least-once delivery. A subscriber that NACKs or fails to ack in time gets the message redelivered. The cheap fix is idempotency in the handler: derive a deterministic dedupe key from the object path + content hash, check a Firestore (or Memorystore) set before processing. Heavier alternative: enable exactly-once delivery on the subscription, which has throughput cost but eliminates the need for client-side dedupe.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>The validator function rejects a malformed DICOM. Without a dead-letter topic, what happens after 5 retries?</span>
+        <a href="#" class="check-btn" onclick="alert('It keeps being retried indefinitely (subject to retention) until either the function eventually succeeds or you ack it manually. The subscription accumulates a backlog; the poison message blocks similar pending messages. With a DLQ configured, after 5 attempts the message moves to the DLQ topic where a human can inspect it - the live pipeline keeps moving.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You have a four-step pipeline: validate → de-id → train → deploy-canary. Should this be one Cloud Function with sequential calls, four Cloud Functions chained via Pub/Sub, or a Cloud Workflow?</span>
+        <a href="#" class="check-btn" onclick="alert('Either Pub/Sub fan-out OR Cloud Workflows - definitely not one big function. Pub/Sub for maximum decoupling (each step is independently scalable and retryable; failures isolated to that handler). Cloud Workflows for explicit orchestration with conditional branching, parallelism, and waits. Rule of thumb: if the chain has any conditional logic, parallelism, or long waits, use Workflows. If it is a straight pipeline of decoupled steps, Pub/Sub fan-out reads more cleanly.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m4-lesson1.html" class="btn">← Lesson 4.1: Cloud Run, deeply</a>
+    <a href="m4-lesson3.html" class="btn btn-primary">Lesson 4.3: Production operations →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
