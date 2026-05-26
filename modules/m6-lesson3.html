@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M6 · Lesson 3: Serving and the model lifecycle — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Serving matrix */
+.matrix-wrap { overflow-x: auto; margin: 1rem 0 1.75rem; }
+.smatrix {
+  width: 100%; border-collapse: collapse; font-size: 12.5px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); overflow: hidden;
+}
+.smatrix th, .smatrix td {
+  padding: .85rem 1rem; text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.smatrix thead th {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text3); font-weight: 500;
+  background: rgba(255,255,255,.02);
+}
+.smatrix tbody tr:last-child td { border-bottom: none; }
+.smatrix .lead {
+  font-family: 'Syne', sans-serif; font-weight: 600; color: var(--text);
+  font-size: 13px;
+}
+.smatrix .yes { color: var(--green); }
+.smatrix .no  { color: var(--coral); }
+.smatrix .mid { color: var(--amber); }
+
+/* Lifecycle steps */
+.life {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .9rem 1.15rem; margin-bottom: 8px;
+  display: grid; grid-template-columns: 110px 1fr;
+  gap: 1rem; align-items: start;
+}
+.life .ln {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--coral); letter-spacing: .04em;
+  padding-top: 2px;
+}
+.life .lb { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.life .lb strong { color: var(--text); }
+.life .lb code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+@media (max-width: 640px) {
+  .life { grid-template-columns: 1fr; }
+  .life .ln { color: var(--amber); }
+}
+
+/* Drift card */
+.drift {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--amber);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .9rem 1.15rem; margin-bottom: 8px;
+}
+.drift h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+  text-transform: none; letter-spacing: 0;
+}
+.drift p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .3rem; }
+.drift code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M6 · Lesson 3 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 6</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 3</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot done" title="Lesson 2"></div>
+      <div class="progress-dot active" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 3 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Serving and<br>the model lifecycle</h1>
+    <p class="lesson-sub">L1 + L2 built a trained model. This lesson is everything between "trained" and "in production" — where it serves, how it's versioned, how you deploy a new version safely, and how you know when it's getting stale. The runbook section that ties it together.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 Vertex Endpoints, Model Registry, Cloud Run, Batch Prediction</span>
+      <span>📍 Module 6 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Serving matrix                   -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Where the model runs</div>
+    <h2 class="section-title">Cloud Run vs Vertex Endpoints vs GKE</h2>
+    <p style="margin-bottom: 1rem;">Three reasonable homes for an inference service. Each has its slot. The right choice depends on traffic shape, model size, and how much managed plumbing you want around it.</p>
+
+    <div class="matrix-wrap">
+      <table class="smatrix">
+        <thead>
+          <tr>
+            <th style="width:130px;">Capability</th>
+            <th>Cloud Run</th>
+            <th>Vertex Endpoints</th>
+            <th>GKE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="lead">Setup overhead</td>
+            <td class="yes">Lowest — deploy a container.</td>
+            <td class="mid">Low — upload model + deploy.</td>
+            <td class="no">Highest — Deployment + HPA + Gateway + WI.</td>
+          </tr>
+          <tr>
+            <td class="lead">Scale to zero</td>
+            <td class="yes">Yes — default behaviour.</td>
+            <td class="no">No — at least one node always.</td>
+            <td class="mid">Yes via HPA min=0; cluster baseline cost persists.</td>
+          </tr>
+          <tr>
+            <td class="lead">Traffic splitting</td>
+            <td class="yes">Built in (M4L1).</td>
+            <td class="yes">Built in.</td>
+            <td class="mid">Available via Gateway/mesh; more setup.</td>
+          </tr>
+          <tr>
+            <td class="lead">Explainability hooks</td>
+            <td class="no">DIY in the container.</td>
+            <td class="yes">Native — Vertex Explainable AI.</td>
+            <td class="no">DIY.</td>
+          </tr>
+          <tr>
+            <td class="lead">Model monitoring</td>
+            <td class="no">DIY (Cloud Monitoring metrics).</td>
+            <td class="yes">Native — Vertex Model Monitoring.</td>
+            <td class="no">DIY.</td>
+          </tr>
+          <tr>
+            <td class="lead">Multi-GPU serving</td>
+            <td class="no">Single-GPU at most.</td>
+            <td class="yes">Native machine types.</td>
+            <td class="yes">Full control.</td>
+          </tr>
+          <tr>
+            <td class="lead">Best fit</td>
+            <td class="mid">Custom inference logic + bursty traffic.</td>
+            <td class="mid">Standard ML predictions + explainability.</td>
+            <td class="mid">Complex topology / serving + non-ML pods.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">SRL's actual choices</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Makawalu XAI inference</strong> (CBM): Cloud Run. Custom output schema (concept scores + final + image overlays); bursty clinician demo traffic; scale-to-zero matters between demos.</li>
+      <li>→ <strong>HIPIMR density prediction</strong> (registry workflow): Vertex Endpoint with batch prediction for backfills. Standard ResNet output; benefits from Vertex's monitoring.</li>
+      <li>→ <strong>ShepBERT clinical NLP API</strong> (M7): GKE. Co-located with other ShepBERT pipeline pods; multi-GPU LoRA serving.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>The default decision tree.</strong> If the model fits a single GPU and you don't need Vertex's native explainability/monitoring: Cloud Run. If you want Vertex Model Monitoring and the model is a standard predict-input-get-output shape: Vertex Endpoint. If you have multiple co-located services or multi-GPU serving: GKE. Most studies use Cloud Run for serving and Vertex for batch predictions.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Model Registry                   -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The canonical artifact store</div>
+    <h2 class="section-title">Vertex AI Model Registry</h2>
+    <p style="margin-bottom: 1rem;">The Model Registry is your <strong>system of record</strong> for trained models. Every artifact registered there has a version, a lineage back to its training run, an evaluation record, and a status (deployed / staging / archived). Whatever serves traffic — Cloud Run, Vertex Endpoint, GKE — should pull its model from a registry version, not a freshly trained GCS blob.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Register a model from training output</h3>
+
+<pre class="code-block"><span class="cm"># In the training pipeline\'s final step</span>
+<span class="kw">from</span> google.cloud <span class="kw">import</span> aiplatform
+
+aiplatform.init(project=<span class="str">"srl-makawalu-prod"</span>, location=<span class="str">"us-west1"</span>)
+
+model = aiplatform.Model.upload(
+    display_name=<span class="str">"makawalu-cbm"</span>,                  <span class="cm"># the model name (reused across versions)</span>
+    artifact_uri=<span class="str">"gs://srl-makawalu-training/cbm-v3/runs/v3-7/model/"</span>,
+    serving_container_image_uri=<span class="str">"us-west1-docker.pkg.dev/.../cbm-serve:0.4"</span>,
+    description=<span class="str">"CBM v3.7 - 4-channel concept heads + final classifier"</span>,
+    labels={<span class="str">"study"</span>: <span class="str">"makawalu"</span>, <span class="str">"trained_by"</span>: <span class="str">"pipeline-v3-7"</span>, <span class="str">"auroc"</span>: <span class="str">"0.88"</span>},
+    version_aliases=[<span class="str">"latest"</span>, <span class="str">"candidate"</span>],     <span class="cm"># human-friendly pointers to this version</span>
+)</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Versions, aliases, and references</h3>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">A Model has a stable resource name; versions accumulate under it. Aliases (<code class="code-inline">latest</code>, <code class="code-inline">production</code>, <code class="code-inline">candidate</code>) are mutable pointers at specific versions. The serving infrastructure references aliases, not version numbers — so promoting a candidate to production is one API call, not a redeploy.</p>
+
+<pre class="code-block"><span class="cm"># Promote the candidate version to production</span>
+gcloud ai models update <span class="am">$MODEL_ID</span> --region=us-west1 \
+  --version=v3.7 \
+  --alias=production
+
+<span class="cm"># Or via the SDK</span>
+model_reg = aiplatform.Model(model_id=<span class="am">$MODEL_ID</span>)
+model_reg.update(version_aliases_to_add=[<span class="str">"production"</span>], version=<span class="str">"v3.7"</span>)</pre>
+
+    <div class="callout">
+      <strong>The discipline this enables.</strong> Every version in the registry has metrics, lineage (which pipeline run produced it), and a labels dictionary you can use to filter. A year from now, "which CBM version was serving on March 15?" is a one-API-call answer. Without a registry, you're reconstructing it from GCS object timestamps and Slack messages.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Vertex Endpoints + Cloud Run     -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Two serving paths in depth</div>
+    <h2 class="section-title">Deploy: Vertex Endpoint or Cloud Run</h2>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Vertex Endpoint — managed</h3>
+
+<pre class="code-block"><span class="cm"># Create the endpoint (one-time per service name)</span>
+gcloud ai endpoints create --region=us-west1 --display-name=<span class="str">"makawalu-cbm-endpoint"</span>
+
+<span class="cm"># Deploy a registered model version to it, with traffic split</span>
+gcloud ai endpoints deploy-model <span class="am">$ENDPOINT_ID</span> \
+  --region=us-west1 \
+  --model=<span class="am">$MODEL_ID</span> \
+  --display-name=cbm-v3-7 \
+  --machine-type=n1-standard-4 \
+  --accelerator=type=nvidia-tesla-t4,count=1 \
+  --min-replica-count=1 \
+  --max-replica-count=4 \
+  --traffic-split=0=100   <span class="cm"># this version takes 100% (existing version 0 = none here)</span>
+
+<span class="cm"># Predict</span>
+gcloud ai endpoints predict <span class="am">$ENDPOINT_ID</span> --region=us-west1 \
+  --json-request=test-input.json</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Deploying a new version with a canary works the same way as M4L1 — deploy with a small traffic split, observe, promote.</p>
+
+<pre class="code-block">gcloud ai endpoints deploy-model <span class="am">$ENDPOINT_ID</span> --region=us-west1 \
+  --model=<span class="am">$MODEL_ID</span> --version=v3.8 \
+  --traffic-split=v3-8=10,v3-7=90   <span class="cm"># canary 10% to new version</span></pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Cloud Run — your own container, your own logic</h3>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">For Makawalu's XAI output (concept scores + final + visualisation overlays), Cloud Run is cleaner — the inference container loads the model from the registry on startup and serves a custom JSON response.</p>
+
+<pre class="code-block"><span class="cm"># Inside the serving container - load model at startup</span>
+<span class="kw">from</span> google.cloud <span class="kw">import</span> aiplatform
+<span class="kw">import</span> os
+
+aiplatform.init(project=os.environ[<span class="str">"PROJECT"</span>], location=<span class="str">"us-west1"</span>)
+model = aiplatform.Model(model_name=<span class="str">"makawalu-cbm"</span>, version=<span class="str">"production"</span>)
+model.download_to_local(<span class="str">"/app/model/"</span>)            <span class="cm"># pulls from registry to local disk</span>
+
+<span class="cm"># Load + serve</span>
+<span class="kw">import</span> torch
+weights = torch.load(<span class="str">"/app/model/model.pt"</span>)
+<span class="cm"># ... standard inference handler ...</span></pre>
+
+    <p style="font-size:13.5px;">The Cloud Run service uses the M4L1 traffic-splitting model for canaries; the model promotion happens by updating the alias and redeploying. Both layers (registry alias + Cloud Run revision) have their own audit trail.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Batch prediction                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">When real-time isn't the goal</div>
+    <h2 class="section-title">Batch prediction — Vertex AI does the right thing</h2>
+    <p style="margin-bottom: 1rem;">Many imaging studies need to score a backlog: "run the density model over all HIPIMR studies acquired before 2023." This is what <strong>Vertex Batch Prediction</strong> is for. You point it at the registered model + an input dataset (GCS URIs or BigQuery rows); Vertex parallelises across workers, writes results to GCS or BigQuery.</p>
+
+<pre class="code-block">gcloud ai batch-predictions create \
+  --region=us-west1 \
+  --display-name=hipimr-density-backfill-2026 \
+  --model=<span class="am">$MODEL_ID</span> \
+  --instances-format=jsonl \
+  --gcs-source-uri=gs://srl-hipimr-training/backfill-inputs/*.jsonl \
+  --predictions-format=jsonl \
+  --gcs-destination=gs://srl-hipimr-training/backfill-outputs/2026-05/ \
+  --machine-type=n1-standard-4 \
+  --accelerator-type=NVIDIA_TESLA_T4 \
+  --accelerator-count=1 \
+  --starting-replica-count=4 \
+  --max-replica-count=16</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Vertex parallelises across the requested replica range, dynamically scaling to throughput. Output JSON includes the input + prediction; downstream BigQuery loading is trivial.</p>
+
+    <div class="callout">
+      <strong>When to use which.</strong> Endpoints / Cloud Run for low-latency per-request prediction (real-time clinical demo, on-demand classifier). Batch Prediction for "score everything before the analysis next month." Most studies use both — Endpoints for the live API, Batch for the longitudinal backfills.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Drift and retraining             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The model isn't fire-and-forget</div>
+    <h2 class="section-title">Drift detection and the retraining loop</h2>
+    <p style="margin-bottom: 1rem;">Clinical imaging shifts. New scanner models, new protocols, gradual population changes. A model trained on 2020 data degrades by 2026 — sometimes obviously, sometimes silently. The discipline: monitor for drift on every served model, and have a retraining trigger that does not depend on someone noticing the degradation.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Three kinds of drift to watch</h3>
+
+    <div class="drift">
+      <h4>1. Input drift (covariate shift)</h4>
+      <p>The distribution of inputs to the model shifts over time. New scanner adds higher-resolution images; the model trained on lower-res inputs sees a feature distribution it didn't see in training. Detect by computing feature-statistics deltas between training set and recent live inputs.</p>
+    </div>
+
+    <div class="drift">
+      <h4>2. Prediction drift</h4>
+      <p>The distribution of predictions changes. The model used to predict 8% malignant on the cohort; it now predicts 14%. Could be a real population change — could be a problem with the model. Either way, you need to know.</p>
+    </div>
+
+    <div class="drift">
+      <h4>3. Outcome drift (concept shift)</h4>
+      <p>The mapping from inputs to outcomes shifts. Same image features now correspond to different ground-truth outcomes (new screening protocols, new biopsy guidelines). The hardest to detect; needs ground-truth labels on recent predictions.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Vertex Model Monitoring — the managed path for Endpoints</h3>
+
+<pre class="code-block">gcloud ai model-monitoring-jobs create \
+  --region=us-west1 \
+  --display-name=cbm-monitoring \
+  --endpoint=<span class="am">$ENDPOINT_ID</span> \
+  --feature-thresholds=<span class="str">"image_mean_intensity=0.3,age_at_imaging=0.2"</span> \
+  --emails=jshepherd@hawaii.edu \
+  --sample-rate=0.5</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Vertex Monitoring samples requests + predictions, computes feature/prediction stats over rolling windows, alerts when distribution-distance metrics (PSI, KL-divergence) exceed thresholds. The thresholds need tuning per study; start permissive, tighten as you understand the baseline noise.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">DIY for Cloud Run / GKE serving</h3>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Without Vertex Endpoint, you build the same loop with: every prediction request logged with key features to BigQuery; a scheduled Cloud Run Job comparing recent distributions to a reference baseline; an alert published to Pub/Sub when a threshold breaches. The pieces are all things you've built before.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The retraining trigger</h3>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">When drift is detected — automatically or manually — the trigger fires the Vertex AI Pipeline from M6L2 with the latest de-id'd dataset. If the new model passes the AUROC gate (the conditional in M6L2), it auto-registers and the canary deploy (M4L2) kicks off. The full loop:</p>
+
+<pre class="code-block">drift detected <span class="kw">→</span> Pub/Sub: model.drift_detected
+            <span class="kw">→</span> Cloud Function triggers Vertex Pipeline
+            <span class="kw">→</span> Pipeline retrains, evaluates, conditional-registers new version
+            <span class="kw">→</span> Pub/Sub: model.updated
+            <span class="kw">→</span> Cloud Function deploys 10% canary to Cloud Run / Endpoint
+            <span class="kw">→</span> 24h observation
+            <span class="kw">→</span> human-in-loop promotion
+            <span class="kw">→</span> alias <span class="str">"production"</span> moves to new version</pre>
+
+    <div class="callout">
+      <strong>The human-in-loop step matters.</strong> For clinical-facing models, auto-promotion of a drift-triggered retrain is too risky — the new model might pass automated gates but have subtle issues (fairness regression on a subgroup; concept drift in the wrong direction). The pipeline goes all the way to "10% canary running"; a human promotes to 100% after explicit review. That's the right boundary between automation and oversight.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Lifecycle runbook                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Putting it in the runbook</div>
+    <h2 class="section-title">The model lifecycle, per-study</h2>
+    <p style="margin-bottom: 1rem;">M1L4 introduced the lab runbook. Every served model deserves its own section, kept up to date as the model evolves. The template:</p>
+
+    <div class="life">
+      <div class="ln">Section 1</div>
+      <div class="lb"><strong>What this model does.</strong> One paragraph: study, task, inputs, outputs, intended use. For Makawalu: "POCUS-based concept bottleneck model for breast cancer probability; inputs B-mode ultrasound clip frames; outputs four concept scores + final malignancy probability + visualization overlays. Not for stand-alone clinical decision-making."</div>
+    </div>
+    <div class="life">
+      <div class="ln">Section 2</div>
+      <div class="lb"><strong>Where it lives.</strong> Registry path, current production version, serving endpoint URL, the SA that runs it, the secrets it consumes.</div>
+    </div>
+    <div class="life">
+      <div class="ln">Section 3</div>
+      <div class="lb"><strong>Training lineage.</strong> Pipeline name + version. Where training data came from. Cohort definition. Last training date. Link to the experiment in Vertex AI.</div>
+    </div>
+    <div class="life">
+      <div class="ln">Section 4</div>
+      <div class="lb"><strong>Evaluation envelope.</strong> Headline metrics (AUROC, accuracy, fairness slices). The data the metrics were computed on. Known limitations and out-of-distribution cases.</div>
+    </div>
+    <div class="life">
+      <div class="ln">Section 5</div>
+      <div class="lb"><strong>Monitoring + retraining.</strong> Active monitoring jobs, drift thresholds, retraining schedule, the runbook entry for "drift alert fires."</div>
+    </div>
+    <div class="life">
+      <div class="ln">Section 6</div>
+      <div class="lb"><strong>Deployment + rollback.</strong> How to deploy a new version (canary script). How to roll back if something goes wrong. Who must approve a production promotion.</div>
+    </div>
+    <div class="life">
+      <div class="ln">Section 7</div>
+      <div class="lb"><strong>Deprecation.</strong> Conditions that would retire the model. The successor model's location, if known. The plan for sunsetting endpoints + archiving registry versions.</div>
+    </div>
+
+    <div class="callout">
+      <strong>This section lives in Markdown,</strong> not in a slide deck. Versioned with the lab repo. Linked from M1L4's runbook table of contents. The next person who inherits Makawalu reads this on day one and knows: where the model lives, how it was trained, how to deploy a new version, what to do when monitoring fires. That's the difference between a research model and a sustainable research asset.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 6.3</div>
+    <h2 class="section-title">Register a model, deploy to an Endpoint, canary</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🎯 Registry → endpoint → traffic split</div>
+      <ol class="exercise-steps">
+        <li><strong>Use the demo training output</strong> from M6L2's exercise (or any small model artifact you have in a GCS path). For simplicity, you can also use a Vertex pre-built classifier:<br>
+          <code class="code-inline">MODEL_GCS="gs://cloud-samples-data/ai-platform/iris/iris_iris_v3_iris-mlp-model-with-explanation/"</code> (or your own).
+        </li>
+        <li>Register the model in Vertex Model Registry:<br>
+<pre class="code-block">gcloud ai models upload --region=us-west1 \
+  --display-name=demo-cbm \
+  --container-image-uri=us-docker.pkg.dev/vertex-ai/prediction/sklearn-cpu.1-3:latest \
+  --artifact-uri=<span class="am">$MODEL_GCS</span> \
+  --version-aliases=v1,latest</pre>
+        </li>
+        <li>List the model and its versions:<br>
+          <code class="code-inline">gcloud ai models list --region=us-west1</code><br>
+          Save the model ID as <code class="code-inline">MODEL_ID</code>.
+        </li>
+        <li>Create an Endpoint:<br>
+          <code class="code-inline">gcloud ai endpoints create --region=us-west1 --display-name=demo-endpoint</code><br>
+          Note the endpoint ID.
+        </li>
+        <li>Deploy the model at 100% traffic, CPU-only for the demo:<br>
+<pre class="code-block">gcloud ai endpoints deploy-model <span class="am">$ENDPOINT_ID</span> --region=us-west1 \
+  --model=<span class="am">$MODEL_ID</span> \
+  --display-name=demo-cbm-v1 \
+  --machine-type=n1-standard-2 \
+  --min-replica-count=1 \
+  --max-replica-count=2 \
+  --traffic-split=0=100</pre>
+          Wait a few minutes for the deployment to come up.
+        </li>
+        <li>Send a test prediction:<br>
+<pre class="code-block">cat &gt; instance.json &lt;&lt;EOF
+{"instances": [[6.7, 3.0, 5.2, 2.3]]}
+EOF
+
+gcloud ai endpoints predict <span class="am">$ENDPOINT_ID</span> --region=us-west1 \
+  --json-request=instance.json</pre>
+        </li>
+        <li><strong>Simulate a canary:</strong> upload the same model as version v2 (just for the exercise), deploy alongside v1, and split traffic 90/10:<br>
+<pre class="code-block">gcloud ai models upload --region=us-west1 --display-name=demo-cbm \
+  --container-image-uri=us-docker.pkg.dev/vertex-ai/prediction/sklearn-cpu.1-3:latest \
+  --artifact-uri=<span class="am">$MODEL_GCS</span> --version-aliases=v2 \
+  --parent-model=<span class="am">$MODEL_ID</span>
+
+gcloud ai endpoints deploy-model <span class="am">$ENDPOINT_ID</span> --region=us-west1 \
+  --model=<span class="am">$MODEL_ID</span> --version=v2 \
+  --display-name=demo-cbm-v2 \
+  --machine-type=n1-standard-2 --min-replica-count=1 --max-replica-count=1 \
+  --traffic-split=DEPLOYED_MODEL_v1=90,DEPLOYED_MODEL_v2=10</pre>
+          (You'll need to replace <code class="code-inline">DEPLOYED_MODEL_v1</code> / <code class="code-inline">_v2</code> with the actual deployed-model IDs from <code class="code-inline">gcloud ai endpoints describe</code>.)
+        </li>
+        <li><strong>Promote v2 to 100%:</strong><br>
+          <code class="code-inline">gcloud ai endpoints update-traffic $ENDPOINT_ID --region=us-west1 --traffic-split=DEPLOYED_MODEL_v2=100</code>
+        </li>
+        <li><strong>Stand up Model Monitoring</strong> on the endpoint (optional, costs accrue):<br>
+          <code class="code-inline">gcloud ai model-monitoring-jobs create --region=us-west1 --display-name=demo-monitor --endpoint=$ENDPOINT_ID --emails=$EMAIL --sample-rate=1.0</code>
+        </li>
+        <li><strong>Tear down</strong> — endpoints accrue per-hour cost:<br>
+          <code class="code-inline">gcloud ai endpoints undeploy-model $ENDPOINT_ID --region=us-west1 --deployed-model-id=<DEPLOYED_MODEL_v1></code><br>
+          (Repeat for v2.)<br>
+          <code class="code-inline">gcloud ai endpoints delete $ENDPOINT_ID --region=us-west1</code><br>
+          Delete the monitoring job if created.
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud ai models upload</span>
+        <span class="tag">version-aliases / parent-model</span>
+        <span class="tag">gcloud ai endpoints create / deploy-model</span>
+        <span class="tag">traffic-split</span>
+        <span class="tag">gcloud ai endpoints predict</span>
+        <span class="tag">Vertex Model Monitoring</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 8: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Why does Makawalu serve from Cloud Run rather than a Vertex Endpoint, while HIPIMR density prediction uses a Vertex Endpoint?</span>
+        <a href="#" class="check-btn" onclick="alert('Makawalu has a custom output shape (concept scores + final + visualization overlays) and bursty demo-driven traffic - Cloud Run\'s scale-to-zero saves cost between demos, and the container can do whatever post-processing the response needs. HIPIMR density is a standard predict-input-get-output shape running on routine new-study workflow; Vertex Endpoint\'s native monitoring + explainability hooks pay off. Same architectural skeleton, different fit per workload.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why is "production" an alias in the Model Registry rather than a version number? What does that buy you?</span>
+        <a href="#" class="check-btn" onclick="alert('Indirection. The serving infrastructure references "production" - which points at v3.7 today, v3.8 next month. Promotion is one API call (move the alias), no redeploy. Rollback is one API call (move the alias back). The serving container loads "production" on startup; what version that is becomes a registry-managed fact rather than something baked into deployment YAML. Same pattern works for staging, candidate, etc.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your drift monitor fires: prediction distribution has shifted. What\'s the first investigation step, before triggering retraining?</span>
+        <a href="#" class="check-btn" onclick="alert('Determine whether the drift reflects reality or a problem with the model. Look at input distributions first - has the input changed (new scanner, new protocol, new site)? If yes, the model is correctly reflecting changed reality and you may need to retrain to handle the new input. If no, the prediction shift is a model issue - investigate before assuming retraining is the answer. Auto-triggering retraining without root-causing the drift can mask deeper issues.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>The Pipelines AUROC gate is at 0.85. A new training run scores 0.86. Should it auto-promote to production?</span>
+        <a href="#" class="check-btn" onclick="alert('Auto-register and auto-canary - yes. Auto-promote to 100% production - no. The 0.85 gate is a "good enough to be considered" bar, not a "good enough to replace prod" bar. Production promotion needs human review of: where the new version improves vs regresses, fairness slice metrics, qualitative inspection of cases the new model handles differently. The pipeline correctly takes the model to 10% canary; a human moves the alias to production. Automation up to the cliff edge; humans cross the edge.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- M6 close                                    -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Closing M6</div>
+    <h2 class="section-title">You can ship deep-learning models like a research lab should</h2>
+    <div class="callout">
+      <strong>The arc of M6.</strong> L1 — where ML runs on GCP and how DICOM lives. L2 — training pipelines, from single Custom Training jobs through Vertex Pipelines for the multi-step CBM workflow. L3 — serving paths (Endpoints vs Cloud Run vs GKE), the Model Registry as the system of record, drift detection, and the lifecycle runbook. Combined: a model can be born in a notebook and end up in production with a clean audit trail and a sustainable retraining loop.
+    </div>
+    <p style="margin-top: 1rem;">M7 picks up the same machinery for BERT, LLMs, and frontier-model deployment — ShepBERT fine-tuning, Vertex Model Garden, and the differences that NLP / LLM workloads introduce on top of the imaging patterns you just learned.</p>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m6-lesson2.html" class="btn">← Lesson 6.2: Training pipelines</a>
+    <a href="m7.html" class="btn btn-primary">M7: BERT, LLMs &amp; frontier models →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M6 · Lesson 1: ML platform decisions and the DICOM data plane — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Decision tree */
+.decision {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+}
+.dq {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--amber); letter-spacing: .04em;
+  margin-bottom: .55rem;
+}
+.dq::before { content: '?? '; color: var(--text3); }
+.da {
+  font-size: 13px; color: var(--text2); line-height: 1.6;
+  padding-left: 1rem; margin-bottom: 1rem;
+  border-left: 2px solid var(--border);
+}
+.da strong { color: var(--text); }
+.da code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* DICOM hierarchy */
+.dicom-tree {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text2); line-height: 1.7; overflow-x: auto;
+}
+.dicom-tree .lvl1 { color: var(--purple); }
+.dicom-tree .lvl2 { color: var(--blue); }
+.dicom-tree .lvl3 { color: var(--teal); }
+.dicom-tree .lvl4 { color: var(--amber); }
+.dicom-tree .ann { color: var(--text3); font-style: italic; }
+
+/* Path step */
+.path-step {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .9rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--coral);
+}
+.path-step .ps-n {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--coral); letter-spacing: .04em; margin-bottom: .25rem;
+}
+.path-step h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+  text-transform: none; letter-spacing: 0;
+}
+.path-step p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .3rem; }
+.path-step code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* Workbench info */
+.wb {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.25rem;
+  margin: 1rem 0 1.5rem;
+}
+.wb h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.wb p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.wb code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M6 · Lesson 1 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 6</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot active" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 1 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">ML platform decisions<br>and the DICOM data plane</h1>
+    <p class="lesson-sub">Phase 1 built the platform. Phase 2 puts research workloads on it. M6 starts with the two questions every imaging study faces: <em>where does training run?</em> and <em>where does the imaging actually live?</em> Decision trees that pay back over years, and the DICOM data plane for HIPIMR and Makawalu.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 Vertex AI, Healthcare API, GCS, Workbench</span>
+      <span>📍 Module 6 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Platform decision tree           -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The decision tree</div>
+    <h2 class="section-title">Where does the ML run?</h2>
+    <p style="margin-bottom: 1rem;">You have four real options on GCP for ML compute. Each fits a specific phase of the work. The decision is rarely "one platform for everything" — most studies use two or three over a model's life.</p>
+
+    <div class="decision">
+      <div class="dq">Are you exploring / prototyping in a notebook?</div>
+      <div class="da">
+        <strong>Vertex AI Workbench.</strong> Managed JupyterLab inside the perimeter, with mounted GCS, BigQuery, and DICOM-store access via the service account attached to the instance. Section 4 covers setup.
+      </div>
+
+      <div class="dq">Are you training a single, well-defined model from a known recipe?</div>
+      <div class="da">
+        <strong>Vertex AI Custom Training.</strong> Hand it a container + a dataset URI; it allocates GPUs / TPUs, runs the job, captures logs and artifacts, tears down. Right shape for 90% of training jobs. M6L2 covers it.
+      </div>
+
+      <div class="dq">Are you running a multi-step pipeline (preprocess → train → eval → register → deploy)?</div>
+      <div class="da">
+        <strong>Vertex AI Pipelines (Kubeflow).</strong> Each step is a containerised component with artifacts flowing between them. Reproducible, parameterised, scheduled. The right home for the Makawalu CBM training pipeline. M6L2 + M11.
+      </div>
+
+      <div class="dq">Are you serving an HTTPS inference endpoint?</div>
+      <div class="da">
+        <strong>Three good answers</strong> — and M6L3 makes the matrix concrete. <strong>Cloud Run</strong> for simple containerised inference (Makawalu XAI demo). <strong>Vertex AI Endpoints</strong> for the managed-serving path with traffic splitting + monitoring + explainability built in. <strong>GKE</strong> for multi-GPU serving, custom networking, or in-cluster co-location with other services.
+      </div>
+
+      <div class="dq">Are you doing long-running training with custom infrastructure needs (multi-GPU, special networking, persistent state)?</div>
+      <div class="da">
+        <strong>GKE.</strong> From M5: GPU node pools, full Pod control, multi-container patterns. PacificFed's FL aggregator and large multi-GPU training fit here.
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Pragmatic default for SRL.</strong> Prototype in Workbench. Train via Vertex Custom Training (or Pipelines for multi-step). Serve from Cloud Run or Vertex Endpoints — pick GKE only when the M2L3 / M5 escalation triggers apply. Almost no study should be running on raw VMs.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: DICOM on GCP                     -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The data layer</div>
+    <h2 class="section-title">DICOM on GCP — Healthcare API or GCS?</h2>
+    <p style="margin-bottom: 1rem;">For imaging studies, the choice is between two valid homes for DICOM data. Knowing when to use each — and how to flow data between them — is the foundation of every imaging pipeline you'll build.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">DICOM in the Cloud Healthcare API</h3>
+    <p style="margin-bottom: 1rem; font-size: 13.5px;">A <a class="g-term" href="../glossary.html#dicom">DICOM store</a> inside the <a class="g-term" href="../glossary.html#healthcare-api">Cloud Healthcare API</a> exposes DICOM via DICOMweb (QIDO-RS, WADO-RS, STOW-RS). Studies and series are queryable by DICOM tag; instances are streamable by reference. Native BigQuery export of metadata, native de-identification, native FHIR linkage.</p>
+
+    <div class="dicom-tree">
+<span class="lvl1">📦 srl-hipimr-prod (project)</span>
+└── <span class="lvl2">🏥 dataset: hipimr-dataset</span>            <span class="ann"># in Cloud Healthcare API, region us-west1</span>
+    └── <span class="lvl3">🗂 dicomStore: hipimr-mammo</span>       <span class="ann"># the DICOM store, CMEK encrypted</span>
+        ├── <span class="lvl4">study: 1.2.840.113619.2.55.3.604688.2.0.42...</span>
+        │   ├── <span class="lvl4">series: 1.2.840.113619.2...01</span>       <span class="ann"># MLO views</span>
+        │   └── <span class="lvl4">series: 1.2.840.113619.2...02</span>       <span class="ann"># CC views</span>
+        └── <span class="lvl4">study: ...</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">DICOM in GCS</h3>
+    <p style="margin-bottom: 1rem; font-size: 13.5px;">DICOM as raw <code class="code-inline">.dcm</code> files in a <a class="g-term" href="../glossary.html#bucket">GCS bucket</a>. No DICOMweb, no SOP-aware indexing — just objects you read directly. PyDicom or DCMTK on the consumer side does the parsing.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">When to use each</h3>
+
+    <div class="cmp" style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin:1rem 0 1.5rem;border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;">
+      <div class="ch cr" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--coral);background:var(--bg2);padding:.8rem 1.1rem;border-bottom:1px solid var(--border);">Healthcare API DICOM store</div>
+      <div class="ch gk" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--teal);background:var(--bg2);padding:.8rem 1.1rem;border-bottom:1px solid var(--border);">GCS bucket of .dcm files</div>
+
+      <div style="padding:.8rem 1.1rem;color:var(--text2);font-size:12.5px;line-height:1.55;border-bottom:1px solid var(--border);">Production PHI store. DICOMweb. Native de-id, metadata-to-BigQuery export, FHIR linkage. Audit Data Access logs by study UID.</div>
+      <div style="padding:.8rem 1.1rem;color:var(--text2);font-size:12.5px;line-height:1.55;border-bottom:1px solid var(--border);">Bulk training data, especially after de-identification. Easy random access via object path. Lower cost per GB at large scale.</div>
+
+      <div style="padding:.8rem 1.1rem;color:var(--text2);font-size:12.5px;line-height:1.55;border-bottom:none;"><em>Use for:</em> the canonical PHI store - HIPIMR, Makawalu staging, anything that hits the IRB definition of "system of record."</div>
+      <div style="padding:.8rem 1.1rem;color:var(--text2);font-size:12.5px;line-height:1.55;border-bottom:none;"><em>Use for:</em> training-time mirrors. De-id'd cohorts. Working datasets your training loop reads in random order.</div>
+    </div>
+
+    <div class="callout">
+      <strong>The canonical pattern.</strong> Raw PHI DICOM lands in the Healthcare API DICOM store (system of record, audited, perimeter-protected). For training, a Dataflow or Cloud Run Job exports a <em>de-identified subset</em> as <code class="code-inline">.dcm</code> files (or numpy arrays) to a GCS bucket; training reads from there with random access. The DICOM store keeps the audit trail; GCS holds the cheaper, faster training mirror.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Makawalu data path               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The worked example</div>
+    <h2 class="section-title">The Makawalu data path — POCUS → CBM training tier</h2>
+    <p style="margin-bottom: 1rem;">Makawalu's concept bottleneck model (CBM) for breast cancer XAI gets POCUS images from clinical sites and trains a model that predicts intermediate human-readable concepts (lesion shape, margins, posterior features) plus a final malignancy score. The data plane has five concrete steps from clinical site to GPU.</p>
+
+    <div class="path-step">
+      <div class="ps-n">Step 1 — Ingest</div>
+      <h4>Authenticated upload from clinical sites to GCS landing</h4>
+      <p>Sites authenticate as a per-site service account with <code>roles/storage.objectCreator</code> only on a per-site landing prefix. From M3L2: Cloud Armor at the LB + IP allow-list + mTLS where available.</p>
+    </div>
+
+    <div class="path-step">
+      <div class="ps-n">Step 2 — Validate + load to DICOM store</div>
+      <h4>Cloud Run Job picks up GCS landing, STOW-RS into Healthcare API</h4>
+      <p>An Eventarc trigger fires per object; the Job validates DICOM headers, redacts known-bad tags client-side, and posts via <code>storeInstances</code> to the Makawalu DICOM store. Each upload is per-study so STOW-RS calls are bounded.</p>
+    </div>
+
+    <div class="path-step">
+      <div class="ps-n">Step 3 — De-identification + metadata export</div>
+      <h4>Healthcare API de-id operation produces a de-id'd store + BigQuery metadata</h4>
+      <p>The DICOM store's <code>deidentify</code> operation runs with a configured rule set (HIPAA Safe Harbor + image-pixel redaction for burned-in identifiers). Output: a sibling de-id'd DICOM store, plus a parallel metadata table in BigQuery that the training pipeline queries.</p>
+    </div>
+
+    <div class="path-step">
+      <div class="ps-n">Step 4 — Training mirror in GCS</div>
+      <h4>Vertex AI Pipeline exports de-id'd pixel arrays to GCS as training data</h4>
+      <p>A Vertex AI Pipeline (M6L2) reads from the de-id'd store, runs preprocessing (resize, normalisation, augmentation prep), and writes resulting numpy arrays + tabular concept labels to <code>gs://srl-makawalu-training/cbm-v3/</code>. This is what the training loop reads with random access.</p>
+    </div>
+
+    <div class="path-step">
+      <div class="ps-n">Step 5 — Training + registry</div>
+      <h4>Vertex AI Custom Training reads from GCS, writes to Vertex Model Registry</h4>
+      <p>The training container reads from the GCS mirror with random access (no DICOMweb at training time — too slow per-batch). On completion: model artifact uploaded to Vertex Model Registry, metrics logged to TensorBoard, the pipeline emits a Pub/Sub event for the deploy-canary step (M4L2).</p>
+    </div>
+
+    <p style="margin-top:1rem;font-size:13.5px;">The same shape applies to HIPIMR with one shift: HIPIMR is a longitudinal registry, so the DICOM store is bigger and grows monthly; training mirrors are versioned snapshots of the de-id'd subset for a particular cohort criterion (e.g. "screening mammograms with prior films available, 2018-2024").</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Workbench                        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Where prototyping lives</div>
+    <h2 class="section-title">Vertex AI Workbench — managed JupyterLab inside the perimeter</h2>
+    <p style="margin-bottom: 1rem;">Before you write a training pipeline, you're in a notebook trying things. <strong>Vertex AI Workbench</strong> gives you a JupyterLab instance hosted by Google, with a GCP service account attached, mounted GCS, and direct access to BigQuery and Healthcare API. Crucially, when configured correctly, the instance lives <em>inside</em> the VPC SC perimeter — so PHI never leaves the cluster of trust.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Create an Instance</h3>
+
+<pre class="code-block">gcloud workbench instances create makawalu-explore \
+  --location=us-west1-a \
+  --machine-type=n1-standard-4 \
+  --accelerator-type=NVIDIA_TESLA_T4 \
+  --accelerator-count=1 \
+  --service-account=workbench-sa@srl-makawalu-prod.iam.gserviceaccount.com \
+  --network=srl-prod-vpc \
+  --subnet=srl-prod-subnet \
+  --disable-public-ip \
+  --metadata=enable-oslogin=true</pre>
+
+    <div class="wb">
+      <h4>What the service account needs</h4>
+      <p>Per M1L3: a dedicated <code>workbench-sa</code> bound only with what the work needs. For Makawalu exploration: <code>roles/healthcare.dicomViewer</code> on the de-id store, <code>roles/storage.objectViewer</code> on the training mirror bucket, <code>roles/bigquery.dataViewer</code> on the metadata dataset. <strong>Never</strong> grant access to the raw PHI DICOM store.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">A working Workbench session</h3>
+
+<pre class="code-block"><span class="cm"># In a Workbench notebook</span>
+<span class="kw">from</span> google.cloud <span class="kw">import</span> bigquery, storage
+<span class="kw">from</span> google.api_core <span class="kw">import</span> client_options
+<span class="kw">import</span> requests
+
+<span class="cm"># BigQuery - read DICOM metadata for the cohort</span>
+bq = bigquery.Client()
+df = bq.query(<span class="str">"""
+    SELECT study_uid, patient_age_at_imaging, view_position, image_laterality
+    FROM `srl-makawalu-prod.imaging_meta.deid_studies`
+    WHERE acquired_at BETWEEN '2024-01-01' AND '2024-06-30'
+    LIMIT 1000
+"""</span>).to_dataframe()
+
+<span class="cm"># DICOM store - fetch one instance's pixel data via WADO-RS</span>
+<span class="kw">from</span> google.auth.transport.requests <span class="kw">import</span> AuthorizedSession
+<span class="kw">from</span> google.auth <span class="kw">import</span> default
+session = AuthorizedSession(default()[0])
+study = df.iloc[0].study_uid
+url = <span class="str">f"https://healthcare.googleapis.com/v1/projects/srl-makawalu-prod/locations/us-west1/datasets/makawalu/dicomStores/deid-store/dicomWeb/studies/{study}"</span>
+r = session.get(url, headers={<span class="str">"Accept"</span>: <span class="str">"multipart/related; type=application/dicom"</span>})
+
+<span class="cm"># GCS - read a preprocessed training array</span>
+storage_client = storage.Client()
+blob = storage_client.bucket(<span class="str">"srl-makawalu-training"</span>).blob(<span class="str">"cbm-v3/sample_001.npy"</span>)
+arr = np.load(io.BytesIO(blob.download_as_bytes()))</pre>
+
+    <div class="callout">
+      <strong>The Workbench-vs-laptop trade.</strong> A Workbench instance with no public IP, inside the perimeter, attached to a workload SA is the only safe place to look at de-identified PHI. Laptops never qualify — they're outside the perimeter and not subject to the audit posture. The notebook lives in the cloud; you connect over a tunnel.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 6.1</div>
+    <h2 class="section-title">Stand up a DICOM store + Workbench instance</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🏥 Imaging plumbing, end to end</div>
+      <ol class="exercise-steps">
+        <li>Enable the APIs you'll need:<br>
+          <code class="code-inline">gcloud services enable healthcare.googleapis.com notebooks.googleapis.com aiplatform.googleapis.com</code>
+        </li>
+        <li>Create a Healthcare dataset + DICOM store in your sandbox:<br>
+          <code class="code-inline">gcloud healthcare datasets create demo-imaging --location=us-west1</code><br>
+          <code class="code-inline">gcloud healthcare dicom-stores create demo-dicom --dataset=demo-imaging --location=us-west1</code>
+        </li>
+        <li>Use a public sample DICOM. (Many datasets are available; one option:)<br>
+          <code class="code-inline">curl -L -o sample.dcm "https://github.com/datacite/datacite-mds/raw/master/example.dcm"</code><br>
+          (If that link breaks, use any small valid .dcm you have, or generate one with pydicom.)
+        </li>
+        <li>STOW-RS the file into your DICOM store:<br>
+<pre class="code-block">TOKEN=$(gcloud auth print-access-token)
+curl -X POST \
+  -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
+  -H <span class="str">"Content-Type: application/dicom"</span> \
+  --data-binary @sample.dcm \
+  <span class="str">"https://healthcare.googleapis.com/v1/projects/$PROJECT/locations/us-west1/datasets/demo-imaging/dicomStores/demo-dicom/dicomWeb/studies"</span></pre>
+          A 200/201 response means it landed.
+        </li>
+        <li>Query for studies via QIDO-RS:<br>
+<pre class="code-block">curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
+  <span class="str">"https://healthcare.googleapis.com/v1/projects/$PROJECT/locations/us-west1/datasets/demo-imaging/dicomStores/demo-dicom/dicomWeb/studies"</span></pre>
+          You should get back a JSON array of study metadata.
+        </li>
+        <li><strong>Export DICOM metadata to BigQuery</strong> (the canonical pattern):<br>
+<pre class="code-block">gcloud healthcare dicom-stores export bq demo-dicom \
+  --dataset=demo-imaging --location=us-west1 \
+  --bq-table=bq://<span class="am">$PROJECT</span>.demo_imaging.dicom_meta \
+  --overwrite-table</pre>
+          Then query the metadata:<br>
+          <code class="code-inline">bq query --use_legacy_sql=false 'SELECT * FROM `demo_imaging.dicom_meta` LIMIT 10'</code>
+        </li>
+        <li><strong>Create a Workbench instance</strong> (small, CPU-only for the exercise):<br>
+<pre class="code-block">gcloud workbench instances create demo-workbench \
+  --location=us-west1-a \
+  --machine-type=e2-standard-2</pre>
+          Wait a few minutes, then open it from the Cloud Console.
+        </li>
+        <li>In the notebook, query your DICOM store with WADO-RS and visualise an instance using <code class="code-inline">pydicom</code> + <code class="code-inline">matplotlib</code>. This is what you'd do during real exploration.</li>
+        <li><strong>Tear down</strong> when done — Workbench instances cost money when running:<br>
+          <code class="code-inline">gcloud workbench instances delete demo-workbench --location=us-west1-a</code><br>
+          <code class="code-inline">gcloud healthcare dicom-stores delete demo-dicom --dataset=demo-imaging --location=us-west1</code><br>
+          <code class="code-inline">gcloud healthcare datasets delete demo-imaging --location=us-west1</code>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud healthcare datasets create</span>
+        <span class="tag">gcloud healthcare dicom-stores create</span>
+        <span class="tag">DICOMweb STOW-RS / QIDO-RS / WADO-RS</span>
+        <span class="tag">gcloud healthcare dicom-stores export bq</span>
+        <span class="tag">gcloud workbench instances create</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>For Makawalu, why is the training data a GCS mirror of the de-id'd DICOM store, rather than reading directly from the DICOM store during training?</span>
+        <a href="#" class="check-btn" onclick="alert('Two reasons. (1) Throughput: a training loop pulls thousands of images per epoch in random order. DICOMweb per-instance fetches are slow and rate-limited; bulk-loading numpy arrays from GCS is orders of magnitude faster. (2) Stability: the DICOM store is the system of record and changes as new uploads land; training needs a versioned, immutable snapshot to be reproducible. The export-to-GCS-snapshot step gives you both speed and reproducibility.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>What three IAM roles does the Workbench service account need to run Makawalu exploration, and which one is conspicuously absent?</span>
+        <a href="#" class="check-btn" onclick="alert('Needs: roles/healthcare.dicomViewer on the de-id DICOM store, roles/storage.objectViewer on the training mirror bucket, roles/bigquery.dataViewer on the metadata dataset. Conspicuously absent: ANY role on the raw PHI DICOM store. Exploration uses de-identified data only; the raw PHI store is only readable by the ingest/training service accounts that need it, never by an interactive notebook session.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>A researcher wants to "just download 100 mammograms to my laptop for a quick look." Why is this a bad idea even with valid credentials?</span>
+        <a href="#" class="check-btn" onclick="alert('Three reasons. (1) The laptop is outside the VPC SC perimeter - the data leaves the protected boundary, voiding the perimeter posture. (2) Laptops are not BAA-covered storage - PHI on the device is a HIPAA breach by definition. (3) Audit-log granularity drops: you can see "this SA read these objects" but not what was done with them after download. The right alternative: Workbench instance inside the perimeter with the de-id\'d data, accessed via tunnel - never local.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You\'re prototyping a CBM in a notebook. The model trains in 15 minutes on a single T4 to acceptable metrics. Stay in Workbench or move to Vertex Custom Training?</span>
+        <a href="#" class="check-btn" onclick="alert('Move to Vertex Custom Training. Workbench is for prototyping (interactive, exploratory, single-user). Vertex Custom Training gives you: reproducible runs from a container, automatic resource cleanup (no orphaned GPUs), captured artifacts + metrics in Vertex Experiments, parallelism across hyperparameter sweeps, and a clean handoff to a Pipelines workflow when the model graduates. Same training code; different runner. M6L2 covers the move.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="../index.html" class="btn">← All modules</a>
+    <a href="m6-lesson2.html" class="btn btn-primary">Lesson 6.2: Training pipelines →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

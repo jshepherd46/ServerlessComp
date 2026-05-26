@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M6 · Lesson 2: Training pipelines — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Pipeline graph */
+.pipe {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.8; overflow-x: auto;
+}
+.pipe .comp { color: var(--coral); }
+.pipe .art { color: var(--amber); }
+.pipe .data { color: var(--teal); }
+.pipe .arr { color: var(--text3); }
+.pipe .ann { color: var(--text3); font-style: italic; }
+.pipe .branch { color: var(--purple); }
+
+/* Distributed grid */
+.dist-grid {
+  display: grid; grid-template-columns: 180px 1fr;
+  gap: 0; border: 1px solid var(--border); border-radius: var(--r2);
+  overflow: hidden; margin: 1rem 0 1.5rem;
+}
+.dist-grid > div {
+  padding: .85rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px; line-height: 1.55;
+}
+.dist-grid > div:nth-last-child(-n+2) { border-bottom: none; }
+.dist-grid .role {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--coral); background: var(--bg2);
+}
+.dist-grid .desc { color: var(--text2); }
+@media (max-width: 640px) {
+  .dist-grid { grid-template-columns: 1fr; }
+}
+
+/* Experiment tracking */
+.exp-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .9rem 1.15rem; margin-bottom: 8px;
+}
+.exp-card h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+  text-transform: none; letter-spacing: 0;
+}
+.exp-card p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .3rem; }
+.exp-card code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M6 · Lesson 2 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 6</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 2 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Training pipelines</h1>
+    <p class="lesson-sub">L1 told you where to train. This lesson is how — Vertex AI Custom Training for a single recipe, Vertex AI Pipelines for the multi-step CBM workflow, plus the experiment tracking and hyperparameter tuning that make training reproducible.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 Vertex AI Training, Pipelines, Experiments, Vizier, TensorBoard</span>
+      <span>📍 Module 6 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Custom Training                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Single-recipe training</div>
+    <h2 class="section-title">Vertex AI Custom Training — submit a container, get a model</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#vertex-ai">Vertex AI Custom Training</a> is the cleanest way to run a training job that you don't need to orchestrate multiple steps for. You package training code as a container (M2 patterns hold), hand Vertex the image + a config, and it allocates GPUs, runs the job, captures logs and artifacts, then tears down.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Anatomy of a Custom Training job</h3>
+
+<pre class="code-block"><span class="cm"># training-job.yaml</span>
+displayName: cbm-train-v3-7
+jobSpec:
+  workerPoolSpecs:
+    - machineSpec:
+        machineType: n1-standard-8
+        acceleratorType: NVIDIA_TESLA_T4
+        acceleratorCount: 1
+      replicaCount: 1
+      containerSpec:
+        imageUri: us-west1-docker.pkg.dev/srl-shared-services/research/cbm-train:0.4.1
+        command: [<span class="str">"python"</span>, <span class="str">"train.py"</span>]
+        args:
+          - --train-data=gs://srl-makawalu-training/cbm-v3/train/
+          - --eval-data=gs://srl-makawalu-training/cbm-v3/eval/
+          - --output-dir=gs://srl-makawalu-training/cbm-v3/runs/v3-7/
+          - --epochs=40
+          - --batch-size=32
+  serviceAccount: train-job-sa@srl-makawalu-prod.iam.gserviceaccount.com
+  tensorboardId: projects/<span class="am">$PROJECT</span>/locations/us-west1/tensorboards/srl-experiments</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Submit and watch</h3>
+
+<pre class="code-block">gcloud ai custom-jobs create --region=us-west1 --config=training-job.yaml
+
+<span class="cm"># Track from CLI</span>
+gcloud ai custom-jobs list --region=us-west1 --limit=5
+
+<span class="cm"># Stream logs</span>
+gcloud ai custom-jobs stream-logs <span class="am">$JOB_ID</span> --region=us-west1</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">What the training container should do</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">A Vertex Custom Training container is just a container that runs to completion. Inside, your code should:</p>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Read from GCS, not the DICOM store.</strong> Random-access training; per-batch network calls to DICOMweb are too slow.</li>
+      <li>→ <strong>Authenticate via the attached SA.</strong> No keys. The standard <code class="code-inline">google.cloud</code> clients pick up credentials.</li>
+      <li>→ <strong>Checkpoint to GCS every epoch.</strong> Vertex preempts spot training; checkpoints let you resume.</li>
+      <li>→ <strong>Log to stdout (TensorBoard for metrics).</strong> Vertex auto-collects stdout into Cloud Logging.</li>
+      <li>→ <strong>Save the final model to <code class="code-inline">--output-dir</code>.</strong> Vertex registers what's there as the job's output.</li>
+    </ul>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Spot training for cheap experiments</h3>
+
+<pre class="code-block">jobSpec:
+  workerPoolSpecs:
+    - machineSpec: {machineType: n1-standard-8, acceleratorType: NVIDIA_TESLA_T4, acceleratorCount: 1}
+      replicaCount: 1
+      <span class="kw">scheduling</span>:
+        strategy: SPOT       <span class="cm"># up to ~70% cheaper, can be preempted</span>
+        restartJobOnWorkerRestart: <span class="kw">true</span>      <span class="cm"># auto-resume from latest checkpoint</span>
+      containerSpec: { ... }</pre>
+
+    <div class="callout">
+      <strong>The discipline that makes spot work.</strong> Checkpoint every epoch; resume cleanly from latest. With both, preemption costs minutes, not hours. Without either, preemption costs the whole run. Build the resume path into your training script on day one; spot then becomes a no-brainer for any non-critical run.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Distributed training             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Scaling out</div>
+    <h2 class="section-title">Distributed training when one GPU isn't enough</h2>
+    <p style="margin-bottom: 1rem;">Vertex Custom Training supports multi-worker distributed training without you running a Kubernetes cluster. You declare the worker pool shape; Vertex provisions the topology and sets the environment variables your training framework expects.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The two patterns</h3>
+
+    <div class="dist-grid">
+      <div class="role">Data parallelism</div>
+      <div class="desc">N workers, same model, each processes a different batch slice; gradients sync between workers. The default for "we just need it faster" — PyTorch DDP, TensorFlow MultiWorkerMirroredStrategy. Linear-ish speedup on well-tuned code.</div>
+
+      <div class="role">Model parallelism</div>
+      <div class="desc">Model split across workers (different layers on different GPUs). Necessary when the model itself does not fit in one GPU's memory. Common for LLMs (M7); rarer for CNN imaging.</div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Multi-worker data parallelism on Vertex</h3>
+
+<pre class="code-block">jobSpec:
+  workerPoolSpecs:
+    - machineSpec:
+        machineType: a2-highgpu-1g
+        acceleratorType: NVIDIA_TESLA_A100
+        acceleratorCount: 1
+      replicaCount: 1        <span class="cm"># chief worker</span>
+      containerSpec: {imageUri: <span class="am">$IMG</span>, args: [<span class="str">"--world-size=4"</span>]}
+    - machineSpec:
+        machineType: a2-highgpu-1g
+        acceleratorType: NVIDIA_TESLA_A100
+        acceleratorCount: 1
+      replicaCount: 3        <span class="cm"># 3 additional workers</span>
+      containerSpec: {imageUri: <span class="am">$IMG</span>, args: [<span class="str">"--world-size=4"</span>]}</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Vertex sets <code class="code-inline">CLUSTER_SPEC</code> as a JSON env var with each worker's role and address. Your training code reads it and calls <code class="code-inline">torch.distributed.init_process_group</code> (or the TF equivalent) with the right backend.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Reduction Server — eliminating the gradient-sync bottleneck</h3>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">For 8+ workers, gradient sync over network becomes the bottleneck. Vertex offers a managed <strong>Reduction Server</strong> — dedicated workers whose only job is to aggregate gradients. Add a third pool to the spec:</p>
+
+<pre class="code-block">    - machineSpec: {machineType: n1-highcpu-16}
+      replicaCount: 4
+      containerSpec:
+        imageUri: us-docker.pkg.dev/vertex-ai-restricted/training/reductionserver:latest</pre>
+
+    <div class="callout">
+      <strong>The pragmatic order.</strong> Most studies never need distributed training. Single-GPU on a T4 covers Makawalu CBM training; A100 single-GPU covers HIPIMR density CNN. Reach for multi-worker only when you have measured evidence that single-GPU is the limit and a multi-day single-GPU run is unacceptable. The complexity step is real; pay it deliberately.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Pipelines                        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Multi-step orchestration</div>
+    <h2 class="section-title">Vertex AI Pipelines — Kubeflow on managed infrastructure</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#vertex-pipelines">Vertex AI Pipelines</a> is the right home for any ML workflow with more than one step. Each step is a containerised <em>component</em>; artifacts flow between components via GCS. The pipeline definition is Python (Kubeflow Pipelines SDK); Vertex executes it on managed infrastructure.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The Makawalu CBM pipeline, end to end</h3>
+
+    <div class="pipe">
+<span class="comp">[1]</span> <span class="comp">preprocess</span>                <span class="ann"># Component: pulls de-id'd DICOM via WADO-RS</span>
+       <span class="arr">│</span>                          <span class="ann">#   → resizes, normalises, splits 80/10/10</span>
+       <span class="arr">▼ artifact: <span class="art">processed_dataset</span> (GCS path)</span>
+<span class="comp">[2]</span> <span class="comp">train_concept_heads</span>      <span class="ann"># Vertex Custom Training, T4 GPU</span>
+       <span class="arr">│</span>                          <span class="ann">#   → trains the concept-prediction heads</span>
+       <span class="arr">▼ artifact: <span class="art">concept_model</span></span>
+<span class="comp">[3]</span> <span class="comp">train_final_classifier</span>   <span class="ann"># Vertex Custom Training, T4 GPU</span>
+       <span class="arr">│</span>                          <span class="ann">#   → uses concept predictions → malignancy score</span>
+       <span class="arr">▼ artifact: <span class="art">final_model</span></span>
+<span class="comp">[4]</span> <span class="comp">evaluate</span>                  <span class="ann"># Computes metrics on the held-out test split</span>
+       <span class="arr">│</span>                          <span class="ann">#   → AUROC, concept fidelity, fairness slices</span>
+       <span class="arr">▼ artifact: <span class="art">metrics</span> (JSON)</span>
+<span class="comp">[5]</span> <span class="comp">conditional_register</span>      <span class="ann"># If metrics.auroc &gt; threshold:</span>
+       <span class="branch">├──▶ register_model</span>        <span class="ann">#   register in Vertex Model Registry</span>
+       <span class="branch">└──▶ notify_pubsub</span>          <span class="ann">#   publish to dicom-model-updated</span>
+                                  <span class="ann">#   (kicks off M4L2 canary deploy)</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">A pipeline definition (Python KFP SDK)</h3>
+
+<pre class="code-block"><span class="kw">from</span> kfp <span class="kw">import</span> dsl
+<span class="kw">from</span> kfp.dsl <span class="kw">import</span> Input, Output, Artifact, component
+<span class="kw">from</span> google.cloud <span class="kw">import</span> aiplatform
+
+<span class="kw">@component</span>(base_image=<span class="str">"us-west1-docker.pkg.dev/.../cbm-preprocess:0.1"</span>)
+<span class="kw">def</span> preprocess(
+    deid_store_path: str,
+    output_dataset: Output[Artifact],
+):
+    <span class="cm"># Body of the component: download, preprocess, write to output_dataset.uri</span>
+    ...
+
+<span class="kw">@component</span>(base_image=<span class="str">"us-west1-docker.pkg.dev/.../cbm-train:0.4.1"</span>)
+<span class="kw">def</span> train_concept_heads(
+    dataset: Input[Artifact],
+    epochs: int,
+    model_out: Output[Artifact],
+):
+    ...
+
+<span class="kw">@dsl.pipeline</span>(name=<span class="str">"makawalu-cbm-v3"</span>, pipeline_root=<span class="str">"gs://srl-makawalu-training/pipelines/"</span>)
+<span class="kw">def</span> makawalu_cbm_pipeline(
+    deid_store: str = <span class="str">"projects/.../dicomStores/deid-store"</span>,
+    epochs: int = 40,
+    auroc_threshold: float = 0.85,
+):
+    pp = preprocess(deid_store_path=deid_store)
+    heads = train_concept_heads(dataset=pp.outputs[<span class="str">"output_dataset"</span>], epochs=epochs)
+    final = train_final_classifier(dataset=pp.outputs[<span class="str">"output_dataset"</span>], concept_model=heads.outputs[<span class="str">"model_out"</span>])
+    evald = evaluate(model=final.outputs[<span class="str">"model_out"</span>], dataset=pp.outputs[<span class="str">"output_dataset"</span>])
+
+    <span class="kw">with</span> dsl.If(evald.outputs[<span class="str">"auroc"</span>] &gt; auroc_threshold):
+        register_model(model=final.outputs[<span class="str">"model_out"</span>])
+        notify_pubsub(message=<span class="str">"cbm-v3 retrained"</span>)
+
+<span class="cm"># Compile + submit</span>
+<span class="kw">from</span> kfp.compiler <span class="kw">import</span> Compiler
+Compiler().compile(makawalu_cbm_pipeline, <span class="str">"cbm-pipeline.json"</span>)
+aiplatform.PipelineJob(
+    display_name=<span class="str">"cbm-v3-7"</span>,
+    template_path=<span class="str">"cbm-pipeline.json"</span>,
+    pipeline_root=<span class="str">"gs://srl-makawalu-training/pipelines/"</span>,
+).submit()</pre>
+
+    <div class="callout">
+      <strong>Why this beats a shell script.</strong> Every component is a versioned container. Artifacts between steps are tracked, lineage-traceable, queryable. Conditional logic (the AUROC gate) is native, not bolted on. Reruns from any step are one click; reruns with different hyperparameters are one parameter change. And the pipeline can be triggered by Eventarc (M4L2) — new de-id data → pipeline reruns → canary deploy.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Experiments + Vizier             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Tracking and tuning</div>
+    <h2 class="section-title">Experiments, TensorBoard, and Vizier</h2>
+    <p style="margin-bottom: 1rem;">Three Vertex features that make training reproducible and tunable. Use all three from the first study; they pay back across years.</p>
+
+    <div class="exp-card">
+      <h4>Vertex AI Experiments — runs you can compare</h4>
+      <p>Every training run logs to an experiment with parameters, metrics, and a pointer to the model artifact. In the console: select N runs, compare metrics side by side, see which hyperparameter values won. <strong>The discipline:</strong> wrap every <code>train.py</code> with an experiment context manager that calls <code>aiplatform.start_run()</code> + <code>aiplatform.log_metrics()</code>.</p>
+<pre class="code-block"><span class="kw">from</span> google.cloud <span class="kw">import</span> aiplatform
+
+aiplatform.init(project=<span class="str">"srl-makawalu-prod"</span>, experiment=<span class="str">"cbm-v3"</span>)
+aiplatform.start_run(<span class="str">"cbm-v3-7"</span>)
+aiplatform.log_params({<span class="str">"lr"</span>: 1e-4, <span class="str">"batch_size"</span>: 32, <span class="str">"backbone"</span>: <span class="str">"resnet50"</span>})
+
+<span class="cm"># ... training loop ...</span>
+
+aiplatform.log_metrics({<span class="str">"auroc"</span>: 0.88, <span class="str">"concept_fidelity"</span>: 0.74})
+aiplatform.end_run()</pre>
+    </div>
+
+    <div class="exp-card">
+      <h4>TensorBoard on Vertex — managed metric visualisation</h4>
+      <p>A managed TensorBoard instance with persistent storage, accessible per-experiment. Point your <code>SummaryWriter</code> at the Vertex TensorBoard URI; metrics appear in the dashboard in near-real-time during training. No more "let me ssh to the training node to see the loss curve."</p>
+<pre class="code-block"><span class="cm"># In training-job.yaml</span>
+jobSpec:
+  tensorboardId: projects/<span class="am">$PROJECT</span>/locations/us-west1/tensorboards/srl-experiments
+  serviceAccount: train-job-sa@<span class="am">$PROJECT</span>.iam.gserviceaccount.com
+
+<span class="cm"># In train.py - Vertex sets AIP_TENSORBOARD_LOG_DIR automatically</span>
+<span class="kw">import</span> os
+<span class="kw">from</span> torch.utils.tensorboard <span class="kw">import</span> SummaryWriter
+writer = SummaryWriter(log_dir=os.environ[<span class="str">"AIP_TENSORBOARD_LOG_DIR"</span>])
+writer.add_scalar(<span class="str">"loss/train"</span>, loss.item(), step)</pre>
+    </div>
+
+    <div class="exp-card">
+      <h4>Vizier — Bayesian hyperparameter tuning</h4>
+      <p>Instead of grid search, declare a parameter <em>study</em> with ranges and a target metric; Vizier runs trials adaptively, learning from earlier results to pick the next configuration. Built into Vertex Custom Training as <code>HyperparameterTuningJob</code>.</p>
+<pre class="code-block"><span class="cm"># Submit a tuning job with 4 parallel trials, 20 max trials</span>
+gcloud ai hp-tuning-jobs create --region=us-west1 \
+  --config=hp-tuning-config.yaml \
+  --display-name=cbm-tune-v3 \
+  --max-trial-count=20 \
+  --parallel-trial-count=4</pre>
+      <p>Config file declares the search space and the metric to optimise. Trials run in parallel; the next batch of trials picks parameter values informed by completed trials. Way more sample-efficient than grid search for &gt;3 dimensions.</p>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Operational details              -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The boring but vital parts</div>
+    <h2 class="section-title">Quotas, costs, and run hygiene</h2>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">GPU quotas — request them ahead of time</h3>
+    <p style="margin-bottom: 1rem; font-size: 13.5px;">Default project GPU quotas are low — often zero in some regions. Before running a training job that needs A100 or L4 capacity:</p>
+
+<pre class="code-block">gcloud compute regions describe us-west1 \
+  --format=<span class="str">"value(quotas[].metric,quotas[].limit)"</span> | grep -i gpu</pre>
+
+    <p style="font-size: 13.5px; margin-bottom: 1rem;">If the relevant quota is 0, request an increase via the console: <strong>IAM &amp; Admin → Quotas &amp; System Limits</strong>. Allow 1–3 business days. For Vertex Training, the quota is on <em>Custom Model Training GPU</em> (not on Compute Engine GPUs directly).</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Cost reality for typical SRL training</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;margin-bottom: 1rem;">
+      <li>→ <strong>Makawalu CBM, T4 GPU, 4 hours:</strong> ~$2–3 on demand; ~$0.80 spot.</li>
+      <li>→ <strong>HIPIMR density CNN, A100, 6 hours:</strong> ~$20–25 on demand; ~$7 spot.</li>
+      <li>→ <strong>20-trial hyperparameter sweep (4 parallel, T4):</strong> ~$15–20.</li>
+      <li>→ <strong>Same workloads run accidentally and left running over a weekend:</strong> Don't ask.</li>
+    </ul>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Run hygiene</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ Always set <code class="code-inline">--max-running-time</code> on Vertex jobs as a safety net.</li>
+      <li>→ Tag every run via Experiments (with a date, study, and short description) so the artifact in GCS is traceable to the parameters that produced it.</li>
+      <li>→ Delete old TensorBoard logs and unsuccessful run artifacts quarterly. GCS retention adds up faster than people expect.</li>
+      <li>→ Sanity-check every new pipeline against a known-good baseline before letting it write to the canonical model registry.</li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 6.2</div>
+    <h2 class="section-title">Run a Vertex Custom Training job, log to Experiments</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🧪 Submit, monitor, compare</div>
+      <ol class="exercise-steps">
+        <li>Enable the Vertex AI API and TensorBoard:<br>
+          <code class="code-inline">gcloud services enable aiplatform.googleapis.com</code>
+        </li>
+        <li>Create a TensorBoard instance in your sandbox:<br>
+          <code class="code-inline">gcloud ai tensorboards create --display-name="demo-tb" --region=us-west1</code><br>
+          Note the resource name.
+        </li>
+        <li><strong>Write a minimal training container.</strong> A tiny PyTorch (or scikit-learn) script that trains a model on synthetic data and logs metrics via the aiplatform SDK:
+<pre class="code-block"><span class="cm"># train.py</span>
+<span class="kw">import</span> os, random, time
+<span class="kw">from</span> google.cloud <span class="kw">import</span> aiplatform
+
+PROJECT = os.environ[<span class="str">"PROJECT"</span>]
+EXPERIMENT = <span class="str">"demo-exp"</span>
+RUN = os.environ.get(<span class="str">"AIP_HYPERPARAMETER_TUNING_RUN_ID"</span>) or <span class="str">f"run-{int(time.time())}"</span>
+LR = float(os.environ.get(<span class="str">"LR"</span>, <span class="str">"0.01"</span>))
+
+aiplatform.init(project=PROJECT, location=<span class="str">"us-west1"</span>, experiment=EXPERIMENT)
+aiplatform.start_run(RUN)
+aiplatform.log_params({<span class="str">"lr"</span>: LR, <span class="str">"epochs"</span>: 5})
+
+<span class="cm"># Pretend training - simulate a loss curve</span>
+final_loss = 1.0
+<span class="kw">for</span> epoch <span class="kw">in</span> range(5):
+    final_loss *= 0.6 + LR + random.uniform(-0.05, 0.05)
+    aiplatform.log_metrics({<span class="str">"loss"</span>: final_loss}, step=epoch)
+    time.sleep(2)
+
+aiplatform.log_metrics({<span class="str">"final_loss"</span>: final_loss})
+aiplatform.end_run()
+print(<span class="str">f"Done, final_loss={final_loss}"</span>)</pre>
+            Dockerfile + requirements.txt the usual way. Push to your Artifact Registry.
+        </li>
+        <li>Submit a Custom Training job (no GPU needed for the demo):<br>
+<pre class="code-block">gcloud ai custom-jobs create --region=us-west1 \
+  --display-name=<span class="str">"demo-train"</span> \
+  --worker-pool-spec=<span class="str">"machine-type=e2-standard-2,replica-count=1,container-image-uri=$IMG"</span> \
+  --args=<span class="str">"--lr=0.01"</span></pre>
+        </li>
+        <li>Stream the logs:<br>
+          <code class="code-inline">gcloud ai custom-jobs stream-logs $JOB_ID --region=us-west1</code>
+        </li>
+        <li>When done, view the experiment in the Cloud Console: <strong>Vertex AI → Experiments → demo-exp</strong>. You should see the run with logged params and metrics.</li>
+        <li><strong>Submit two more runs</strong> with different LRs (<code class="code-inline">--args="--lr=0.005"</code> and <code class="code-inline">--args="--lr=0.02"</code>). Compare side-by-side in the Experiments UI.</li>
+        <li><strong>Bonus — wire up a Pipeline.</strong> Compile a 3-step Kubeflow Pipeline (preprocess → train → evaluate) and submit via <code class="code-inline">PipelineJob(...).submit()</code>. Watch the DAG in the Pipelines UI. Even with synthetic data, you'll see the artifact flow.</li>
+        <li><strong>Tear down:</strong> delete the TensorBoard instance, training jobs persist as completed records (cheap). Vertex storage accumulates - prune old artifacts periodically.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud ai custom-jobs create</span>
+        <span class="tag">gcloud ai tensorboards create</span>
+        <span class="tag">Vertex Experiments (Python SDK)</span>
+        <span class="tag">aiplatform.start_run / log_metrics</span>
+        <span class="tag">Kubeflow Pipelines SDK</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>You spot-train for cost savings, and a multi-hour run gets preempted three times. The job eventually completes but the metric trajectory looks weird. What discipline prevents that pain?</span>
+        <a href="#" class="check-btn" onclick="alert('Checkpoint every epoch to GCS, and resume from latest checkpoint on container start. With both: each preemption costs ~5 minutes (restart + load checkpoint + resume). Without either: the job restarts from scratch, the metric trajectory shows artificial reset points, and you waste the previously-paid compute. Set restartJobOnWorkerRestart: true in the job spec to make Vertex retry; your code does the rest.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Makawalu CBM training takes 4 hours on a T4. Should you move to multi-worker distributed training to speed it up?</span>
+        <a href="#" class="check-btn" onclick="alert('Almost certainly no. 4 hours is fine; the distributed-training complexity step (multi-worker config, gradient sync, code changes for DDP) usually costs more than the speedup is worth at this scale. Multi-worker pays off when single-GPU training takes ≥24 hours, the model is large enough to benefit from a larger effective batch size, or you need to tune the model rapidly. For a 4-hour CBM run, single-T4 + spot + checkpointing is the right shape.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why does the CBM pipeline conditional-register the model based on AUROC rather than always registering?</span>
+        <a href="#" class="check-btn" onclick="alert('Two reasons. (1) Lifecycle hygiene - the Model Registry should hold deployable artifacts only, not every experiment. Otherwise quarterly the Registry becomes archaeology rather than a source of truth. (2) Downstream automation - the Pub/Sub notify step triggers the M4L2 canary deploy. You never want an auto-deploy of a model that did not pass the metric bar. The conditional gate is the boundary between exploration and production.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your colleague asks why you use Vertex Pipelines rather than Cloud Workflows for the CBM training chain. What\'s the right framing?</span>
+        <a href="#" class="check-btn" onclick="alert('Workflows orchestrates API calls and HTTP services. Pipelines orchestrates containerised ML steps with artifacts flowing between them. CBM has: components that produce datasets, models, metrics; artifact lineage that needs to be traceable for paper reproducibility; native execution on managed GPU runners. All of that is what Pipelines is for. Workflows is the right tool when the chain is "call this API, then that one" - not when the chain is "preprocess → train → evaluate" with binary artifacts in between.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m6-lesson1.html" class="btn">← Lesson 6.1: Platform + DICOM</a>
+    <a href="m6-lesson3.html" class="btn btn-primary">Lesson 6.3: Serving and lifecycle →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
