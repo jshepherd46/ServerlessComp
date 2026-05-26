@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M11 · Lesson 3: The lab handbook + launch-a-study automation — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Handbook list */
+.handbook {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--purple);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: 1rem 1.5rem; margin: 1rem 0 1.5rem;
+}
+.handbook h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); text-transform: none; letter-spacing: 0; margin-bottom: .75rem;
+}
+.handbook ol { list-style: none; counter-reset: hb; padding-left: 0; }
+.handbook li {
+  counter-increment: hb;
+  position: relative; padding: .4rem 0 .4rem 2rem;
+  font-size: 13px; color: var(--text2); line-height: 1.6;
+  border-bottom: 1px solid var(--border);
+}
+.handbook li:last-child { border-bottom: none; }
+.handbook li::before {
+  content: counter(hb);
+  position: absolute; left: 0; top: 7px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(165,168,255,.15); color: var(--purple);
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.handbook li strong { color: var(--text); }
+
+/* Launch step */
+.launch {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .9rem 1.15rem; margin-bottom: 8px;
+  display: grid; grid-template-columns: 60px 1fr;
+  gap: 1rem; align-items: start;
+  border-left: 3px solid var(--blue);
+}
+.launch .ln {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--blue); padding-top: 2px;
+}
+.launch .lb { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.launch .lb strong { color: var(--text); }
+.launch .lb code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+@media (max-width: 640px) { .launch { grid-template-columns: 1fr; } .launch .ln { color: var(--amber); } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M11 · Lesson 3 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 11</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 3</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot done" title="Lesson 2"></div>
+      <div class="progress-dot active" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 3 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">The lab handbook<br>and launch-a-study automation</h1>
+    <p class="lesson-sub">L1 + L2 built the IaC + CI/CD foundation. This lesson is the meta-runbook: the single canonical document that ties M1L4\'s runbook + every per-module addition into one place, plus the script that takes a new study from "we got the grant" to "infrastructure ready" in hours.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~45 min reading + exercise</span>
+      <span>🔧 Terraform + gcloud + the runbook</span>
+      <span>📍 Module 11 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Launch script                    -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">From grant to infrastructure</div>
+    <h2 class="section-title">"Launch a new study" — the script</h2>
+    <p style="margin-bottom: 1rem;">With M11L1\'s modules + M11L2\'s CI pipelines in place, standing up a new study is a sequence of commands that runs in hours, not weeks. The choreography is the same every time; codify it as a script in the lab repo.</p>
+
+    <div class="launch">
+      <div class="ln">0:00</div>
+      <div class="lb"><strong>Decide.</strong> Confirm study name, PI, grant, expected data types, IRB protocol number, billing account. The Terraform variables you\'ll fill in. Allow ~30 min for the conversation; document outcomes in the runbook.</div>
+    </div>
+
+    <div class="launch">
+      <div class="ln">0:30</div>
+      <div class="lb"><strong>Create the study directory.</strong> <code>scripts/new-study.sh halo-v2</code> scaffolds <code>studies/halo-v2/</code> from a template — <code>main.tf</code> with the standard module calls + a blank <code>terraform.tfvars</code>.</div>
+    </div>
+
+    <div class="launch">
+      <div class="ln">1:00</div>
+      <div class="lb"><strong>Fill in variables.</strong> Edit <code>terraform.tfvars</code> with study name, billing account, IRB number, IAM groups, perimeter to join. PR review — at least one other engineer signs off.</div>
+    </div>
+
+    <div class="launch">
+      <div class="ln">2:00</div>
+      <div class="lb"><strong>Plan + apply.</strong> CI runs <code>terraform plan</code> on the PR; reviewers see exactly what will be created. After merge: <code>terraform apply</code> in the studies/halo-v2 directory. ~30 minutes of provisioning; outputs: project IDs, SA emails, bucket URIs, perimeter membership confirmation.</div>
+    </div>
+
+    <div class="launch">
+      <div class="ln">2:30</div>
+      <div class="lb"><strong>BAA enrollment ticket</strong> (if HIPAA-tier). Open a ticket with UH ITS referencing the new project IDs. While waiting (1-5 business days per M3L1), continue with non-PHI setup.</div>
+    </div>
+
+    <div class="launch">
+      <div class="ln">3:00</div>
+      <div class="lb"><strong>Wire CI/CD.</strong> Add a Cloud Build trigger for the study\'s training-pipelines repo (M11L2 pattern). Push a smoke-test commit; watch the pipeline land in the new dev project.</div>
+    </div>
+
+    <div class="launch">
+      <div class="ln">4:00</div>
+      <div class="lb"><strong>Document.</strong> Copy the study-runbook template from the lab handbook into <code>handbook/studies/halo-v2.md</code>. Fill in the sections that are known so far (data sources, IRB, PI, key contacts). Commit.</div>
+    </div>
+
+    <div class="launch">
+      <div class="ln">later</div>
+      <div class="lb"><strong>BAA confirmed; load real data.</strong> Per M3L1\'s seven-step enrollment workflow + M8L3\'s cohort-instantiation pattern. Now the study is fully operational.</div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The scaffolding script</h3>
+
+<pre class="code-block"><span class="cm">#!/usr/bin/env bash</span>
+<span class="cm"># scripts/new-study.sh — scaffold a study directory from a template</span>
+set -euo pipefail
+
+STUDY=<span class="am">$1</span>
+DIR=<span class="str">"studies/$STUDY"</span>
+
+<span class="kw">if</span> [ -d <span class="str">"$DIR"</span> ]; <span class="kw">then</span>
+  <span class="kw">echo</span> <span class="str">"$DIR already exists"</span>; exit 1
+<span class="kw">fi</span>
+
+cp -r templates/study-template <span class="am">$DIR</span>
+sed -i <span class="str">""</span> <span class="str">"s/STUDY_NAME/$STUDY/g"</span> <span class="am">$DIR</span>/*.tf <span class="am">$DIR</span>/*.tfvars
+
+<span class="kw">echo</span> <span class="str">"Scaffolded $DIR. Edit terraform.tfvars and open a PR."</span></pre>
+
+    <div class="callout">
+      <strong>The economic shift.</strong> Without this scaffolding, a new study takes 1-3 weeks of cloud engineering (most of which is rote: create projects, set up perimeter, wire IAM, configure CI, write runbook stub). With it: hours of editing variables + waiting for BAA. The lab engineer\'s time is freed for the genuinely new work — the study-specific ETL, the cohort definition, the model design.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Handbook synthesis               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The single canonical document</div>
+    <h2 class="section-title">The lab handbook — pulling every runbook section together</h2>
+    <p style="margin-bottom: 1rem;">M1L4 introduced the lab runbook with nine sections. M3L3 added incident response. M6L3 added per-model lifecycle. M8L3 added data-pipeline metrics. M10L3 added the FL study runbook. The handbook is the single Markdown document — in the lab\'s private git repo — that holds all of these in one place, with stable cross-references.</p>
+
+    <div class="handbook">
+      <h4>The SRL lab handbook — canonical table of contents</h4>
+      <ol>
+        <li><strong>Lab overview</strong> — PI, members + roles, current studies, contact info.</li>
+        <li><strong>Topology</strong> — the M1L2 diagram updated; org / folder / projects / shared-services / perimeter membership.</li>
+        <li><strong>IAM matrix</strong> — the M1L3 table; groups, personas, role assignments at each scope.</li>
+        <li><strong>Per-study runbooks</strong> — one subsection per active study, with the per-study runbook template (see Section 3 below).</li>
+        <li><strong>Per-model lifecycle</strong> — for each served model (Makawalu CBM, HIPIMR density, ShepBERT NER, etc.) the M6L3 lifecycle runbook section.</li>
+        <li><strong>Data pipeline operations</strong> — the M8L3 + M9 patterns; ingest freshness, de-id completeness, cohort-build SLO targets.</li>
+        <li><strong>Federated learning protocols</strong> — for each active FL study, the M10L3 ten-section template.</li>
+        <li><strong>Onboarding</strong> — what a new postdoc / RA / collaborator reads, in what order; the access request workflow.</li>
+        <li><strong>Offboarding</strong> — what happens when a member leaves; group removals, audit confirmation, asset reassignment.</li>
+        <li><strong>Launching a new study</strong> — the workflow from Section 1; references to scripts and modules.</li>
+        <li><strong>Closing a study</strong> — final cohort snapshot, project deletion (with grace period), archive bucket lifecycle, IAM cleanup, runbook archival.</li>
+        <li><strong>Incident response</strong> — the M3L3 four-hour playbook; UH ITS contact info; the audit-query templates.</li>
+        <li><strong>Monthly hygiene</strong> — the billing-export query, IAM Recommender sweep, SA key audit, vocabulary-version freshness, ACHILLES re-run.</li>
+        <li><strong>External references</strong> — links to UH ITS portal, IRB office, GCP docs, OHDSI vocabulary, the course site itself.</li>
+      </ol>
+    </div>
+
+    <p style="margin-top:1rem;font-size:13.5px;">The handbook IS the documentation. Every link in the table of contents resolves to a section in the same Markdown file (or to a Markdown sibling). Anyone with read access to the lab repo can read everything; nothing is in someone\'s head, in a Slack thread, or in a notebook on a laptop.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: The per-study runbook template   -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The reusable unit</div>
+    <h2 class="section-title">The per-study runbook template</h2>
+    <p style="margin-bottom: 1rem;">Each active study gets its own runbook section, instantiated from a template at study launch. The template:</p>
+
+    <div class="handbook">
+      <h4>SRL per-study runbook template</h4>
+      <ol>
+        <li><strong>Study identity.</strong> Name, PI, grant + funding source, IRB protocol + expiry, key collaborators, primary contact engineer.</li>
+        <li><strong>Data sources.</strong> Where data comes from (EHR extracts, PACS, partner site uploads); ingest cadence; current data volume.</li>
+        <li><strong>Project topology.</strong> Per-environment project IDs (dev, staging, prod), perimeter membership, billing account.</li>
+        <li><strong>Service accounts + groups.</strong> The IAM matrix instantiated for this study: workload SAs, member groups + their roles.</li>
+        <li><strong>Data pipeline.</strong> Ingest path (M8 patterns), de-id config (which DLP template), cohort-instantiation workflow (M8L3), operational metrics dashboard URL.</li>
+        <li><strong>Models served.</strong> Each model\'s M6L3 lifecycle section. Where in the registry, current production version, last retrain date, next scheduled retrain.</li>
+        <li><strong>Operations.</strong> How to deploy a new model version (canary script), how to trigger a re-ingest, how to add a new researcher to the cohort access group.</li>
+        <li><strong>Incident response.</strong> Study-specific PHI types + recovery contacts. Same shape as M3L3\'s generic playbook, instantiated with this study\'s specifics.</li>
+        <li><strong>Closure plan.</strong> Conditions for closure (grant end, deliverable shipped); the archive bucket location; what gets retained vs deleted; IRB-required retention period.</li>
+      </ol>
+    </div>
+
+    <p style="font-size:13.5px;margin-bottom: 1rem;">Saved as <code class="code-inline">handbook/studies/&lt;study-name&gt;.md</code>. Updated as the study evolves. Read on day-one onboarding for that study.</p>
+
+    <div class="callout">
+      <strong>The discipline that makes the handbook actually used.</strong> Every section has explicit cross-references to the modules in this course (M3L1\'s VPC SC, M6L3\'s model lifecycle, M8L3\'s cohort pattern). The handbook is the index; the course modules are the explanations. Together: anyone on the lab can find both "what we do" (handbook) and "why we do it" (course modules).
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 11.3</div>
+    <h2 class="section-title">Draft your lab\'s handbook outline</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📓 Make the canonical document real</div>
+      <ol class="exercise-steps">
+        <li><strong>Create a private repo</strong> for the lab handbook (or use a directory in an existing lab repo). Name it <code class="code-inline">srl-handbook/</code>. Add a README pointing at the table of contents.</li>
+        <li><strong>Generate the top-level handbook</strong> with the 14 sections from Section 2 as Markdown headings. For each: a one-line description and a stub. Commit.</li>
+        <li><strong>Fill in Section 1 + 2</strong> for real — lab overview and topology — using what you actually have. The diagram from M1L2 can be a Mermaid or PlantUML block in the Markdown.</li>
+        <li><strong>Pick one of your real studies</strong> (HIPIMR, Makawalu, HALO, ShepBERT, MAPS, PAC-AID). Create <code class="code-inline">studies/&lt;name&gt;.md</code> from the per-study template in Section 3. Fill in every section that has a known answer; leave others as TODO.</li>
+        <li><strong>Write the launch-a-study script</strong> from Section 1\'s shape. Even a 30-line bash script that <code class="code-inline">cp</code>s a template and <code class="code-inline">sed</code>s the study name is useful. Commit.</li>
+        <li><strong>Note the gaps.</strong> Walking through the handbook for one study probably surfaces several "we do not have this in place" issues. Make those into issues in the lab repo; address them on a cadence.</li>
+        <li><strong>Add a "monthly hygiene" checklist</strong> as a Markdown file with check-able items: billing query, IAM recommender, key audit, vocabulary version, ACHILLES re-run. Set a recurring calendar reminder; mark items done in PRs against the checklist file.</li>
+        <li><strong>Bonus — automate the launch script</strong> into a real Make target or Python CLI that calls <code class="code-inline">cookiecutter</code> against a study template. Even one cycle of "scaffold + edit + apply" with the automation in place builds the habit.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">What this exercise produces</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">srl-handbook repo with 14-section TOC</span>
+        <span class="tag">One real per-study runbook</span>
+        <span class="tag">Launch-a-study script (even minimal)</span>
+        <span class="tag">Gaps list as issues</span>
+        <span class="tag">Monthly hygiene checklist</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Without the launch-a-study script + module library, the lab\'s next study takes ~3 weeks of cloud engineering. Where does the time actually go?</span>
+        <a href="#" class="check-btn" onclick="alert('Roughly: 3 days creating projects + perimeter membership + IAM bindings by hand. 2 days configuring CI triggers + Artifact Registry permissions. 2 days standing up the Healthcare API + storage layout. 3 days configuring the OMOP + ATLAS bits. 1 day writing the runbook stub. 1 day fixing the things that broke. Most of it is rote engineering that the modules in M11L1 + M11L2 codify. The "new" work (study-specific ETL, cohort definition, model design) is maybe 20% of the time. Automation flips the ratio.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why does the handbook explicitly cross-reference course modules rather than re-explaining concepts?</span>
+        <a href="#" class="check-btn" onclick="alert('Maintenance and authority. (1) Cloud architecture choices evolve; the course modules are the canonical explanation. If the handbook re-explained "what is VPC SC?" it would drift from the actual M3L1 explanation. Cross-reference once, maintain once. (2) The handbook is the lab\'s decision log ("we chose this") + the course modules are the rationale ("here is why this kind of choice exists"). Different document, different purpose. (3) New members reading the handbook can drop into the course module when they need depth; the handbook stays focused on what the lab does.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>A new postdoc joins on Monday. By Friday they should be productive. Which handbook sections do they read first?</span>
+        <a href="#" class="check-btn" onclick="alert('Day 1: section 8 (onboarding), section 1 (overview), section 2 (topology) - context for who/what/where. Day 2-3: the per-study runbook(s) for the studies they will work on - section 4 instantiated. Day 4: section 7 (federated learning protocols if applicable) + the per-model lifecycle for any model they will touch. Day 5: incident response basics (section 12). The course modules referenced from each section are the homework for week 2 onward, not week 1.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>What\'s the difference between "the launch script makes new studies cheap" and "the launch script makes mistakes cheap"?</span>
+        <a href="#" class="check-btn" onclick="alert('Both, but the second matters more for safety. Cheap new studies = engineer-time freed for novel work. Cheap mistakes = a misconfigured study (wrong region, wrong CMEK key, wrong perimeter membership) is caught at terraform plan time, before any data lands. Without the script, mistakes happen one console click at a time and are caught at audit time (or at incident time). With the script + CI plan-on-PR + reviewers, the cost of an error is "fix the PR" rather than "explain the breach to the IRB." The economic argument is real; the safety argument is bigger.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- M11 close                                   -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Closing M11</div>
+    <h2 class="section-title">The lab platform is now reproducible</h2>
+    <div class="callout">
+      <strong>The arc of M11.</strong> L1 — IaC for the platform with Terraform modules + GCS state. L2 — ML pipelines as compiled JSON artifacts with Cloud Build CI/CD pairing pipeline + image releases. L3 — the launch-a-study script and the lab handbook that ties every per-module runbook addition into one canonical document. Combined: the lab\'s operational knowledge lives in code + Markdown, not in any one engineer\'s head.
+    </div>
+    <p style="margin-top: 1rem;">M12 is the capstone — pick one of your studies (or one you wish you ran), and apply everything in M1-M11 end to end. Four tracks (Makawalu, HIPIMR, HALO, ShepBERT) with their own architectures + decisions. The course closes with you building the research cloud for a real piece of your work.</p>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m11-lesson2.html" class="btn">← Lesson 11.2: ML pipelines as code</a>
+    <a href="m12.html" class="btn btn-primary">M12: Capstone — build your own research cloud →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

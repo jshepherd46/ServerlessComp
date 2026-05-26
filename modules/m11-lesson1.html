@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M11 · Lesson 1: Terraform the platform — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Repo tree */
+.tree {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.7; overflow-x: auto;
+}
+.tree .dir { color: var(--blue); }
+.tree .file { color: var(--text2); }
+.tree .ann { color: var(--text3); font-style: italic; }
+
+/* Pillar */
+.pill {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--blue);
+}
+.pill h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.pill p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: 0; }
+.pill code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M11 · Lesson 1 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 11</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot active" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 1 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Terraform the platform</h1>
+    <p class="lesson-sub">Everything from M1-M10 stood up by hand becomes one Terraform apply. This lesson is the IaC layer for the SRL platform — why it matters for a research lab, the module structure that lets a new study launch in hours, state management that survives turnover.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 Terraform, hashicorp/google provider, GCS state backend</span>
+      <span>📍 Module 11 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Why IaC for research             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Why IaC for research labs specifically</div>
+    <h2 class="section-title">The four wins that pay for the discipline</h2>
+
+    <div class="pill">
+      <h4>1. Reproducibility</h4>
+      <p>Every study\'s infrastructure (projects, perimeters, IAM bindings, buckets, registries, secrets) lives as version-controlled code. The infrastructure that ran in May 2026 can be reconstructed exactly in May 2028 from <code>git checkout</code> + <code>terraform apply</code>. Critical when papers get revised years after the work.</p>
+    </div>
+
+    <div class="pill">
+      <h4>2. Speed-to-study</h4>
+      <p>From "we got the grant" to "the study has projects, perimeters, vocabulary copies, ATLAS, training pipelines" goes from weeks to hours when standing up a new study is <code>terraform apply -var="study_name=halo-v2"</code> against a tested module. The next study isn\'t the same scale of effort as the first.</p>
+    </div>
+
+    <div class="pill">
+      <h4>3. Drift detection</h4>
+      <p><code>terraform plan</code> against existing state surfaces any manual changes someone made via the console. In a HIPAA project, that\'s the difference between "we know what state we\'re in" and "we\'re finding out at audit time." Run weekly; investigate any unexpected diffs.</p>
+    </div>
+
+    <div class="pill">
+      <h4>4. Onboarding + bus-factor</h4>
+      <p>The Terraform repo IS the documentation. A new postdoc reads the modules to understand "what is the infrastructure for this study?" — same answer everywhere, no tribal knowledge required. When the original engineer leaves, the lab doesn\'t lose the infrastructure design.</p>
+    </div>
+
+    <div class="callout">
+      <strong>What IaC isn\'t.</strong> It\'s not a magic bullet — terraform doesn\'t obviate the architectural skill from M1-M10; it codifies the result. The first Terraform write of the SRL platform takes weeks. The payoff is from study #2 onward; the first study often takes longer in Terraform than by hand. Commit to it knowing the curve.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Terraform basics                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The toolkit</div>
+    <h2 class="section-title">Terraform basics applied to GCP</h2>
+    <p style="margin-bottom: 1rem;"><strong>Terraform</strong> is a declarative IaC tool: you describe the desired state in <code class="code-inline">.tf</code> files; <code class="code-inline">terraform plan</code> shows the diff between current and desired; <code class="code-inline">terraform apply</code> reconciles. State is tracked in a backend (we use GCS) so subsequent applies know what already exists.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">A minimal Terraform file</h3>
+
+<pre class="code-block"><span class="cm"># main.tf — one project, one bucket, one service account</span>
+terraform {
+  required_providers {
+    google = {
+      source  = <span class="str">"hashicorp/google"</span>
+      version = <span class="str">"~&gt; 5.0"</span>
+    }
+  }
+}
+
+provider <span class="str">"google"</span> {
+  project = <span class="str">"srl-makawalu-prod"</span>
+  region  = <span class="str">"us-west1"</span>
+}
+
+resource <span class="str">"google_storage_bucket"</span> <span class="str">"inference_models"</span> {
+  name                        = <span class="str">"srl-makawalu-inference-models"</span>
+  location                    = <span class="str">"US-WEST1"</span>
+  uniform_bucket_level_access = true
+  encryption {
+    default_kms_key_name = <span class="str">"projects/srl-shared-services/locations/us-west1/keyRings/srl-keys/cryptoKeys/makawalu"</span>
+  }
+}
+
+resource <span class="str">"google_service_account"</span> <span class="str">"xai_serve"</span> {
+  account_id   = <span class="str">"xai-serve-sa"</span>
+  display_name = <span class="str">"XAI inference service"</span>
+}
+
+resource <span class="str">"google_storage_bucket_iam_member"</span> <span class="str">"xai_serve_read"</span> {
+  bucket = google_storage_bucket.inference_models.name
+  role   = <span class="str">"roles/storage.objectViewer"</span>
+  member = <span class="str">"serviceAccount:${google_service_account.xai_serve.email}"</span>
+}</pre>
+
+    <p style="font-size:13.5px;margin-bottom: 1rem;">Three resources, declarative, idempotent. <code class="code-inline">terraform apply</code> creates the bucket, the SA, and the IAM binding. Re-running is a no-op (state matches). Editing any value and re-applying surgically updates that resource.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The workflow</h3>
+
+<pre class="code-block">terraform init       <span class="cm"># installs providers, configures backend</span>
+terraform plan       <span class="cm"># shows what would change vs current state</span>
+terraform apply      <span class="cm"># makes the changes</span>
+terraform destroy    <span class="cm"># tears down everything in this module</span>
+terraform state list <span class="cm"># inspect tracked resources</span></pre>
+
+    <p style="font-size:13.5px;">The discipline: never <code class="code-inline">apply</code> without first reading <code class="code-inline">plan</code>. In a HIPAA project, an unexpected change in plan is a stop-and-investigate event.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: SRL repo structure               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The shape</div>
+    <h2 class="section-title">The SRL Terraform repo structure</h2>
+    <p style="margin-bottom: 1rem;">Two levels: <strong>reusable modules</strong> (the building blocks) + <strong>environments</strong> (the actual instantiations). One git repo per lab.</p>
+
+    <div class="tree">
+<span class="dir">srl-infra/</span>
+├── <span class="dir">modules/</span>                               <span class="ann"># reusable building blocks</span>
+│   ├── <span class="dir">phi-project/</span>                       <span class="ann"># a complete PHI-tier study project</span>
+│   │   ├── <span class="file">main.tf</span>                       <span class="ann"># project, perimeter membership, default IAM</span>
+│   │   ├── <span class="file">variables.tf</span>
+│   │   └── <span class="file">outputs.tf</span>
+│   ├── <span class="dir">research-project/</span>                  <span class="ann"># de-id research-tier project</span>
+│   ├── <span class="dir">healthcare-stores/</span>                 <span class="ann"># Cloud Healthcare API datasets + stores</span>
+│   ├── <span class="dir">vertex-ml-stack/</span>                   <span class="ann"># Vertex AI + Workbench + Pipeline templates</span>
+│   ├── <span class="dir">atlas-stack/</span>                       <span class="ann"># Broadsea on Cloud Run (M9L2)</span>
+│   ├── <span class="dir">fl-aggregator/</span>                     <span class="ann"># GKE + Flower aggregator (M10L2)</span>
+│   ├── <span class="dir">fl-client-site/</span>                    <span class="ann"># per-site FL client GKE setup</span>
+│   ├── <span class="dir">deid-pipeline/</span>                     <span class="ann"># DLP templates + Healthcare API deid config (M8L2)</span>
+│   ├── <span class="dir">audit-sink/</span>                        <span class="ann"># aggregated log sink (M1L4)</span>
+│   └── <span class="dir">workload-identity-binding/</span>         <span class="ann"># common GSA + KSA + binding pattern</span>
+│
+├── <span class="dir">shared-services/</span>                       <span class="ann"># the single SRL-wide platform</span>
+│   ├── <span class="file">main.tf</span>                            <span class="ann"># Artifact Registry, KMS keyring, audit sink, OMOP vocab</span>
+│   ├── <span class="file">terraform.tfvars</span>
+│   └── <span class="file">backend.tf</span>
+│
+├── <span class="dir">studies/</span>                               <span class="ann"># one directory per active study</span>
+│   ├── <span class="dir">hipimr/</span>
+│   │   ├── <span class="file">main.tf</span>                        <span class="ann"># calls phi-project + research-project + healthcare-stores</span>
+│   │   ├── <span class="file">terraform.tfvars</span>               <span class="ann"># study-specific values</span>
+│   │   └── <span class="file">backend.tf</span>
+│   ├── <span class="dir">makawalu/</span>
+│   ├── <span class="dir">halo/</span>
+│   ├── <span class="dir">shepbert/</span>
+│   └── <span class="dir">pacificfed/</span>                        <span class="ann"># PacificFed-specific FL infra</span>
+│
+└── <span class="dir">.github/workflows/</span>                     <span class="ann"># CI: terraform plan on every PR</span>
+    └── <span class="file">terraform-plan.yml</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">A study module call</h3>
+
+<pre class="code-block"><span class="cm"># studies/halo/main.tf — instantiates the modules for HALO</span>
+
+module <span class="str">"halo_prod"</span> {
+  source = <span class="str">"../../modules/phi-project"</span>
+
+  study_name      = <span class="str">"halo"</span>
+  environment     = <span class="str">"prod"</span>
+  parent_folder   = var.srl_folder_id
+  billing_account = var.halo_billing_account
+  perimeter_name  = <span class="str">"srl_phi"</span>
+  phi_labels      = { phi = <span class="str">"yes"</span>, grant = <span class="str">"r01ca999999"</span> }
+  cmek_key        = module.shared.makawalu_cmek_key
+}
+
+module <span class="str">"halo_research"</span> {
+  source = <span class="str">"../../modules/research-project"</span>
+
+  study_name      = <span class="str">"halo"</span>
+  parent_folder   = var.srl_folder_id
+  billing_account = var.halo_billing_account
+  reader_groups   = [<span class="str">"halo-researchers@hawaii.edu"</span>]
+}
+
+module <span class="str">"halo_omop"</span> {
+  source = <span class="str">"../../modules/healthcare-stores"</span>
+
+  project_id     = module.halo_prod.project_id
+  enable_fhir    = true
+  enable_dicom   = false
+  cmek_key       = module.halo_prod.cmek_key
+  shared_vocab   = module.shared.omop_vocabulary_dataset
+}</pre>
+
+    <p style="font-size:13.5px;">~30 lines bring up a complete HALO study with PHI-tier project + research-tier project + Healthcare API + the M3 perimeter membership + the M9 OMOP vocabulary linkage. The modules carry the architectural decisions; the study file carries the values.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: State management                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Where Terraform keeps its memory</div>
+    <h2 class="section-title">State backends, workspaces, locking</h2>
+    <p style="margin-bottom: 1rem;">Terraform tracks the mapping from your declarative <code class="code-inline">.tf</code> files to the real resources in a <strong>state file</strong>. For any lab Terraform setup, the state file must live in a shared, locked, encrypted backend — never in local files. GCS is the right home.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The GCS backend</h3>
+
+<pre class="code-block"><span class="cm"># studies/halo/backend.tf</span>
+terraform {
+  backend <span class="str">"gcs"</span> {
+    bucket = <span class="str">"srl-terraform-state"</span>      <span class="cm"># one bucket per lab</span>
+    prefix = <span class="str">"studies/halo"</span>             <span class="cm"># one prefix per study/module</span>
+  }
+}</pre>
+
+    <p style="font-size:13.5px;margin-bottom: 1rem;">GCS gives you encryption at rest (CMEK if needed), object versioning (rollback), and built-in locking via GCS\' atomic operations. Two engineers can\'t run <code class="code-inline">terraform apply</code> on the same study simultaneously without conflicting.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Workspaces — per-environment separation</h3>
+
+<pre class="code-block"><span class="cm"># Use workspaces for dev / staging / prod within a single module</span>
+terraform workspace new dev
+terraform workspace new staging
+terraform workspace new prod
+
+terraform workspace select prod
+terraform apply -var-file=prod.tfvars</pre>
+
+    <p style="font-size:13.5px;margin-bottom: 1rem;">Each workspace gets its own state file under the same prefix. Studies that have meaningfully different dev/staging/prod often live in different directories instead (cleaner), but workspaces are useful for cases where the resources are nearly identical across environments.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">State hygiene rules</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Never edit state files by hand.</strong> Use <code class="code-inline">terraform state mv</code> + <code class="code-inline">rm</code> when restructuring.</li>
+      <li>→ <strong>Enable GCS object versioning</strong> on the state bucket. Rollback to a known-good state is sometimes necessary.</li>
+      <li>→ <strong>CMEK the state bucket</strong>. State files often contain sensitive values (instance IDs, generated passwords).</li>
+      <li>→ <strong>Restrict the state bucket\'s IAM</strong> to the Terraform-runner service account + a small admin group; no general access.</li>
+      <li>→ <strong>Set up <code class="code-inline">terraform plan</code> in CI</strong> on every PR; require the plan output in review. Apply is restricted to merged-to-main + manual workflow.</li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 11.1</div>
+    <h2 class="section-title">Terraform a minimal study scaffold</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📜 IaC in miniature</div>
+      <ol class="exercise-steps">
+        <li>Install Terraform (<code class="code-inline">brew install hashicorp/tap/terraform</code> or via your package manager). Verify: <code class="code-inline">terraform version</code>.</li>
+        <li>Authenticate Terraform with the same identity gcloud uses:<br>
+          <code class="code-inline">gcloud auth application-default login</code>
+        </li>
+        <li>Create a state bucket (one-time):<br>
+          <code class="code-inline">gcloud storage buckets create gs://$PROJECT-tf-state --location=us-west1 --uniform-bucket-level-access</code><br>
+          <code class="code-inline">gcloud storage buckets update gs://$PROJECT-tf-state --versioning</code>
+        </li>
+        <li><strong>Create a study scaffold module.</strong> In a new directory, save <code class="code-inline">main.tf</code>:
+<pre class="code-block">terraform {
+  required_providers {
+    google = { source = <span class="str">"hashicorp/google"</span>, version = <span class="str">"~&gt; 5.0"</span> }
+  }
+  backend <span class="str">"gcs"</span> { bucket = <span class="str">"YOUR-PROJECT-tf-state"</span>, prefix = <span class="str">"demo-study"</span> }
+}
+
+provider <span class="str">"google"</span> {
+  project = <span class="str">"YOUR-PROJECT"</span>
+  region  = <span class="str">"us-west1"</span>
+}
+
+resource <span class="str">"google_storage_bucket"</span> <span class="str">"demo_data"</span> {
+  name                        = <span class="str">"demo-study-data-${var.suffix}"</span>
+  location                    = <span class="str">"US-WEST1"</span>
+  uniform_bucket_level_access = true
+  versioning { enabled = true }
+}
+
+resource <span class="str">"google_service_account"</span> <span class="str">"demo_sa"</span> {
+  account_id   = <span class="str">"demo-study-sa"</span>
+  display_name = <span class="str">"Demo study workload"</span>
+}
+
+resource <span class="str">"google_storage_bucket_iam_member"</span> <span class="str">"demo_sa_reader"</span> {
+  bucket = google_storage_bucket.demo_data.name
+  role   = <span class="str">"roles/storage.objectViewer"</span>
+  member = <span class="str">"serviceAccount:${google_service_account.demo_sa.email}"</span>
+}
+
+variable <span class="str">"suffix"</span> { type = string }
+output <span class="str">"bucket_name"</span> { value = google_storage_bucket.demo_data.name }
+output <span class="str">"sa_email"</span>    { value = google_service_account.demo_sa.email }</pre>
+        </li>
+        <li>Initialize + plan + apply:<br>
+          <code class="code-inline">terraform init</code><br>
+          <code class="code-inline">terraform plan -var="suffix=demo01"</code><br>
+          <code class="code-inline">terraform apply -var="suffix=demo01"</code>
+        </li>
+        <li>Inspect state:<br>
+          <code class="code-inline">terraform state list</code><br>
+          <code class="code-inline">terraform output</code><br>
+          You should see the bucket name and SA email.
+        </li>
+        <li><strong>Introduce a drift.</strong> Manually delete the SA from the console (or change its display name via gcloud). Then run <code class="code-inline">terraform plan</code> again — it should detect the drift and propose to re-create the SA. <code class="code-inline">terraform apply</code> reconciles.</li>
+        <li><strong>Convert to a module.</strong> Move the resources into <code class="code-inline">../modules/demo-study/</code>; have the root <code class="code-inline">main.tf</code> call the module. Re-apply. State refactor: <code class="code-inline">terraform state mv google_storage_bucket.demo_data module.demo_study.google_storage_bucket.demo_data</code>.</li>
+        <li><strong>Add a CI workflow.</strong> Create a GitHub Actions workflow that runs <code class="code-inline">terraform fmt</code>, <code class="code-inline">terraform validate</code>, <code class="code-inline">terraform plan</code> on every PR. Bonus: post the plan output as a PR comment.</li>
+        <li><strong>Tear down</strong>:<br>
+          <code class="code-inline">terraform destroy -var="suffix=demo01"</code><br>
+          The state file remains in GCS (use it next time). The bucket + SA are gone.
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">Terraform + hashicorp/google</span>
+        <span class="tag">GCS state backend with versioning</span>
+        <span class="tag">terraform plan / apply / state list</span>
+        <span class="tag">terraform state mv (module refactor)</span>
+        <span class="tag">CI terraform-plan on PR</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>The first SRL Terraform iteration of an existing study takes longer than re-doing it by hand. When does the investment pay off?</span>
+        <a href="#" class="check-btn" onclick="alert('Starting from study #2. The first study\'s Terraform write is genuine new work - factoring the architecture into modules, debugging the provider, getting state right. Subsequent studies INVOKE those modules with their own values and stand up in hours. The lab\'s ROI hits when the second + third + fourth studies all spin up using the same proven modules. Don\'t expect a payoff on study #1; expect it on study #2 and forever after.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Terraform state contains sensitive values (generated passwords, internal resource IDs). What\'s the practical hardening for the state bucket?</span>
+        <a href="#" class="check-btn" onclick="alert('Four things, layered. (1) Uniform bucket-level access + CMEK encryption so the bucket\'s content posture is auditable + reversible-on-key-disable. (2) Object versioning so a corrupted apply can be rolled back. (3) Strict IAM - only the terraform-runner service account + a small admins group can read; nobody else. (4) VPC SC perimeter membership if the project containing the state bucket is PHI-adjacent. Together: the state bucket has the same protection posture as the production data it parameterises.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Someone manually changed an IAM binding via the console. Your terraform plan now wants to "fix" it back. What\'s the right response - just apply, or investigate?</span>
+        <a href="#" class="check-btn" onclick="alert('Investigate first. The drift may be: (a) a teammate making a legitimate change that should be backported into Terraform, (b) an emergency manual change that needs to be encoded into the module before re-applying, (c) an unauthorised change that\'s a security event. Just running apply silently overwrites the change and you lose the signal. The discipline: terraform plan in CI on every PR; weekly drift-detection runs; treat any unexpected plan diff as a question to answer before applying.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why is the modules/ directory separate from the studies/ directory, and what would go wrong if you collapsed them?</span>
+        <a href="#" class="check-btn" onclick="alert('Separation enables reuse + change-without-impact. The modules/ directory holds the canonical patterns (phi-project, research-project, healthcare-stores etc.) - shared across studies. The studies/ directory holds per-study instantiations - module calls with specific variables. If you collapsed them, every change to a study would risk modifying the module others depend on; every change to a module would require copying it into every study. The two-layer pattern is what makes "the SRL platform" a reusable thing rather than per-study one-offs.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="../index.html" class="btn">← All modules</a>
+    <a href="m11-lesson2.html" class="btn btn-primary">Lesson 11.2: ML pipelines as code →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

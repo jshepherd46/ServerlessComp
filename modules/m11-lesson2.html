@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M11 · Lesson 2: ML pipelines as code + CI/CD — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Stage card */
+.stage {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--blue);
+}
+.stage h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.stage .ss {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--blue); letter-spacing: .04em; margin-bottom: .55rem;
+  display: block;
+}
+.stage p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.stage code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* Env grid */
+.env-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin: 1rem 0 1.5rem;
+}
+.env {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+}
+.env.dev   { border-left: 3px solid var(--teal); }
+.env.stg   { border-left: 3px solid var(--amber); }
+.env.prod  { border-left: 3px solid var(--coral); }
+.env h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.env .et {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  letter-spacing: .04em; margin-bottom: .55rem; display: block;
+}
+.env.dev .et { color: var(--teal); }
+.env.stg .et { color: var(--amber); }
+.env.prod .et { color: var(--coral); }
+.env p { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 0; }
+@media (max-width: 720px) { .env-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M11 · Lesson 2 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 11</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 2 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">ML pipelines as code<br>+ CI/CD</h1>
+    <p class="lesson-sub">L1 was the platform as code. This lesson is the ML workflow as code — Vertex AI Pipelines as compiled artifacts, Cloud Build CI/CD that takes a git push to a deployed model, the multi-environment dev/staging/prod pattern that lets you ship safely.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 Vertex AI Pipelines, Cloud Build, Kubeflow KFP SDK</span>
+      <span>📍 Module 11 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Pipelines as artifacts           -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The artifact mindset</div>
+    <h2 class="section-title">A Vertex AI Pipeline is a compiled artifact</h2>
+    <p style="margin-bottom: 1rem;">M6L2 wrote pipelines as Python (KFP SDK) + submitted them via <code class="code-inline">aiplatform.PipelineJob</code>. For production: compile the pipeline to a JSON spec, version it like an image, register it as the deployment artifact. The Python is the source; the JSON is what runs.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The compile step</h3>
+
+<pre class="code-block"><span class="kw">from</span> kfp.compiler <span class="kw">import</span> Compiler
+<span class="kw">from</span> pipelines.makawalu_cbm <span class="kw">import</span> makawalu_cbm_pipeline
+
+Compiler().compile(
+    pipeline_func=makawalu_cbm_pipeline,
+    package_path=<span class="str">"out/makawalu-cbm-v3.json"</span>,
+)</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">The output JSON is portable, hashable, version-controllable. Treat it the same as a container image: build it, tag it, push it (to GCS or Artifact Registry), reference it by version in deployments.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The pipeline-as-artifact workflow</h3>
+
+    <div class="stage">
+      <span class="ss">[1]</span>
+      <h4>Author</h4>
+      <p>Engineer edits Python pipeline code in the lab repo. Runs unit tests locally. Compiles to JSON via <code>kfp.compiler.Compiler().compile()</code>.</p>
+    </div>
+
+    <div class="stage">
+      <span class="ss">[2]</span>
+      <h4>CI: compile + validate + push</h4>
+      <p>Cloud Build trigger on push to main: re-compile, run pipeline-shape validation, copy the resulting JSON to <code>gs://srl-pipelines/makawalu-cbm/v3-{commit-sha}.json</code>. Artifact is dated and traceable.</p>
+    </div>
+
+    <div class="stage">
+      <span class="ss">[3]</span>
+      <h4>Deploy: submit to Vertex</h4>
+      <p>Submission to Vertex AI Pipelines is a separate step — usually triggered by Cloud Scheduler (nightly) or by an event (M4L2). The submission references the JSON artifact by URI, not the source code.</p>
+    </div>
+
+    <div class="stage">
+      <span class="ss">[4]</span>
+      <h4>Run + register</h4>
+      <p>The pipeline executes, produces metrics + model artifact, conditionally registers in Vertex Model Registry (M6L2 patterns).</p>
+    </div>
+
+    <div class="callout">
+      <strong>The discipline:</strong> the pipeline that ran last Tuesday and the pipeline that runs this Tuesday must both have a stable, versioned JSON in <code class="code-inline">srl-pipelines/</code>. The Python file in the repo can change; the compiled JSON is the immutable record. Reproducing last Tuesday\'s run means re-submitting that exact JSON, not re-compiling the Python.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Cloud Build for ML               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">CI for ML</div>
+    <h2 class="section-title">Cloud Build pipelines for training images + ML pipelines</h2>
+    <p style="margin-bottom: 1rem;">M2L2\'s Cloud Build setup pushes container images on git push. For ML, the same machinery handles two artifact streams: <strong>training images</strong> (Docker images that run the actual training code) and <strong>pipeline definitions</strong> (compiled KFP JSON).</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">A complete <code class="code-inline">cloudbuild.yaml</code> for ML workflows</h3>
+
+<pre class="code-block"><span class="cm"># cloudbuild.yaml — runs on push to main</span>
+substitutions:
+  _REGION: us-west1
+  _REPO: research
+  _PIPELINE_BUCKET: srl-pipelines
+
+steps:
+  <span class="cm"># 1. Run pipeline + component unit tests</span>
+  - <span class="kw">name</span>: <span class="str">'python:3.12'</span>
+    <span class="kw">entrypoint</span>: bash
+    <span class="kw">args</span>:
+      - -c
+      - <span class="str">"pip install -r requirements-dev.txt &amp;&amp; pytest tests/"</span>
+
+  <span class="cm"># 2. Build the training container image (M2L2 pattern)</span>
+  - <span class="kw">name</span>: <span class="str">'gcr.io/cloud-builders/docker'</span>
+    <span class="kw">args</span>:
+      - build
+      - --tag=<span class="am">${_REGION}</span>-docker.pkg.dev/<span class="am">$PROJECT_ID</span>/<span class="am">${_REPO}</span>/makawalu-train:<span class="am">$SHORT_SHA</span>
+      - --tag=<span class="am">${_REGION}</span>-docker.pkg.dev/<span class="am">$PROJECT_ID</span>/<span class="am">${_REPO}</span>/makawalu-train:latest
+      - ./containers/train
+
+  - <span class="kw">name</span>: <span class="str">'gcr.io/cloud-builders/docker'</span>
+    <span class="kw">args</span>: [push, --all-tags, <span class="str">'${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/makawalu-train'</span>]
+
+  <span class="cm"># 3. Compile the KFP pipeline (Python → JSON)</span>
+  - <span class="kw">name</span>: <span class="str">'python:3.12'</span>
+    <span class="kw">entrypoint</span>: bash
+    <span class="kw">args</span>:
+      - -c
+      - |
+        pip install kfp google-cloud-aiplatform
+        python pipelines/compile.py --image-tag=<span class="am">$SHORT_SHA</span> --output=out/cbm-<span class="am">$SHORT_SHA</span>.json
+
+  <span class="cm"># 4. Upload pipeline JSON to GCS</span>
+  - <span class="kw">name</span>: <span class="str">'gcr.io/cloud-builders/gsutil'</span>
+    <span class="kw">args</span>:
+      - -m
+      - cp
+      - out/cbm-<span class="am">$SHORT_SHA</span>.json
+      - gs://<span class="am">${_PIPELINE_BUCKET}</span>/makawalu-cbm/cbm-<span class="am">$SHORT_SHA</span>.json
+
+  <span class="cm"># 5. (Optional) submit a dev-tier pipeline run for smoke test</span>
+  - <span class="kw">name</span>: <span class="str">'gcr.io/cloud-builders/gcloud'</span>
+    <span class="kw">entrypoint</span>: bash
+    <span class="kw">args</span>:
+      - -c
+      - |
+        gcloud ai custom-jobs create \
+          --region=<span class="am">${_REGION}</span> \
+          --display-name=<span class="str">"smoke-test-${SHORT_SHA}"</span> \
+          ...
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The trigger setup</h3>
+
+<pre class="code-block"><span class="cm"># Push trigger on main: build image + compile pipeline + smoke test</span>
+gcloud builds triggers create github \
+  --repo-name=srl-makawalu-pipelines \
+  --repo-owner=jshepherd46 \
+  --branch-pattern=<span class="str">"^main$"</span> \
+  --build-config=cloudbuild.yaml \
+  --service-account=projects/srl-shared-services/serviceAccounts/cicd-sa@srl-shared-services.iam.gserviceaccount.com</pre>
+
+    <div class="callout">
+      <strong>The image-tag-as-pipeline-arg pattern.</strong> The compiled KFP JSON references the training image by tag. CI builds image <code class="code-inline">makawalu-train:$SHORT_SHA</code> AND compiles pipeline JSON that uses that exact tag. The two artifacts are paired — pipeline <code class="code-inline">cbm-$SHA.json</code> always uses image <code class="code-inline">makawalu-train:$SHA</code>. Same git commit produces a coherent set of artifacts.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Promote workflow                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The promote workflow</div>
+    <h2 class="section-title">From a CI artifact to a deployed model</h2>
+    <p style="margin-bottom: 1rem;">CI produced a versioned pipeline + image pair. The next question: <em>how does a new model get safely from "compiled" to "serving production traffic"</em>? The same canary discipline from M4L1 + M6L3, made explicit as a workflow.</p>
+
+    <div class="stage">
+      <span class="ss">Step 1 — run pipeline against dev data</span>
+      <h4>Submit the pipeline against dev OMOP / training mirror</h4>
+      <p>Automatically on CI merge to main. Smoke test that the compiled artifact actually runs end-to-end on a small dev dataset. Catches integration bugs cheap.</p>
+    </div>
+
+    <div class="stage">
+      <span class="ss">Step 2 — run pipeline against staging</span>
+      <h4>Scheduled or manually triggered against staging data</h4>
+      <p>Full training run on staging cohort. Output: model registered as <code>candidate</code> in Vertex Model Registry. Metrics in Vertex Experiments. The slice-fairness gate (M6L2 + M7L2) is evaluated here.</p>
+    </div>
+
+    <div class="stage">
+      <span class="ss">Step 3 — canary in prod</span>
+      <h4>Deploy candidate to 10% canary on prod endpoint</h4>
+      <p>Triggered by Pub/Sub event (M4L2) when a candidate registers + passes the gate. Cloud Function moves traffic split to <code>candidate:10, production:90</code>. Notification to the model owner.</p>
+    </div>
+
+    <div class="stage">
+      <span class="ss">Step 4 — human promotion</span>
+      <h4>After observation window, human moves the production alias</h4>
+      <p>Manual gcloud command (or Slack-bot approval flow) updates the Vertex Model Registry <code>production</code> alias to point at the new version. Cloud Run / GKE serving picks up the new version on next instance restart.</p>
+    </div>
+
+    <div class="stage">
+      <span class="ss">Step 5 — rollback if needed</span>
+      <h4>One command restores the previous version</h4>
+      <p>If issues surface post-promotion: update the alias back, traffic shifts to previous version within seconds (M4L1 instant rollback). The audit trail shows the timeline.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The whole flow as code</h3>
+
+<pre class="code-block"><span class="cm"># scripts/promote.sh — the standard model-promote workflow</span>
+<span class="cm">#!/usr/bin/env bash</span>
+set -euo pipefail
+
+MODEL=<span class="am">$1</span>       <span class="cm"># e.g. makawalu-cbm</span>
+VERSION=<span class="am">$2</span>     <span class="cm"># e.g. v3.7</span>
+REGION=us-west1
+
+<span class="cm"># 1. Promote candidate → production alias</span>
+gcloud ai models update <span class="am">$MODEL</span> --region=<span class="am">$REGION</span> \
+  --version=<span class="am">$VERSION</span> \
+  --alias=production
+
+<span class="cm"># 2. Trigger the serving redeploy (depends on infra)</span>
+<span class="cm">#    For Cloud Run: kick a Cloud Build trigger that redeploys</span>
+<span class="cm">#    For GKE: kubectl rollout restart deployment/xai-serve</span>
+
+<span class="cm"># 3. Slack notification</span>
+curl -X POST -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">"{\"text\": \"Promoted $MODEL $VERSION to production\"}"</span> \
+  <span class="am">$SLACK_WEBHOOK</span>
+
+<span class="cm"># 4. Log the promotion for the audit trail</span>
+gcloud logging write model-promotions <span class="str">"$(whoami) promoted $MODEL $VERSION at $(date)"</span></pre>
+
+    <p style="font-size:13.5px;">Same script runs whether you\'re promoting CBM, the density CNN, or the ShepBERT adapter — different model IDs, identical flow.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Multi-env                        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Dev / staging / prod for ML</div>
+    <h2 class="section-title">The three-environment pattern</h2>
+    <p style="margin-bottom: 1rem;">From M1L2: project-per-study-per-environment. The same pattern applies to ML — every model lifecycle uses three Vertex AI environments mirroring the project topology.</p>
+
+    <div class="env-grid">
+      <div class="env dev">
+        <span class="et">srl-makawalu-dev</span>
+        <h4>Pipeline development</h4>
+        <p>Small synthetic data. Fast iteration. Failed pipelines OK. Vertex Pipelines + Experiments enabled; Endpoints rarely.</p>
+      </div>
+      <div class="env stg">
+        <span class="et">srl-makawalu-staging</span>
+        <h4>Pre-production validation</h4>
+        <p>De-id\'d staging cohort. Full pipeline runs. Model registry with <code>candidate</code> alias. Smoke-test Endpoint.</p>
+      </div>
+      <div class="env prod">
+        <span class="et">srl-makawalu-prod</span>
+        <h4>Production serving</h4>
+        <p>Real (or fully de-id\'d production) cohort. Model registry with <code>production</code> alias. Serving Endpoint with full audit + monitoring.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The same pipeline JSON runs in all three</h3>
+
+    <p style="margin-bottom:.5rem;font-size:13.5px;">The compiled pipeline takes parameters: data source, output bucket, model registry, image tag. Different parameter sets push the same pipeline JSON against different environments:</p>
+
+<pre class="code-block"><span class="cm"># Submit the same compiled pipeline to dev</span>
+aiplatform.PipelineJob(
+    display_name=<span class="str">f"cbm-{SHA}-dev"</span>,
+    template_path=<span class="str">f"gs://srl-pipelines/makawalu-cbm/cbm-{SHA}.json"</span>,
+    parameter_values={
+        <span class="str">"deid_store"</span>: <span class="str">"projects/srl-makawalu-dev/.../dicomStores/deid-store"</span>,
+        <span class="str">"output_bucket"</span>: <span class="str">"gs://srl-makawalu-dev-pipelines"</span>,
+        <span class="str">"image_tag"</span>: SHA,
+    },
+).submit()
+
+<span class="cm"># Same JSON, different params, in staging</span>
+aiplatform.PipelineJob(
+    display_name=<span class="str">f"cbm-{SHA}-staging"</span>,
+    template_path=<span class="str">f"gs://srl-pipelines/makawalu-cbm/cbm-{SHA}.json"</span>,
+    parameter_values={
+        <span class="str">"deid_store"</span>: <span class="str">"projects/srl-makawalu-staging/.../dicomStores/deid-store"</span>,
+        <span class="str">"output_bucket"</span>: <span class="str">"gs://srl-makawalu-staging-pipelines"</span>,
+        <span class="str">"image_tag"</span>: SHA,
+    },
+).submit()</pre>
+
+    <p style="font-size:13.5px;">The pipeline code never changes between environments. Only the parameters differ. That\'s the contract.</p>
+
+    <div class="callout">
+      <strong>The promotion path.</strong> Pipeline runs in dev → passes smoke; same artifact runs in staging → produces candidate; same artifact (via promote.sh) updates prod model alias. The CI-built pipeline JSON is the durable artifact tying all three together. A model in production was produced by exactly the pipeline that ran in staging, which was the same pipeline that smoke-tested in dev. No drift.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 11.2</div>
+    <h2 class="section-title">Build the full CI pipeline for ML</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🔁 git push → pipeline JSON → smoke test</div>
+      <ol class="exercise-steps">
+        <li>Take the demo training pipeline from M6L2\'s exercise. Put it in a small git repo with the directory shape:
+<pre class="code-block">demo-ml-pipeline/
+├── cloudbuild.yaml
+├── containers/
+│   └── train/
+│       ├── Dockerfile
+│       └── train.py
+├── pipelines/
+│   ├── compile.py
+│   └── demo_pipeline.py
+├── tests/
+│   └── test_pipeline_shape.py
+└── requirements-dev.txt</pre>
+        </li>
+        <li><strong>Write a compile script</strong> <code class="code-inline">pipelines/compile.py</code> that takes an image-tag arg + an output path:
+<pre class="code-block"><span class="kw">import</span> argparse
+<span class="kw">from</span> kfp.compiler <span class="kw">import</span> Compiler
+<span class="kw">from</span> demo_pipeline <span class="kw">import</span> demo_pipeline
+
+p = argparse.ArgumentParser()
+p.add_argument(<span class="str">"--image-tag"</span>, required=<span class="kw">True</span>)
+p.add_argument(<span class="str">"--output"</span>, required=<span class="kw">True</span>)
+args = p.parse_args()
+<span class="cm"># The pipeline\'s compile step substitutes image_tag</span>
+Compiler().compile(pipeline_func=demo_pipeline, package_path=args.output)
+print(<span class="str">f"Compiled to {args.output} with image tag {args.image_tag}"</span>)</pre>
+        </li>
+        <li><strong>Write a minimal shape test</strong> in <code class="code-inline">tests/test_pipeline_shape.py</code>:
+<pre class="code-block"><span class="kw">from</span> pipelines.demo_pipeline <span class="kw">import</span> demo_pipeline
+<span class="kw">from</span> kfp.compiler <span class="kw">import</span> Compiler
+<span class="kw">import</span> tempfile, json
+
+<span class="kw">def</span> test_pipeline_compiles():
+    <span class="kw">with</span> tempfile.NamedTemporaryFile(suffix=<span class="str">".json"</span>) <span class="kw">as</span> f:
+        Compiler().compile(pipeline_func=demo_pipeline, package_path=f.name)
+        spec = json.load(open(f.name))
+        <span class="kw">assert</span> <span class="str">"pipelineSpec"</span> <span class="kw">in</span> spec
+        <span class="kw">assert</span> <span class="str">"deploymentSpec"</span> <span class="kw">in</span> spec[<span class="str">"pipelineSpec"</span>]</pre>
+        </li>
+        <li><strong>Write the cloudbuild.yaml</strong> with the five steps from Section 2 (tests + image build + image push + pipeline compile + pipeline upload).</li>
+        <li>Set up the trigger:<br>
+          <code class="code-inline">gcloud builds triggers create github --repo-name=demo-ml-pipeline --repo-owner=$YOU --branch-pattern="^main$" --build-config=cloudbuild.yaml</code>
+        </li>
+        <li><strong>Push a commit to main.</strong> Watch the Cloud Build run in the console. Confirm: tests pass; image lands in Artifact Registry; pipeline JSON lands in GCS at the expected path.</li>
+        <li><strong>Submit the pipeline manually</strong> against your sandbox:<br>
+<pre class="code-block">python -c <span class="str">"
+from google.cloud import aiplatform
+aiplatform.init(project='$PROJECT', location='us-west1')
+job = aiplatform.PipelineJob(
+    display_name='demo-run-1',
+    template_path='gs://$PROJECT-pipelines/demo-pipeline-$SHA.json',
+    parameter_values={'image_tag': '$SHA'},
+)
+job.submit()
+"</span></pre>
+        </li>
+        <li><strong>Bonus — wire smoke-test submission into CI.</strong> Add a final cloudbuild step that submits the pipeline against a tiny dev dataset and waits for completion. CI now goes "git push → working pipeline run in dev" automatically.</li>
+        <li><strong>Tear down</strong>: cancel any running pipeline jobs; delete artefacts older than a few days. Leave the trigger; it\'s useful.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">kfp.compiler.Compiler</span>
+        <span class="tag">Cloud Build trigger on GitHub</span>
+        <span class="tag">Pipeline JSON as GCS artifact</span>
+        <span class="tag">aiplatform.PipelineJob</span>
+        <span class="tag">pytest for pipeline shape</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Why treat the compiled KFP JSON as the durable artifact rather than the Python source?</span>
+        <a href="#" class="check-btn" onclick="alert('Reproducibility. The Python source can change in the repo from one day to the next - dependencies upgrade, refactors happen, KFP SDK versions move. The compiled JSON is a frozen snapshot of what the pipeline was at compile time. Re-submitting cbm-abc123.json today produces the same pipeline run it did six months ago; re-compiling the Python today may not. Treat the JSON like an image: build, tag, store, reference. The Python is the source; the JSON is what runs.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why does the CI pipeline build a training image AND compile the KFP pipeline in the same Cloud Build run?</span>
+        <a href="#" class="check-btn" onclick="alert('Because the two artifacts are paired by git commit. The pipeline JSON references the training image by tag; if you built the image with one SHA and compiled the pipeline with another, they would not match. Building them together in one Cloud Build run guarantees: pipeline cbm-$SHA.json always references training image makawalu-train:$SHA, both produced from the same git commit. Same commit produces a coherent set of artifacts that you can roll back together.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>A new postdoc says "I will just iterate on Python and submit pipelines directly without going through CI; it is faster." Why push back?</span>
+        <a href="#" class="check-btn" onclick="alert('Two reasons. (1) Reproducibility: the dev pipeline they submit has no SHA-traceable artifact, no audit of what dependencies were installed in their env, no CI-validated shape test. Six months later, "what did we run?" is unanswerable. (2) Promotion path: the candidate model that ends up in production came from a pipeline JSON in GCS - if dev runs bypass CI, the candidate never gets a corresponding JSON, and you cannot reuse the same artifact through staging → prod. The fast iteration loop is fine for exploring; once you have a real candidate, it must go through CI.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>The promote.sh script updates the Vertex Model Registry alias and the serving redeploys. Why is the human-in-loop step at this stage rather than fully automated?</span>
+        <a href="#" class="check-btn" onclick="alert('Per M6L3 - automation should go all the way up to "candidate is canary-running at 10% in prod" but NOT to "candidate replaces production at 100%." A clinical model promotion is a deliberate act with reviewable consequences; auto-promoting on a metric gate alone misses subtle issues (fairness regression on a small slice, qualitative output changes). The promote script makes the human action one command, fast and unambiguous, but the human is in the loop. Same pattern as kicking off a CI run vs auto-merging a PR - the system does the work; the human commits the decision.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m11-lesson1.html" class="btn">← Lesson 11.1: Terraform the platform</a>
+    <a href="m11-lesson3.html" class="btn btn-primary">Lesson 11.3: The lab handbook →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
