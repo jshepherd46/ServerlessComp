@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M9 · Lesson 1: OMOP CDM on BigQuery — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--amber);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Schema cards */
+.table-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--amber);
+}
+.table-card .tn {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--amber); letter-spacing: .04em; margin-bottom: .3rem;
+}
+.table-card h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+  text-transform: none; letter-spacing: 0;
+}
+.table-card p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .3rem; }
+.table-card .key {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--text3); margin-top: .3rem;
+}
+
+/* Vocab visual */
+.vocab-tree {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.7; overflow-x: auto;
+}
+.vocab-tree .top { color: var(--amber); }
+.vocab-tree .src { color: var(--blue); }
+.vocab-tree .ent { color: var(--teal); }
+.vocab-tree .ann { color: var(--text3); font-style: italic; }
+
+/* Pattern grid */
+.pat-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin: 1rem 0 1.5rem;
+}
+.pat-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+  border-left: 3px solid var(--amber);
+}
+.pat-card h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.pat-card p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: 0; }
+@media (max-width: 640px) { .pat-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M9 · Lesson 1 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 9</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot active" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 1 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">OMOP CDM<br>on BigQuery</h1>
+    <p class="lesson-sub">Phase 3 opens with the analytics layer. OMOP is the canonical schema for "clinical events that happened to patients"; ATLAS is its query UI. This lesson is the model: what OMOP CDM is, its core tables, the vocabulary backbone that ties everything together, and how it lives on BigQuery for HALO.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 OMOP CDM v5.4, BigQuery, OHDSI vocabularies</span>
+      <span>📍 Module 9 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: What OMOP is                     -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The framing</div>
+    <h2 class="section-title">OMOP CDM — one schema, many institutions</h2>
+    <p style="margin-bottom: 1rem;"><strong>OMOP CDM</strong> (Observational Medical Outcomes Partnership Common Data Model) is the schema OHDSI (Observational Health Data Sciences and Informatics) maintains for clinical observational data. The promise: any institution that transforms its EHR data into OMOP can run any OHDSI analytic package — ATLAS, ACHILLES, PatientLevelPrediction, CohortMethod — without changing a line. Studies run identically at Queen's, at Mayo, at UPenn.</p>
+
+    <p style="margin-bottom: 1rem;">For SRL, OMOP is the substrate for <strong>HALO</strong> (Hawai'i Liver Cancer IO Outcomes) and the foundation that makes <strong>PacificFed</strong> federated analytics possible — every site's data fits the same shape, so the same cohort definition runs across all of them.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">What you get from adopting OMOP</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Portable cohort definitions.</strong> A cohort defined as "patients with HCC + immunotherapy in 2020-2024" runs unchanged on HALO and on any other OMOP site.</li>
+      <li>→ <strong>Reusable analytic tooling.</strong> ATLAS cohort builder, ACHILLES data-quality dashboards, R packages (CohortMethod, PatientLevelPrediction, FeatureExtraction).</li>
+      <li>→ <strong>Federated study capability.</strong> Each site keeps its data; only summary results travel — see M10 for the FL extension.</li>
+      <li>→ <strong>Concept-level consistency.</strong> "Diabetes" doesn't depend on which ICD code your institution happens to use; OMOP\'s standardised vocabulary resolves equivalences.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>The trade.</strong> Adopting OMOP costs the ETL work to map your source data into the CDM. Done once per data source; pays off forever in tool reuse and federated capability. For HALO this happens nightly: Queen\'s clinical extracts → ETL → OMOP-shaped BigQuery dataset → ATLAS + research tier.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Core tables                      -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The schema</div>
+    <h2 class="section-title">The core clinical tables</h2>
+    <p style="margin-bottom: 1rem;">OMOP CDM v5.4 has ~25 tables. Eight cover the vast majority of queries. Learn these; the rest fall into place when you need them.</p>
+
+    <div class="table-card">
+      <div class="tn">person</div>
+      <h4>Each patient is one row</h4>
+      <p>Demographics — gender, year of birth, race, ethnicity. <code>person_id</code> is the patient surrogate; every other table references it.</p>
+      <div class="key">PK: person_id · ~10M rows for a 5-year regional EHR extract</div>
+    </div>
+
+    <div class="table-card">
+      <div class="tn">visit_occurrence</div>
+      <h4>Each encounter is one row</h4>
+      <p>Inpatient admission, outpatient visit, ED visit, etc. Has start/end dates and a visit type concept. Most clinical events reference back to a visit.</p>
+      <div class="key">PK: visit_occurrence_id · FK: person_id · ~50M rows typical</div>
+    </div>
+
+    <div class="table-card">
+      <div class="tn">condition_occurrence</div>
+      <h4>Each diagnosis is one row</h4>
+      <p>Mapped from ICD-10-CM, SNOMED, etc. <code>condition_concept_id</code> points at the standard vocabulary entry.</p>
+      <div class="key">PK: condition_occurrence_id · ~hundreds of millions of rows</div>
+    </div>
+
+    <div class="table-card">
+      <div class="tn">drug_exposure</div>
+      <h4>Each medication event</h4>
+      <p>Prescriptions, inpatient administrations, dispense records. Mapped to RxNorm via <code>drug_concept_id</code>.</p>
+      <div class="key">PK: drug_exposure_id</div>
+    </div>
+
+    <div class="table-card">
+      <div class="tn">procedure_occurrence</div>
+      <h4>Each procedure event</h4>
+      <p>Surgeries, labs ordered, imaging studies, etc. Mapped to SNOMED procedure codes via <code>procedure_concept_id</code>.</p>
+      <div class="key">PK: procedure_occurrence_id</div>
+    </div>
+
+    <div class="table-card">
+      <div class="tn">measurement</div>
+      <h4>Each numeric or categorical measurement</h4>
+      <p>Lab values, vitals, scoring results. Has <code>value_as_number</code>, <code>value_as_concept_id</code>, and a unit concept. Mapped to LOINC for labs.</p>
+      <div class="key">PK: measurement_id · the largest table at most sites</div>
+    </div>
+
+    <div class="table-card">
+      <div class="tn">observation</div>
+      <h4>Catch-all clinical facts</h4>
+      <p>Family history, smoking status, allergy, anything that doesn\'t fit elsewhere. Less standardised than the others; varies by ETL.</p>
+      <div class="key">PK: observation_id</div>
+    </div>
+
+    <div class="table-card">
+      <div class="tn">death</div>
+      <h4>Each patient\'s death (if applicable)</h4>
+      <p>One row per person; ties to a death-cause condition. Critical for outcome-tracking studies like HALO.</p>
+      <div class="key">PK: person_id (1:1 with person)</div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The relationship graph</h3>
+
+<pre class="code-block">person <span class="ok">1</span> ──┬── visit_occurrence <span class="ok">N</span>
+            ├── condition_occurrence <span class="ok">N</span> ── (FK: visit_occurrence)
+            ├── drug_exposure <span class="ok">N</span>
+            ├── procedure_occurrence <span class="ok">N</span>
+            ├── measurement <span class="ok">N</span>
+            ├── observation <span class="ok">N</span>
+            └── death <span class="ok">0..1</span></pre>
+
+    <p style="font-size:13.5px;">Most cohort queries are joins across these tables filtered by date ranges + concept IDs. The relationship is wide (one person → many events) but shallow (events rarely reference other events directly).</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Vocabularies                     -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The backbone</div>
+    <h2 class="section-title">Vocabularies — the OMOP magic</h2>
+    <p style="margin-bottom: 1rem;">The reason OMOP works across institutions is the <strong>standardised vocabulary</strong>. Every clinical fact references a <code class="code-inline">concept_id</code> — an integer that points at a row in the <code>concept</code> table. The vocabulary tables ship as part of OHDSI; you load them once into BigQuery and your ETL maps source codes (ICD, NDC, CPT, custom local codes) onto OMOP concept IDs.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The vocabulary tables</h3>
+
+    <div class="pat-grid">
+      <div class="pat-card">
+        <h4>concept</h4>
+        <p>The master table. Each row: <code>concept_id</code>, name, domain, vocabulary, code, standard concept flag, valid date range. ~10M rows.</p>
+      </div>
+      <div class="pat-card">
+        <h4>concept_relationship</h4>
+        <p>How concepts relate. "ICD-10-CM E11.9 → standard SNOMED 'Type 2 diabetes mellitus'", "RxNorm ingredient → brand name". The mapping graph.</p>
+      </div>
+      <div class="pat-card">
+        <h4>concept_ancestor</h4>
+        <p>Hierarchical "is-a" closure. Quickly find all descendants of "Heart disease" without recursing through concept_relationship.</p>
+      </div>
+      <div class="pat-card">
+        <h4>vocabulary</h4>
+        <p>Metadata about source vocabularies (SNOMED, RxNorm, LOINC, ICD-10-CM, NDC, CPT4, etc.) — version, source URL, validity.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The vocabulary tree, conceptually</h3>
+
+    <div class="vocab-tree">
+<span class="top">Standardised vocabulary (the destination)</span>
+└── <span class="src">SNOMED CT</span>      <span class="ann"># conditions, procedures</span>
+    └── concept: <span class="ent">"Type 2 diabetes mellitus"</span>  <span class="ann">→ concept_id 201826 (standard)</span>
+        <span class="ann">↑ mapped from source codes:</span>
+        ├── <span class="src">ICD-10-CM</span>  E11.9    <span class="ann">→ via concept_relationship "Maps to"</span>
+        ├── <span class="src">ICD-9-CM</span>   250.00   <span class="ann">→ via concept_relationship "Maps to"</span>
+        └── <span class="src">SNOMED CT</span>  source code   <span class="ann">→ via "Maps to"</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Standard vs source concept IDs</h3>
+
+    <p style="margin-bottom: 1rem;font-size: 13.5px;">Every clinical table has BOTH <code class="code-inline">condition_concept_id</code> (standard concept, used in queries) AND <code class="code-inline">condition_source_concept_id</code> (what the EHR sent). Always query against the standard — that\'s what makes the same cohort definition portable across institutions.</p>
+
+<pre class="code-block"><span class="cm"># Find all "Type 2 diabetes" diagnoses regardless of source coding</span>
+<span class="kw">SELECT</span> DISTINCT person_id
+<span class="kw">FROM</span> `srl-halo-prod.omop.condition_occurrence`
+<span class="kw">WHERE</span> condition_concept_id <span class="kw">IN</span> (
+  <span class="kw">SELECT</span> descendant_concept_id
+  <span class="kw">FROM</span> `srl-halo-prod.omop.concept_ancestor`
+  <span class="kw">WHERE</span> ancestor_concept_id = 201826    <span class="cm">-- T2DM</span>
+);</pre>
+
+    <p style="font-size:13.5px;">The <code class="code-inline">concept_ancestor</code> trick is key: matching the descendants of a high-level concept rather than enumerating every code that maps to it. Always use <code class="code-inline">ancestor</code> instead of listing standard-concept IDs by hand.</p>
+
+    <div class="callout">
+      <strong>The vocabulary loads quarterly.</strong> OHDSI publishes a new vocabulary release ~4× per year — new codes, refined relationships, deprecated terms. Refresh your BigQuery vocabulary tables on the same cadence; ATLAS cohort definitions are tied to the vocabulary version current at definition time, so be deliberate about when you upgrade.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: OMOP on BigQuery                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The warehouse</div>
+    <h2 class="section-title">OMOP on BigQuery — schema, partitioning, performance</h2>
+    <p style="margin-bottom: 1rem;">OHDSI publishes a reference DDL for OMOP on BigQuery. Load it once per study. Two design choices matter most for performance: <strong>partitioning by date</strong> and <strong>clustering by person_id</strong>.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The partition + cluster pattern</h3>
+
+<pre class="code-block"><span class="kw">CREATE TABLE</span> `srl-halo-prod.omop.condition_occurrence` (
+  condition_occurrence_id <span class="kw">INT64</span> <span class="kw">NOT NULL</span>,
+  person_id <span class="kw">INT64</span> <span class="kw">NOT NULL</span>,
+  condition_concept_id <span class="kw">INT64</span> <span class="kw">NOT NULL</span>,
+  condition_start_date <span class="kw">DATE</span> <span class="kw">NOT NULL</span>,
+  condition_start_datetime <span class="kw">TIMESTAMP</span>,
+  condition_end_date <span class="kw">DATE</span>,
+  visit_occurrence_id <span class="kw">INT64</span>,
+  condition_source_concept_id <span class="kw">INT64</span>,
+  condition_source_value <span class="kw">STRING</span>
+  <span class="cm">-- ... more cols</span>
+)
+<span class="kw">PARTITION BY</span> condition_start_date
+<span class="kw">CLUSTER BY</span> person_id, condition_concept_id;</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">A cohort query like <em>"T2DM diagnoses in 2023 for patients seen at the cancer center"</em> hits a single year of partitions (50% data reduction vs scanning full table) and benefits from clustering by person_id when joining to <code>person</code>. Cost goes from $10/query to $0.50/query at HALO scale.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Per-table partition strategy</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <code class="code-inline">person</code> — small (~10M rows); no partitioning needed.</li>
+      <li>→ <code class="code-inline">visit_occurrence, condition_occurrence, drug_exposure, procedure_occurrence, measurement, observation, death</code> — partition by the start date; cluster by person_id.</li>
+      <li>→ <code class="code-inline">concept, concept_relationship, concept_ancestor</code> — vocabulary, ~10M rows; no partitioning; consider clustering by domain_id.</li>
+    </ul>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Loading from your EHR ETL</h3>
+    <p style="margin-bottom: .5rem;font-size: 13.5px;">The OHDSI community maintains ETL packages for major EHR systems (Epic Clarity, Cerner, etc.). For UH-specific extractions, the pattern is the same: Cloud Run Job (or Dataflow for large batches) reads source extracts from GCS → applies the OMOP mapping → writes <code class="code-inline">_staging</code> tables → SQL merge into the OMOP tables.</p>
+
+<pre class="code-block"><span class="cm"># Nightly ETL: Queen's extract → OMOP</span>
+gcloud run jobs deploy halo-omop-etl \
+  --image=us-west1-docker.pkg.dev/srl-shared-services/research/omop-etl:1.2 \
+  --service-account=halo-etl-sa@srl-halo-prod.iam.gserviceaccount.com \
+  --region=us-west1 \
+  --memory=4Gi --task-timeout=4h
+
+<span class="cm"># Wired by Cloud Scheduler nightly (M4L2 pattern)</span></pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The HALO project shape, summarised</h3>
+
+    <div class="pat-grid">
+      <div class="pat-card">
+        <h4>srl-halo-prod (PHI tier)</h4>
+        <p>OMOP dataset with full identifiers (date of birth, names attached via <code>person</code>). CMEK encrypted. Data Access logging on. Strict IAM. ETL workload SA writes; ATLAS WebAPI service account reads.</p>
+      </div>
+      <div class="pat-card">
+        <h4>srl-halo-research (de-id tier)</h4>
+        <p>Sibling OMOP dataset, populated by the M8L3 cohort-instantiation pipeline. Surrogate person_ids, date-shifted timestamps. Read access for cohort groups; the analytics layer.</p>
+      </div>
+      <div class="pat-card">
+        <h4>srl-shared-services (vocabulary)</h4>
+        <p>The OMOP standardised vocabulary tables, shared across studies. One copy; HALO, ShepBERT, future OMOP studies all reference it. Refreshed quarterly with vocabulary releases.</p>
+      </div>
+      <div class="pat-card">
+        <h4>Vertex Pipelines</h4>
+        <p>ETL, ACHILLES data-quality runs (M9L2), cohort exports — all orchestrated as Vertex Pipelines (M6L2 pattern). Each pipeline run is logged, reproducible, traceable.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 9.1</div>
+    <h2 class="section-title">Load a tiny OMOP dataset; query the concept hierarchy</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🗄 The OMOP query muscle</div>
+      <ol class="exercise-steps">
+        <li><strong>Use the OHDSI Synthea sample dataset</strong> for the exercise — public, OMOP-shaped synthetic data with all the tables populated:<br>
+          <code class="code-inline">https://github.com/OHDSI/Eunomia</code> (R package) or <code class="code-inline">https://github.com/synthetichealth/synthea</code> (Java generator with OMOP output).
+        </li>
+        <li><strong>Create a BigQuery dataset</strong> + load Synthea OMOP CSVs:<br>
+          <code class="code-inline">bq mk --location=us-west1 demo_omop</code><br>
+          <code class="code-inline">gcloud storage cp synthea/omop/*.csv gs://$PROJECT-demo-omop/</code><br>
+          <code class="code-inline">for f in person visit_occurrence condition_occurrence drug_exposure measurement; do bq load --source_format=CSV --skip_leading_rows=1 --autodetect demo_omop.$f gs://$PROJECT-demo-omop/${f}.csv; done</code>
+        </li>
+        <li><strong>Load the OMOP vocabulary</strong> (downloadable from <code class="code-inline">athena.ohdsi.org</code> after registration). Smallest useful version: SNOMED + RxNorm + ICD-10-CM + LOINC. Load <code>concept</code>, <code>concept_relationship</code>, <code>concept_ancestor</code> tables.</li>
+        <li><strong>Query for "all patients with Type 2 diabetes."</strong> Use the concept_ancestor trick:
+<pre class="code-block">SELECT <span class="kw">DISTINCT</span> co.person_id
+FROM `demo_omop.condition_occurrence` co
+WHERE co.condition_concept_id <span class="kw">IN</span> (
+  SELECT descendant_concept_id
+  FROM `demo_omop.concept_ancestor`
+  WHERE ancestor_concept_id = 201826  <span class="cm">-- T2DM</span>
+);</pre>
+        </li>
+        <li><strong>Combine with demographics.</strong> Find female T2DM patients aged 50-70:
+<pre class="code-block">SELECT p.person_id, p.year_of_birth, p.gender_concept_id
+FROM `demo_omop.person` p
+JOIN (
+  SELECT <span class="kw">DISTINCT</span> co.person_id
+  FROM `demo_omop.condition_occurrence` co
+  WHERE co.condition_concept_id <span class="kw">IN</span> (
+    SELECT descendant_concept_id FROM `demo_omop.concept_ancestor`
+    WHERE ancestor_concept_id = 201826
+  )
+) c <span class="kw">USING</span>(person_id)
+WHERE p.gender_concept_id = 8532  <span class="cm">-- female</span>
+  <span class="kw">AND</span> p.year_of_birth <span class="kw">BETWEEN</span> 1955 <span class="kw">AND</span> 1975;</pre>
+        </li>
+        <li><strong>Find diabetes medications in the same cohort.</strong> Practise joining drug_exposure with concept_ancestor on RxNorm ingredient ancestors.</li>
+        <li><strong>Apply partitioning to a table.</strong> Re-create <code class="code-inline">condition_occurrence</code> partitioned by <code>condition_start_date</code> and clustered by <code>person_id</code>. Run the same query against both versions; compare bytes scanned:<br>
+          <code class="code-inline">CREATE TABLE demo_omop.condition_occurrence_part PARTITION BY condition_start_date CLUSTER BY person_id AS SELECT * FROM demo_omop.condition_occurrence;</code>
+        </li>
+        <li><strong>Tear down</strong> when done:<br>
+          <code class="code-inline">bq rm -r -d demo_omop</code><br>
+          <code class="code-inline">gcloud storage rm -r gs://$PROJECT-demo-omop/</code>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">OMOP CDM v5.4 schema</span>
+        <span class="tag">Synthea / Eunomia sample data</span>
+        <span class="tag">athena.ohdsi.org vocabulary download</span>
+        <span class="tag">bq load --autodetect</span>
+        <span class="tag">concept_ancestor query pattern</span>
+        <span class="tag">PARTITION BY + CLUSTER BY</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>You inherit a query that filters <code class="code-inline">condition_source_value = "E11.9"</code> instead of using concept_ancestor on the standard concept. Two reasons this is fragile.</span>
+        <a href="#" class="check-btn" onclick="alert('(1) Source values are NOT standardised: if any historical record was coded as E11.0 or E11.8 or an older ICD-9 code, the query misses it. concept_ancestor follows the OMOP "is-a" closure and catches all of them via the standard concept. (2) The same query will not run on another OMOP site that uses different source coding - exactly the portability OMOP exists to provide is lost. Always query on standard concept_id with concept_ancestor; treat source values as forensic evidence, not as the query target.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why is the OMOP vocabulary kept in <code class="code-inline">srl-shared-services</code> rather than in each study\'s OMOP dataset?</span>
+        <a href="#" class="check-btn" onclick="alert('Three reasons. (1) Vocabulary tables are multi-gigabyte and identical across studies - duplicating per-study wastes storage and creates drift risk. (2) Vocabulary refresh happens quarterly per OHDSI release; doing it once in shared-services means all studies pick up the new version on the same cadence. (3) Cross-study analyses (joining HALO + ShepBERT cohorts on the same concept IDs) work seamlessly when both reference the same vocabulary. Same shared-services pattern as Artifact Registry, KMS, audit sink from M1L2.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You have a 5-year HALO OMOP dataset with 500M rows in <code class="code-inline">condition_occurrence</code>. A query for diabetes diagnoses in 2024 takes 90 seconds and costs $8 per run. What\'s the fix?</span>
+        <a href="#" class="check-btn" onclick="alert('Partition by condition_start_date and cluster by person_id. Partitioning makes a "2024 only" filter scan ~1/5 of the table (the 2024 partitions); clustering by person_id improves any subsequent join with the person table. After re-partitioning, the same query likely runs in 15-20 seconds and costs $1-2. The cost is one-time CREATE TABLE; the benefit is every query forever.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>HALO is a HIPAA project. Why does the PHI-tier OMOP dataset have full identifiers (real dates, names attached via person) while the research-tier OMOP dataset has surrogates?</span>
+        <a href="#" class="check-btn" onclick="alert('Per the M8L3 two-tier architecture. The PHI tier is the system of record - used by the data steward for IRB review queries, by the ETL workload SA, and by the cohort-instantiation pipeline. The research tier is where researchers actually work - so it has de-identified surrogates, date-shifted timestamps, and broader access. The cohort-build step transforms the PHI tier output into the research-tier dataset. Same data shape (OMOP CDM); different identifier posture; different access controls.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="../index.html" class="btn">← All modules</a>
+    <a href="m9-lesson2.html" class="btn btn-primary">Lesson 9.2: ATLAS + Broadsea →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

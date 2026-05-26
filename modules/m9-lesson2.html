@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M9 · Lesson 2: ATLAS + Broadsea on GCP — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--amber);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Stack diagram */
+.stack {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.8; overflow-x: auto;
+}
+.stack .ui { color: var(--blue); }
+.stack .api { color: var(--amber); }
+.stack .db { color: var(--teal); }
+.stack .r { color: var(--coral); }
+.stack .arr { color: var(--text3); }
+.stack .ann { color: var(--text3); font-style: italic; }
+
+/* Deployment comparison */
+.deploy-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin: 1rem 0 1.5rem;
+}
+.deploy {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+}
+.deploy.cr  { border-left: 3px solid var(--amber); }
+.deploy.gke { border-left: 3px solid var(--blue); }
+.deploy h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.deploy .dt {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  letter-spacing: .04em; display: block; margin-bottom: .55rem;
+}
+.deploy.cr  .dt { color: var(--amber); }
+.deploy.gke .dt { color: var(--blue); }
+.deploy p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.deploy .use { font-size: 11.5px; color: var(--text3); font-style: italic; }
+@media (max-width: 640px) { .deploy-row { grid-template-columns: 1fr; } }
+
+/* Workflow card */
+.wf-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .9rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--amber);
+}
+.wf-card h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.wf-card p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .3rem; }
+.wf-card code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M9 · Lesson 2 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 9</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 2 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">ATLAS and Broadsea<br>on GCP</h1>
+    <p class="lesson-sub">L1 was the OMOP schema. This lesson is the cohort UI on top of it — ATLAS for cohort definitions, Broadsea as the containerised stack, ACHILLES for data quality, all deployed on the platform you already have.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 Broadsea, ATLAS, WebAPI, ACHILLES, Cloud Run / GKE</span>
+      <span>📍 Module 9 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: ATLAS and Broadsea               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The OHDSI cohort UI</div>
+    <h2 class="section-title">ATLAS, WebAPI, and the Broadsea stack</h2>
+    <p style="margin-bottom: 1rem;"><strong><a class="g-term" href="../glossary.html#atlas">ATLAS</a></strong> is a browser-based UI for OHDSI workflows — concept-set design, cohort definition, characterization, incidence analysis, data quality. It does not talk to your database directly; it talks to <strong>WebAPI</strong>, a Java REST service that holds the cohort logic, generates SQL via SqlRender, and executes against whichever OMOP database is configured.</p>
+
+    <p style="margin-bottom: 1rem;"><strong><a class="g-term" href="../glossary.html#broadsea">Broadsea</a></strong> packages the whole OHDSI stack as containers — ATLAS frontend, WebAPI backend, a Postgres for WebAPI\'s own metadata, R serving for analytic packages, optional HADES tools. Two layers separate concerns cleanly: deployable units (Broadsea containers) vs analytic data (your OMOP dataset in BigQuery).</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The stack</h3>
+
+    <div class="stack">
+<span class="ui">┌────────────────────────────┐</span>
+<span class="ui">│ ATLAS (browser UI)         │</span>  <span class="ann"># Node + Angular SPA</span>
+<span class="ui">└────────────┬───────────────┘</span>
+             <span class="arr">│ REST</span>
+<span class="api">┌────────────▼───────────────┐</span>
+<span class="api">│ WebAPI (Java)              │</span>  <span class="ann"># cohort logic, SqlRender → SQL</span>
+<span class="api">└──────┬─────────┬───────────┘</span>
+       <span class="arr">│ JDBC</span>    <span class="arr">│ JDBC</span>
+       <span class="arr">▼</span>         <span class="arr">▼</span>
+<span class="db">┌───────────┐  ┌──────────────────┐</span>
+<span class="db">│ webapi DB │  │ OMOP analytical  │</span>  <span class="ann"># your study\'s data</span>
+<span class="db">│ (Postgres)│  │ (BigQuery)       │</span>
+<span class="db">└───────────┘  └──────────────────┘</span>
+&nbsp;
+<span class="r">┌────────────────────────────┐</span>
+<span class="r">│ R serving / HADES (Plumber)│</span>  <span class="ann"># optional: CohortMethod, PLP, etc.</span>
+<span class="r">└────────────────────────────┘</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Which Broadsea services SRL actually runs</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>ATLAS</strong> — yes (cohort UI for HALO + collaborators).</li>
+      <li>→ <strong>WebAPI</strong> — yes (one instance per OMOP source).</li>
+      <li>→ <strong>WebAPI Postgres</strong> — yes (Cloud SQL for managed Postgres).</li>
+      <li>→ <strong>R serving</strong> — sometimes (when running PLP or CohortMethod studies; can be a separate Vertex Custom Training job instead).</li>
+      <li>→ <strong>Solr</strong> for concept search — yes (Broadsea includes it).</li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Deployment shape                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Where to put it</div>
+    <h2 class="section-title">Cloud Run or GKE — same architecture, different fit</h2>
+
+    <div class="deploy-row">
+      <div class="deploy cr">
+        <span class="dt">Recommended for SRL prod</span>
+        <h4>Cloud Run + Cloud SQL</h4>
+        <p>Each Broadsea container as a Cloud Run service with internal ingress (M3L2). WebAPI Postgres in Cloud SQL with private IP. Solr as a small Cloud Run service or in a managed search.</p>
+        <p>Scales to zero between sessions; HALO usage is bursty so this matters.</p>
+        <div class="use">Use for: most labs. Lower operational overhead, predictable cost.</div>
+      </div>
+      <div class="deploy gke">
+        <span class="dt">When multi-source</span>
+        <h4>GKE</h4>
+        <p>Broadsea ships a Docker Compose / Helm chart that maps cleanly to a single Kubernetes namespace. One Deployment per service.</p>
+        <p>Justified when you run multiple WebAPI instances (per OMOP source), need in-cluster R serving with state, or want service-mesh routing.</p>
+        <div class="use">Use for: institutions with multiple OMOP sites or many simultaneous studies.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The Cloud Run shape, end to end</h3>
+
+<pre class="code-block"><span class="cm"># 1. Cloud SQL Postgres for WebAPI metadata</span>
+gcloud sql instances create halo-webapi-db \
+  --database-version=POSTGRES_15 \
+  --region=us-west1 \
+  --tier=db-custom-2-4096 \
+  --no-assign-ip \
+  --network=projects/<span class="am">$PROJECT</span>/global/networks/srl-prod-vpc
+
+<span class="cm"># 2. Deploy WebAPI from the OHDSI Broadsea image</span>
+gcloud run deploy halo-webapi \
+  --image=docker.io/ohdsi/broadsea-webapi:2.14.0 \
+  --region=us-west1 \
+  --service-account=webapi-sa@srl-halo-prod.iam.gserviceaccount.com \
+  --vpc-connector=srl-prod-connector \
+  --vpc-egress=all-traffic \
+  --no-allow-unauthenticated \
+  --ingress=internal-and-cloud-load-balancing \
+  --set-env-vars=DATASOURCE_URL=jdbc:postgresql://10.0.0.5:5432/webapi \
+  --update-secrets=DATASOURCE_PASSWORD=projects/<span class="am">$PROJECT</span>/secrets/webapi-db-pwd:latest
+
+<span class="cm"># 3. Deploy ATLAS frontend (a simple SPA)</span>
+gcloud run deploy halo-atlas \
+  --image=docker.io/ohdsi/broadsea-atlas:2.14.0 \
+  --region=us-west1 \
+  --ingress=internal-and-cloud-load-balancing \
+  --no-allow-unauthenticated \
+  --set-env-vars=WEBAPI_URL=https://halo-webapi-XXX.us-west1.run.app/WebAPI/</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The BigQuery JDBC bridge</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">WebAPI talks to SQL databases via JDBC. For BigQuery, you use Google\'s Simba/Magnitude BigQuery JDBC driver — Broadsea has built-in support for the <code class="code-inline">bigquery</code> dialect. Configure the source via WebAPI\'s admin endpoint.</p>
+
+<pre class="code-block"><span class="cm"># POST a new "source" to WebAPI pointing at your OMOP BigQuery dataset</span>
+{
+  <span class="str">"name"</span>: <span class="str">"halo-bq-2026"</span>,
+  <span class="str">"key"</span>: <span class="str">"HALO"</span>,
+  <span class="str">"dialect"</span>: <span class="str">"bigquery"</span>,
+  <span class="str">"connectionString"</span>: <span class="str">"jdbc:bigquery://https://www.googleapis.com/bigquery/v2:443;ProjectId=srl-halo-prod;OAuthType=2"</span>,
+  <span class="str">"daimons"</span>: [
+    {<span class="str">"daimonType"</span>: <span class="str">"CDM"</span>, <span class="str">"tableQualifier"</span>: <span class="str">"omop"</span>},
+    {<span class="str">"daimonType"</span>: <span class="str">"VOCABULARY"</span>, <span class="str">"tableQualifier"</span>: <span class="str">"shared_vocab"</span>},
+    {<span class="str">"daimonType"</span>: <span class="str">"RESULTS"</span>, <span class="str">"tableQualifier"</span>: <span class="str">"halo_results"</span>}
+  ]
+}</pre>
+
+    <p style="font-size:13.5px;">Now ATLAS connects to WebAPI which connects to your BigQuery OMOP dataset (via the workload SA, audit logged) and the shared vocabulary in <code class="code-inline">srl-shared-services</code>. Cohort definitions compile to BigQuery SQL via SqlRender and execute server-side.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: ACHILLES                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Data quality</div>
+    <h2 class="section-title">ACHILLES — what your data actually looks like</h2>
+    <p style="margin-bottom: 1rem;"><strong><a class="g-term" href="../glossary.html#achilles">ACHILLES</a></strong> is an R package that runs ~200 pre-canned data-quality queries against an OMOP dataset and produces summary statistics: row counts per table, concept distributions, temporal patterns, demographic breakdowns, anomalies. The output feeds an ATLAS dashboard that surfaces "your data is fine" or "your data is broken in these specific ways."</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">What ACHILLES catches</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Coverage gaps</strong> — months with no condition_occurrence rows (ETL failure for that period).</li>
+      <li>→ <strong>Concept drift</strong> — most-frequent diagnosis codes that shift abruptly between years.</li>
+      <li>→ <strong>Implausible values</strong> — patient ages above 130, lab values outside biological ranges.</li>
+      <li>→ <strong>Reference integrity</strong> — condition rows with <code>condition_concept_id = 0</code> (unmapped source codes).</li>
+      <li>→ <strong>Vocabulary mapping</strong> — large fraction of conditions still using source concepts rather than standard.</li>
+    </ul>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Running ACHILLES on a schedule</h3>
+
+<pre class="code-block"><span class="cm"># Cloud Run Job (M2L3) running the ACHILLES R container quarterly</span>
+gcloud run jobs deploy halo-achilles \
+  --image=docker.io/ohdsi/broadsea-hades:latest \
+  --region=us-west1 \
+  --service-account=achilles-sa@srl-halo-prod.iam.gserviceaccount.com \
+  --task-timeout=4h --memory=8Gi \
+  --command=Rscript --args=/scripts/run-achilles.R
+
+<span class="cm"># Schedule via Cloud Scheduler (M4L2 pattern)</span>
+gcloud scheduler jobs create http halo-achilles-quarterly \
+  --location=us-west1 \
+  --schedule=<span class="str">"0 2 1 1,4,7,10 *"</span> \
+  --uri=<span class="str">"https://us-west1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/$PROJECT/jobs/halo-achilles:run"</span> \
+  --http-method=POST --oauth-service-account-email=scheduler-sa@<span class="am">$PROJECT</span>.iam.gserviceaccount.com</pre>
+
+    <p style="font-size:13.5px;">The R script connects to BigQuery as the workload SA, runs ACHILLES queries, writes results to <code class="code-inline">halo_results.achilles_results</code> + <code class="code-inline">achilles_results_dist</code> tables. ATLAS surfaces those tables as the Data Sources dashboard.</p>
+
+    <div class="callout">
+      <strong>Run ACHILLES the day you set up the dataset, and every quarter after.</strong> The first run is your baseline. Subsequent runs catch drift, ETL regressions, and vocabulary update effects. Make it part of the M1L4 runbook\'s "monthly hygiene" section.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Cohort workflow                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The workflow</div>
+    <h2 class="section-title">From cohort idea to executable definition</h2>
+
+    <p style="margin-bottom: 1rem;">A cohort in ATLAS is a precisely-defined population: who qualifies (inclusion criteria), who doesn\'t (exclusion criteria), how the start and end are anchored, what observation window applies. The mental model: a cohort is a function that takes a person and returns 0 or more <em>cohort entry events</em> for that person.</p>
+
+    <div class="wf-card">
+      <h4>Step 1 — Define concept sets</h4>
+      <p>Reusable named groups of concepts. "T2DM concepts" might include the standard T2DM concept + its descendants (M9L1\'s <code>concept_ancestor</code> trick). "Immunotherapy drugs" — a list of RxNorm ingredient ancestors. Define once; reuse across cohorts.</p>
+    </div>
+
+    <div class="wf-card">
+      <h4>Step 2 — Pick the cohort entry event</h4>
+      <p>The clinical event that marks "now this person is in the cohort." For HALO\'s HCC + immunotherapy cohort: <em>first occurrence of an immunotherapy drug exposure</em> for patients with prior HCC. Anchored by the drug_exposure row\'s start date.</p>
+    </div>
+
+    <div class="wf-card">
+      <h4>Step 3 — Inclusion criteria</h4>
+      <p>Additional filters applied at the cohort-entry date. "Prior HCC diagnosis within 2 years before index date." "Age &gt;= 18 at index date." Each criterion is a sub-query that must hold.</p>
+    </div>
+
+    <div class="wf-card">
+      <h4>Step 4 — Exclusion criteria + end strategy</h4>
+      <p>"Excluded if prior other immunotherapy treatment." End strategy defines when the patient leaves the cohort — fixed offset (365 days), persistent exposure, or end of observation period.</p>
+    </div>
+
+    <div class="wf-card">
+      <h4>Step 5 — Generate against a data source</h4>
+      <p>Click "Generate" in ATLAS pointing at your OMOP source. WebAPI compiles the cohort definition to dialect-specific SQL via SqlRender, executes against BigQuery, writes the resulting cohort to <code class="code-inline">halo_results.cohort</code>.</p>
+    </div>
+
+    <div class="wf-card">
+      <h4>Step 6 — Characterize and analyze</h4>
+      <p>ATLAS runs descriptive analytics on the generated cohort: demographics, co-occurring conditions, drug history, lab values. Export the cohort definition as JSON; share with collaborators or run on another OMOP site for replication.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The same cohort, written programmatically (Capr)</h3>
+
+    <p style="margin-bottom: .5rem;font-size:13.5px;">For reproducibility and version control, define cohorts in R using OHDSI\'s <strong>Capr</strong> package; the R definition compiles to the same JSON ATLAS produces.</p>
+
+<pre class="code-block"><span class="kw">library</span>(Capr)
+hcc_concepts &lt;- cs(descendants(<span class="ok">4154027</span>), name = <span class="str">"HCC"</span>)        <span class="cm"># standard HCC concept</span>
+io_concepts  &lt;- cs(descendants(<span class="ok">21601783</span>), name = <span class="str">"Immunotherapy"</span>)
+
+halo_cohort &lt;- cohort(
+  entry = entry(
+    drugExposure(io_concepts, firstOccurrence()),
+    primaryCriteriaLimit = <span class="str">"First"</span>
+  ),
+  attrition = attrition(
+    <span class="str">"Has prior HCC"</span> = withAll(
+      atLeast(<span class="ok">1</span>, conditionOccurrence(hcc_concepts), duringInterval(eventStarts(-<span class="ok">730</span>, <span class="ok">0</span>)))
+    ),
+    <span class="str">"Adult"</span> = withAll(atLeast(<span class="ok">18</span>, age()))
+  ),
+  exit = exit(endStrategy = fixedExit(<span class="str">"startDate"</span>, <span class="ok">365</span>))
+)
+
+<span class="cm"># Compile to ATLAS-compatible JSON</span>
+writeCohort(halo_cohort, <span class="str">"halo-hcc-io-v1.json"</span>)</pre>
+
+    <div class="callout">
+      <strong>The advantage of Capr.</strong> Cohort definitions live as code in your lab repo, version-controlled with git, peer-reviewable in pull requests, runnable from a Vertex Pipeline rather than from a browser session. The ATLAS UI is great for exploration; production cohorts should be code.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 9.2</div>
+    <h2 class="section-title">Stand up Broadsea, define a cohort</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📊 The OHDSI stack on your platform</div>
+      <ol class="exercise-steps">
+        <li>From M9L1, you have a Synthea OMOP dataset in BigQuery. Verify it\'s still there.</li>
+        <li>Create a small Cloud SQL Postgres for WebAPI:<br>
+          <code class="code-inline">gcloud sql instances create demo-webapi-db --database-version=POSTGRES_15 --region=us-west1 --tier=db-f1-micro</code><br>
+          (Public IP for the demo — in prod use private IP per Section 2.)
+        </li>
+        <li>Create the WebAPI schema:<br>
+          <code class="code-inline">gcloud sql databases create webapi --instance=demo-webapi-db</code><br>
+          Set a password: <code class="code-inline">gcloud sql users set-password postgres --instance=demo-webapi-db --password=$(openssl rand -base64 24)</code>
+        </li>
+        <li><strong>Deploy WebAPI</strong> to Cloud Run from the official Broadsea image:<br>
+<pre class="code-block">gcloud run deploy demo-webapi \
+  --image=docker.io/ohdsi/broadsea-webapi:2.14.0 \
+  --region=us-west1 \
+  --memory=2Gi \
+  --no-allow-unauthenticated \
+  --add-cloudsql-instances=<span class="am">$PROJECT</span>:us-west1:demo-webapi-db \
+  --set-env-vars=DATASOURCE_DRIVERCLASSNAME=org.postgresql.Driver \
+  --set-env-vars=DATASOURCE_URL=jdbc:postgresql:///webapi?cloudSqlInstance=<span class="am">$PROJECT</span>:us-west1:demo-webapi-db\&amp;socketFactory=com.google.cloud.sql.postgres.SocketFactory \
+  --set-env-vars=DATASOURCE_USERNAME=postgres \
+  --update-secrets=DATASOURCE_PASSWORD=projects/<span class="am">$PROJECT</span>/secrets/webapi-pwd:latest</pre>
+          Wait a few minutes; check the readiness endpoint at <code class="code-inline">/WebAPI/info</code>.
+        </li>
+        <li><strong>Deploy ATLAS</strong> pointing at the WebAPI:<br>
+<pre class="code-block">WEBAPI_URL=$(gcloud run services describe demo-webapi --region=us-west1 --format='value(status.url)')
+gcloud run deploy demo-atlas \
+  --image=docker.io/ohdsi/broadsea-atlas:2.14.0 \
+  --region=us-west1 \
+  --memory=512Mi \
+  --no-allow-unauthenticated \
+  --set-env-vars=WEBAPI_URL=<span class="am">$WEBAPI_URL</span>/WebAPI/</pre>
+          Open the ATLAS URL in a browser (you\'ll need an identity token in the auth header, or temporarily allow unauthenticated for the demo).
+        </li>
+        <li><strong>Configure a BigQuery source in WebAPI.</strong> POST the source-creation JSON from Section 2 to <code class="code-inline">$WEBAPI_URL/WebAPI/source/sources</code>. The WebAPI Cloud Run SA needs <code>roles/bigquery.dataViewer</code> on your demo OMOP dataset.</li>
+        <li><strong>Define a cohort in ATLAS.</strong> Navigate to Cohort Definitions → New Cohort. Build a simple T2DM cohort using the concept-set + entry-event pattern from Section 4. Generate against your demo OMOP source. Watch the SQL produced.</li>
+        <li><strong>Bonus — run ACHILLES.</strong> Deploy the HADES R container as a Cloud Run Job; mount config pointing at your demo OMOP source; run <code class="code-inline">achilles()</code> from R. View the resulting data-quality dashboard in ATLAS.</li>
+        <li><strong>Tear down</strong> aggressively — Cloud SQL accrues cost even idle:<br>
+          <code class="code-inline">gcloud run services delete demo-webapi demo-atlas --region=us-west1</code><br>
+          <code class="code-inline">gcloud sql instances delete demo-webapi-db</code>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">Broadsea WebAPI + ATLAS containers</span>
+        <span class="tag">Cloud SQL for WebAPI metadata</span>
+        <span class="tag">WebAPI source registration (REST)</span>
+        <span class="tag">ATLAS cohort definition UI</span>
+        <span class="tag">ACHILLES on HADES container</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Your ATLAS install talks to a BigQuery dataset in <code class="code-inline">srl-halo-prod</code>. What identity does the BigQuery query run as, and why does that matter for audit?</span>
+        <a href="#" class="check-btn" onclick="alert('It runs as the WebAPI Cloud Run service\'s attached service account (e.g. webapi-sa@srl-halo-prod). Every cohort generation, every characterization query - all hit BigQuery as that single SA, not as the human user who clicked Generate in ATLAS. For audit: you can see "WebAPI made this query at time X against this table" but you cannot directly see "John pressed Generate to produce this query." Capture the user identity separately in WebAPI\'s own audit log (it has one) so you can correlate Atlas UI actions to the BigQuery query side. The two logs together give you full traceability.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why does Broadsea\'s WebAPI need its OWN Postgres database (separate from the OMOP analytical data)?</span>
+        <a href="#" class="check-btn" onclick="alert('WebAPI stores its own metadata - the cohort definitions, concept sets, user sessions, generation results. That state has nothing to do with your OMOP dataset; mixing them would couple WebAPI\'s lifecycle to your analytical store. Cloud SQL Postgres is the right home: managed, small, fast for transactional metadata. The OMOP analytical dataset stays in BigQuery where it belongs - large, columnar, analytic. Two databases, two purposes, clean separation.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your collaborator wants to define cohorts directly in R using Capr rather than in the ATLAS UI. Two reasons that\'s the right call for any production cohort.</span>
+        <a href="#" class="check-btn" onclick="alert('(1) Version control: code in a git repo can be reviewed, diffed, branched. ATLAS UI definitions are buried in WebAPI\'s Postgres and harder to track over time. (2) Reproducibility: the Capr definition is the source of truth that ships with the manuscript. Running it on another OMOP site is one Rscript call. The ATLAS UI is great for exploration; production cohorts belong as code. Both compile to the same JSON, so they are interchangeable - choose by lifecycle stage.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>ACHILLES surfaces that 15% of condition_occurrence rows have <code class="code-inline">condition_concept_id = 0</code>. What\'s wrong, and what\'s the fix?</span>
+        <a href="#" class="check-btn" onclick="alert('15% of conditions have unmapped source codes - the ETL did not know how to map them to standard concepts. Either the source codes are non-standard custom UH codes that need to be added to the vocabulary mapping, or the ETL\'s mapping logic missed them. The fix is in the ETL: review the unmapped source values, find or define mappings, refresh. Until fixed, those 15% of rows are invisible to standard cohort definitions that filter on standard concept_ids. The ACHILLES dashboard is doing exactly the job it exists for: surfacing the data-quality issue before a researcher discovers it the hard way.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m9-lesson1.html" class="btn">← Lesson 9.1: OMOP on BigQuery</a>
+    <a href="m9-lesson3.html" class="btn btn-primary">Lesson 9.3: Federated analytics →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M9 · Lesson 3: Federated analytics + cohort exports — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--amber);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Fed diagram */
+.fednet {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.8; overflow-x: auto;
+}
+.fednet .site { color: var(--blue); }
+.fednet .agg { color: var(--amber); }
+.fednet .stat { color: var(--teal); }
+.fednet .arr { color: var(--text3); }
+.fednet .ann { color: var(--text3); font-style: italic; }
+
+/* Workflow card */
+.wf-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .9rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--amber);
+}
+.wf-card h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.wf-card p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .3rem; }
+.wf-card code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M9 · Lesson 3 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 9</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 3</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot done" title="Lesson 2"></div>
+      <div class="progress-dot active" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 3 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Federated analytics<br>and cohort exports</h1>
+    <p class="lesson-sub">L1 + L2 set up OMOP analytics at one site. This lesson is the cross-site promise: the same cohort definition running across many institutions, with only summary results leaving each site. The PacificFed analytics layer, and how cohorts flow from ATLAS into the M8L3 research tier and onward into ML pipelines.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~45 min reading + exercise</span>
+      <span>🔧 OHDSI federated network patterns, ATLAS exports, Vertex Pipelines</span>
+      <span>📍 Module 9 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: The federated promise            -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Why federated analytics works</div>
+    <h2 class="section-title">Same shape, same vocabulary, same cohort</h2>
+    <p style="margin-bottom: 1rem;">The promise of OMOP is that <em>"patients with HCC + immunotherapy in 2020-2024"</em> is the same query at UH, at Queen\'s, at the Guam CCPI node, at Stanford, at Mayo. Each site stores its own data; each site runs the same compiled SQL; each site returns the same shape of summary results. Only those summary results — never patient-level data — leave the institution.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">What "same shape" actually requires</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Same CDM version</strong> across all sites (typically OMOP CDM v5.4).</li>
+      <li>→ <strong>Same vocabulary release</strong> (synchronised OHDSI Athena snapshot). A site on v2024-Q1 and a site on v2024-Q3 may produce subtly different counts.</li>
+      <li>→ <strong>Same cohort definition</strong>, distributed as JSON or as Capr R code from M9L2.</li>
+      <li>→ <strong>Same data-quality baseline</strong> — ACHILLES runs at each site, surfaces issues before federation.</li>
+      <li>→ <strong>Agreed result schema</strong> — what counts (cohort size, person-time, demographics breakdown) is returned, and at what aggregation level.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>The crucial property.</strong> Patient-level data never moves. Each site runs the cohort definition locally against its own OMOP database; computes the agreed summary statistics; ships those statistics to an aggregator. The aggregator combines them into a meta-analysis. <a class="g-term" href="../glossary.html#phi">PHI</a> never crosses an institutional boundary; only aggregated counts and means do.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: PacificFed                       -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The worked example</div>
+    <h2 class="section-title">PacificFed analytics — seven sites, one query</h2>
+    <p style="margin-bottom: 1rem;">PacificFed is SRL\'s federated network across CCPI and USAPI nodes — UH, Queen\'s, Guam, American Samoa, CNMI, Palau, Marshall Islands. The analytics layer (separate from the ML training layer in M10) uses OMOP at each site so that the same cohort question runs everywhere without data movement.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The topology</h3>
+
+    <div class="fednet">
+<span class="ann">Each site runs its own ATLAS + OMOP-on-BigQuery (or equivalent)</span>
+&nbsp;
+<span class="site">[UH / HALO]</span>           <span class="site">[Queen\'s]</span>          <span class="site">[Guam]</span>             <span class="site">[Am. Samoa]</span>
+   OMOP-on-BQ           OMOP-on-BQ          OMOP-on-Postgres    OMOP-on-Postgres
+   ATLAS local          ATLAS local         ATLAS local         ATLAS local
+       <span class="arr">│</span>                    <span class="arr">│</span>                   <span class="arr">│</span>                   <span class="arr">│</span>
+       <span class="arr">▼ run cohort locally</span><span class="arr">▼</span>                   <span class="arr">▼</span>                   <span class="arr">▼</span>
+<span class="stat">cohort_results.csv</span>  <span class="stat">cohort_results.csv</span> <span class="stat">cohort_results.csv</span> <span class="stat">cohort_results.csv</span>
+   <span class="ann"># counts only,        # never patients</span>
+       <span class="arr">│</span>                    <span class="arr">│</span>                   <span class="arr">│</span>                   <span class="arr">│</span>
+       <span class="arr">└────────────────────┴───────────────────┴───────────────────┘</span>
+                              <span class="arr">▼ summary-only upload (gcloud storage)</span>
+                       <span class="agg">[Aggregator: srl-pacificfed-infra]</span>
+                              <span class="arr">│</span>
+                              <span class="arr">▼ meta-analysis (R / Python)</span>
+                       <span class="stat">Combined results in BigQuery</span>
+                              <span class="arr">│</span>
+                              <span class="arr">▼ publication</span>
+                       <span class="ann">Figures and tables for manuscripts</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The shared assets across sites</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>OHDSI vocabulary snapshot</strong> — one versioned download per quarter; every site loads the same version on the same week.</li>
+      <li>→ <strong>Cohort definitions</strong> — versioned JSON (or Capr R) in a shared git repo; each site pulls and runs.</li>
+      <li>→ <strong>Result schema spec</strong> — a documented contract for what each site returns (CSV layout, summary statistic definitions). Drift here breaks meta-analysis.</li>
+      <li>→ <strong>Data-quality baseline</strong> — ACHILLES results from each site visible in a shared dashboard before federation runs.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>What gets centralised in <code class="code-inline">srl-pacificfed-infra</code></strong>: the shared OMOP vocabulary cache; the cohort definitions repo; the aggregator service; the meta-analysis pipeline; the federated dashboard. <strong>What does not get centralised</strong>: any per-patient data from any site. The aggregator only ever sees site-level summary CSVs.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Cohort exports                   -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">From ATLAS to research tier</div>
+    <h2 class="section-title">Cohort exports — how cohorts flow into your pipeline</h2>
+    <p style="margin-bottom: 1rem;">M8L3 described the cohort-instantiation pattern. M9 fills in <em>how the cohort definition lands in the research tier as a usable dataset.</em> Three steps from ATLAS to ML pipeline.</p>
+
+    <div class="wf-card">
+      <h4>Step 1 — Define and generate in ATLAS</h4>
+      <p>Per M9L2 — define the cohort, generate against the PHI-tier OMOP source. The result lives in <code>halo_results.cohort</code> as <code>(cohort_definition_id, subject_id, cohort_start_date, cohort_end_date)</code> rows.</p>
+    </div>
+
+    <div class="wf-card">
+      <h4>Step 2 — Materialise the cohort into research tier</h4>
+      <p>A Vertex Pipeline (M6L2 pattern) reads the cohort row set, joins it against the relevant OMOP tables (person + visit + observation + measurement, scoped to cohort dates), runs the M8L1 de-identification operation, and writes a per-cohort dataset to the research-tier project. Surrogates are consistent with prior cohorts via the shared surrogate map (M8L1).</p>
+<pre class="code-block"><span class="cm"># Conceptual pipeline (M6L2 KFP shape)</span>
+<span class="kw">@dsl.pipeline</span>(name=<span class="str">"halo-cohort-export"</span>)
+<span class="kw">def</span> cohort_export_pipeline(
+    cohort_definition_id: int,
+    target_dataset: str,
+    irb_protocol_id: str,
+):
+    rows = pull_cohort_rows(definition_id=cohort_definition_id)
+    enriched = enrich_with_omop_features(rows=rows.outputs[<span class="str">"rows"</span>])
+    deid = deidentify_for_research(data=enriched.outputs[<span class="str">"data"</span>])
+    materialised = write_to_research_tier(data=deid.outputs[<span class="str">"data"</span>], dataset=target_dataset)
+    register_cohort_metadata(
+        materialised=materialised.outputs[<span class="str">"path"</span>],
+        irb=irb_protocol_id,
+        cohort_def_id=cohort_definition_id,
+    )</pre>
+    </div>
+
+    <div class="wf-card">
+      <h4>Step 3 — Grant access; researchers consume</h4>
+      <p>Per M1L3 patterns — bind a group like <code>halo-cohort-2026-hcc-io@</code> to the new dataset with <code>roles/bigquery.dataViewer</code>; add the IRB-approved researchers to the group. Conditional bindings limit access by date (matching the IRB end date). Researchers query, train models, build figures.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The cohort as ML training input</h3>
+
+    <p style="margin-bottom:.75rem;font-size:13.5px;">For studies where the cohort drives ML training (HALO outcome prediction, ShepBERT clinical-text fine-tuning anchored on a cohort), the materialised cohort feeds directly into M6L2\'s training pipelines:</p>
+
+<pre class="code-block"><span class="cm"># Trigger a model training pipeline when a new cohort materialises (M4L2 pattern)</span>
+<span class="cm">#   Pub/Sub: cohort.materialised → Cloud Function triggers Vertex Pipeline</span>
+<span class="cm">#   Pipeline reads gs://srl-halo-research/cohorts/hcc-io-2026/ as training input</span>
+<span class="cm">#   Trains an outcome predictor, evaluates, conditionally registers (M6L2 gate)</span></pre>
+
+    <p style="font-size:13.5px;">The full chain — IRB protocol → ATLAS cohort definition → research-tier materialisation → Vertex Pipeline training run → registered model — is one continuous flow with audit logs at every step. From cohort idea to deployed model is a process, not a project.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 9.3</div>
+    <h2 class="section-title">Run a cohort across two synthetic sites</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🌐 Federated analytics in miniature</div>
+      <ol class="exercise-steps">
+        <li>From M9L1 + L2 you have an OMOP Synthea dataset + ATLAS running. Use a copy as the "second site" for the exercise.</li>
+        <li><strong>Make a second OMOP dataset.</strong> Generate a second Synthea population (or copy + perturb the existing data) into a second BigQuery dataset:<br>
+          <code class="code-inline">bq mk --location=us-west1 demo_omop_site2</code><br>
+          <code class="code-inline">bq cp -a demo_omop.person demo_omop_site2.person</code> (and same for the other tables; perturb with a sample query to vary counts)
+        </li>
+        <li><strong>Define one cohort in ATLAS.</strong> Use the T2DM cohort from M9L2\'s exercise. Export the cohort definition as JSON (in ATLAS: Cohort Definitions → Export → JSON). Save to <code class="code-inline">cohorts/t2dm-cohort.json</code>.</li>
+        <li><strong>Register both datasets as WebAPI sources.</strong> POST a second source-creation JSON pointing at <code>demo_omop_site2</code> (same shape as the first, different tableQualifier).</li>
+        <li><strong>Generate the same cohort against both sources.</strong> Use the ATLAS UI: select the cohort, click Generate, pick source. Repeat for each source. Inspect the cohort counts — they should differ between sites (different synthetic populations).</li>
+        <li><strong>Export per-site summary CSVs.</strong> Run a SQL query against each source\'s cohort table:
+<pre class="code-block"><span class="kw">SELECT</span>
+  <span class="str">"site_X"</span> <span class="kw">AS</span> site_id,
+  count(*) <span class="kw">AS</span> cohort_size,
+  count(<span class="kw">DISTINCT</span> subject_id) <span class="kw">AS</span> unique_patients,
+  min(cohort_start_date) <span class="kw">AS</span> first_entry,
+  max(cohort_start_date) <span class="kw">AS</span> last_entry
+<span class="kw">FROM</span> `demo_omop.cohort`
+<span class="kw">WHERE</span> cohort_definition_id = 1234;</pre>
+          Save the result CSV per site.
+        </li>
+        <li><strong>Aggregate</strong>. Load both CSVs into a small aggregator BigQuery table; produce a meta-analysis result with <code>SUM(cohort_size), AVG(unique_patients_per_site), ...</code>. That\'s the federated-analytics output without ever moving patient data.</li>
+        <li><strong>Bonus — write a tiny Vertex Pipeline</strong> that automates: pull cohort row set from a configured WebAPI source, summary-stat it, write to GCS. Run for each "site." This is the production shape of the workflow.</li>
+        <li><strong>Tear down</strong>:<br>
+          <code class="code-inline">bq rm -r -d demo_omop demo_omop_site2</code><br>
+          (Plus the ATLAS / WebAPI infrastructure from M9L2 if not already torn down.)
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">Multi-source WebAPI</span>
+        <span class="tag">Cohort JSON export</span>
+        <span class="tag">Per-site cohort generation</span>
+        <span class="tag">Summary-only export</span>
+        <span class="tag">Meta-analysis in BigQuery</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>PacificFed wants to study HCC outcomes across all seven sites. Why does each site running the same cohort definition locally — and shipping only summary CSVs — beat "everyone uploads their OMOP data to a central project"?</span>
+        <a href="#" class="check-btn" onclick="alert('Three reasons. (1) HIPAA and equivalent laws at each jurisdiction prohibit cross-institutional PHI movement without specific agreements; getting BAAs across seven institutions is years of legal work. Federated computation needs only a data-use agreement covering aggregate outputs. (2) Trust and autonomy: each institution keeps its own data sovereignty - critical for USAPI partner institutions that may legitimately want to control what leaves their jurisdiction. (3) Operational: centralising raw EHR data from seven sites is a huge data-engineering project; running a SQL query at each site is one Vertex Pipeline trigger.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>What synchronisation failure between two PacificFed sites would silently corrupt a meta-analysis result?</span>
+        <a href="#" class="check-btn" onclick="alert('Different vocabulary versions. If UH is on the Q1 vocabulary and Queen\'s is on the Q3 vocabulary, the same standard concept IDs may have different descendants (concept_ancestor changes). The same cohort definition compiles to slightly different queries; counts diverge for reasons that look like real epidemiology but are actually vocab drift. Other risks: CDM version skew, ACHILLES regressions that flag bad data at one site but not the others, agreed result schema drift. The mitigation: a "go" signal from each site\'s ACHILLES run before the federated query fires; explicit version checks in the aggregator.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>An aggregated federated result shows site A has 0 patients matching the cohort. What four diagnoses do you check?</span>
+        <a href="#" class="check-btn" onclick="alert('(1) Did the cohort definition actually run at site A? (Check audit logs.) (2) Is site A\'s OMOP dataset populated at all for the relevant time period? (Run ACHILLES against site A.) (3) Did site A\'s ETL miss the source codes that map to the cohort concepts? (Check condition_source_concept_id distribution at site A for the relevant concepts.) (4) Is the vocabulary version at site A different enough that the concept_ancestor descendants do not match? Each of these has a different fix; "site has zero patients" is rarely "no patients at site" - it\'s almost always upstream.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>How does the M8L3 cohort-instantiation pattern interact with M9L3 federated analytics?</span>
+        <a href="#" class="check-btn" onclick="alert('They serve different goals at different scales. M8L3 is single-site, single-research-project: take an IRB-approved cohort definition, run it against the production tier, materialise a de-identified dataset in the research tier for one study\'s researchers. M9L3 is multi-site: run the same cohort definition at every site, aggregate summary statistics, never materialise patient-level data anywhere new. Same definition can drive both: define once in Capr/ATLAS, use locally via M8L3 for HALO\'s own ML training, and via M9L3 for PacificFed cross-site studies.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- M9 close                                    -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Closing M9</div>
+    <h2 class="section-title">You have the analytics layer</h2>
+    <div class="callout">
+      <strong>The arc of M9.</strong> L1 — OMOP CDM as a portable schema, on BigQuery with the partitioning patterns that matter. L2 — ATLAS and Broadsea as the cohort UI on top of OMOP, deployable on Cloud Run or GKE. L3 — federated analytics as the natural extension when multiple sites speak OMOP, plus the cohort-export flow from ATLAS into M6/M7 ML pipelines.
+    </div>
+    <p style="margin-top: 1rem;">M10 takes federation one level deeper — from federated <em>analytics</em> (summary stats only) to federated <em>learning</em>, where model gradients travel between sites and a global model emerges from local training. That\'s the PacificFed ML layer.</p>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m9-lesson2.html" class="btn">← Lesson 9.2: ATLAS + Broadsea</a>
+    <a href="m10.html" class="btn btn-primary">M10: Federated learning patterns →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
