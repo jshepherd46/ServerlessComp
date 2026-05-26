@@ -118,7 +118,7 @@ ServerlessComp/
 | M9 | OMOP | OMOP CDM & ATLAS on GCP | 8 | Complete (L1–L3) |
 | M10 | ML | Federated learning patterns | 7 | Complete (L1–L3) |
 | M11 | INFRA | MLOps: reusable patterns & automation | 6 | Complete (L1–L3) |
-| M12 | CAP | Capstone: build your own research cloud | 6 | Stub |
+| M12 | CAP | Capstone: build your own research cloud | 6 | Complete — Course complete |
 
 ---
 

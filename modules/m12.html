@@ -3,27 +3,555 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Coming Soon — ServerlessComp</title>
+<title>M12 · Capstone — Build your own research cloud — ServerlessComp</title>
 <link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--purple);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Track selector */
+.track-selector {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin: 1.5rem 0 2rem;
+}
+.tsel {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.1rem 1.15rem;
+  text-decoration: none; transition: border-color .15s, background .15s;
+  display: block;
+}
+.tsel:hover { border-color: var(--purple); background: var(--bg3); }
+.tsel .ts-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--purple); margin-bottom: .35rem; display: block;
+}
+.tsel h3 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.tsel p { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 0; }
+@media (max-width: 720px) { .track-selector { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .track-selector { grid-template-columns: 1fr; } }
+
+/* Track block */
+.track-block {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--purple);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  background: var(--bg2);
+  padding: 1.25rem 1.5rem;
+  margin: 1.25rem 0 1.75rem;
+}
+.track-block .tb-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--purple); letter-spacing: .06em; margin-bottom: .35rem;
+  display: block; text-transform: uppercase;
+}
+.track-block h3 {
+  font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 600;
+  color: var(--text); margin-bottom: .65rem;
+  text-transform: none; letter-spacing: 0;
+}
+.track-block .tb-line {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--text3); letter-spacing: .03em; margin-bottom: 1rem;
+  padding-bottom: .75rem; border-bottom: 1px solid var(--border);
+}
+.track-block h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin: 1rem 0 .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.track-block p { font-size: 13px; color: var(--text2); line-height: 1.55; margin-bottom: .65rem; }
+.track-block ul { padding-left: 1rem; font-size: 13px; color: var(--text2); line-height: 1.8; list-style: none; }
+.track-block li { padding-left: 14px; position: relative; }
+.track-block li::before { content: '→'; position: absolute; left: 0; color: var(--purple); }
+.track-block code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* Deliverable card */
+.del-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .9rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--green);
+  display: grid; grid-template-columns: 24px 1fr;
+  gap: 1rem; align-items: start;
+}
+.del-card .dc {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(63,185,80,.15); color: var(--green);
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 2px;
+}
+.del-card .db { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.del-card .db strong { color: var(--text); }
+</style>
 </head>
 <body>
+
 <nav>
   <div class="nav-inner">
     <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
-    <div class="nav-links"><a href="../index.html">← All modules</a><a href="../glossary.html">Glossary</a></div>
+    <span class="nav-badge">M12 · Capstone</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
   </div>
 </nav>
-<main style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:2rem">
-  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:1rem">In development</div>
-  <h1 style="font-family:'Syne',sans-serif;font-size:2rem;color:var(--text);margin-bottom:.75rem">This module is coming soon</h1>
-  <p style="color:var(--text2);max-width:480px;margin-bottom:2rem">Lessons are added module by module. Follow the GitHub repo for updates, or start with Module 1.</p>
-  <a href="../index.html" style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:10px 20px;border:1px solid var(--border2);border-radius:8px;color:var(--text2);text-decoration:none;transition:all .15s" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">← Back to course home</a>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span class="lesson-num">Capstone</span>
+    </div>
+
+    <h1 class="lesson-title">Capstone — build<br>your own research cloud</h1>
+    <p class="lesson-sub">Eleven modules in, you have the platform, the patterns, and the discipline. This capstone is the integration: pick one of four real SRL studies, apply every module end to end, ship a complete research cloud for that work.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~6 hours guided work</span>
+      <span>🔧 Everything from M1–M11</span>
+      <span>📍 Course close</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- The setup                                   -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The setup</div>
+    <h2 class="section-title">What you'll build</h2>
+    <p style="margin-bottom: 1rem;">Pick one of the four tracks below. For your chosen study, you'll work through the complete architecture — from M1\'s topology to M11\'s automation — and produce a working research cloud for that study. The output: a Terraform repo, a runbook, a working data pipeline, a deployed model (or trained adapter), and a paper-grade reproducibility story.</p>
+
+    <p style="margin-bottom: 1rem;">Six hours of guided work. You won\'t finish everything in one sitting — that\'s fine. The capstone is a structure for the work; you ship it incrementally as your real research progresses.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Success criteria — universal across tracks</h3>
+
+    <div class="del-card">
+      <div class="dc">1</div>
+      <div class="db"><strong>Terraform repo</strong> with at least two committed modules (PHI project + research project) and the study\'s project instantiation. Runs from a clean clone via <code>terraform apply</code>.</div>
+    </div>
+
+    <div class="del-card">
+      <div class="dc">2</div>
+      <div class="db"><strong>Per-study runbook</strong> in <code>handbook/studies/&lt;name&gt;.md</code> with all nine sections of the M11L3 template filled in.</div>
+    </div>
+
+    <div class="del-card">
+      <div class="dc">3</div>
+      <div class="db"><strong>Data pipeline</strong> — a Cloud Run Job or Vertex Pipeline that takes data from source to research tier, with audit + monitoring per M8L3.</div>
+    </div>
+
+    <div class="del-card">
+      <div class="dc">4</div>
+      <div class="db"><strong>Model or analytic deliverable</strong> — depends on track. A registered Vertex model, an ATLAS cohort, or a fine-tuned adapter. With a candidate alias + reproducible training pipeline.</div>
+    </div>
+
+    <div class="del-card">
+      <div class="dc">5</div>
+      <div class="db"><strong>Observability</strong> — at minimum: ingest freshness metric + per-service request-latency dashboard + alerting policy on the workload\'s SLO.</div>
+    </div>
+
+    <div class="del-card">
+      <div class="dc">6</div>
+      <div class="db"><strong>A reproducibility statement</strong> — one paragraph in the runbook that describes how a new lab member could re-derive your central result from the Terraform + pipeline JSON + cohort definition in the repo.</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Track selector                              -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Pick your track</div>
+    <h2 class="section-title">Four real studies, four architectures</h2>
+
+    <div class="track-selector">
+      <a href="#track-makawalu" class="tsel">
+        <span class="ts-label">Track 1</span>
+        <h3>Makawalu</h3>
+        <p>POCUS XAI · concept bottleneck model for breast cancer · USAPI focus</p>
+      </a>
+      <a href="#track-hipimr" class="tsel">
+        <span class="ts-label">Track 2</span>
+        <h3>HIPIMR</h3>
+        <p>Hawaii mammography registry · density CNN · longitudinal cohort</p>
+      </a>
+      <a href="#track-halo" class="tsel">
+        <span class="ts-label">Track 3</span>
+        <h3>HALO</h3>
+        <p>HCC + immunotherapy outcomes · OMOP on BigQuery · ATLAS analytics</p>
+      </a>
+      <a href="#track-shepbert" class="tsel">
+        <span class="ts-label">Track 4</span>
+        <h3>ShepBERT</h3>
+        <p>Clinical NLP · LoRA on Bio_ClinicalBERT · multi-adapter serving</p>
+      </a>
+    </div>
+
+    <p style="font-size: 13.5px;">Each track below has its own architecture diagram, per-module decision points, and deliverable list. Read the one that matches your work; the others are useful as cross-references for design choices.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Track 1 — Makawalu                          -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="track-makawalu">
+    <div class="section-eyebrow">Track 1</div>
+    <h2 class="section-title">Makawalu — POCUS XAI for breast cancer</h2>
+
+    <div class="track-block">
+      <span class="tb-label">Architecture</span>
+      <h3>The shape</h3>
+      <div class="tb-line">Queen\'s POCUS → GCS landing → DICOM store → de-id store → GCS training mirror → CBM training (Vertex) → Cloud Run XAI serving</div>
+
+      <h4>Topology (M1L2)</h4>
+      <ul>
+        <li><code>srl-makawalu-dev</code> — synthetic data, permissive IAM</li>
+        <li><code>srl-makawalu-staging</code> — de-id\'d Queen\'s data, BAA-covered, perimeter</li>
+        <li><code>srl-makawalu-prod</code> — live serving, real cohort, full perimeter + audit</li>
+      </ul>
+
+      <h4>Data path (M6L1 + M8)</h4>
+      <ul>
+        <li>POCUS DICOMs upload via authenticated GCS landing (per-site SA, IP allow-list)</li>
+        <li>Cloud Run Job validates + STOWs to <code>srl-makawalu-prod</code> Healthcare API DICOM store</li>
+        <li>Nightly Healthcare API <code>deidentify</code> → sibling de-id store + DLP for burned-in PHI</li>
+        <li>Weekly Vertex Pipeline materialises de-id\'d frames + concept labels into <code>gs://srl-makawalu-training/cbm-v3/</code></li>
+      </ul>
+
+      <h4>Model (M6L2)</h4>
+      <ul>
+        <li>Concept bottleneck model — frozen ResNet50 backbone → concept heads (lesion shape, margins, posterior features) → final malignancy classifier</li>
+        <li>Vertex Custom Training on single A100, spot, with epoch checkpointing</li>
+        <li>Vertex Pipelines for the full preprocess → train_concept_heads → train_final_classifier → evaluate → conditional_register flow</li>
+      </ul>
+
+      <h4>Serving (M6L3)</h4>
+      <ul>
+        <li><strong>Cloud Run</strong> — custom JSON response with concept scores + final probability + visualisation overlays</li>
+        <li><code>--concurrency=2</code> (heavy ML inference), <code>--min-instances=1</code> during clinical-demo windows</li>
+        <li>Authenticated only; Workload Identity → <code>xai-serve-sa</code> with secret accessor on the model auth token</li>
+      </ul>
+
+      <h4>The capstone-specific decisions</h4>
+      <ul>
+        <li><strong>Concept fidelity vs final accuracy.</strong> The CBM gates the final on concept predictions. Tune the trade.</li>
+        <li><strong>Fairness across USAPI subgroups.</strong> Slice metrics per NHPI patient grouping (M6L3 + M7L2 patterns). The capstone deliverable must include this slice analysis.</li>
+        <li><strong>Burned-in-PHI redaction.</strong> POCUS commonly has PHI in the pixels themselves. The de-id pipeline must run OCR + redaction (M8L1).</li>
+        <li><strong>Demo SLO.</strong> Clinician demos cannot tolerate a 10-second cold start. Sustained min-instances or warmup pings during demo windows.</li>
+      </ul>
+
+      <h4>Deliverables</h4>
+      <ul>
+        <li>Terraform for the three projects + perimeter + Healthcare API stores</li>
+        <li>Vertex Pipeline (compiled JSON) for the CBM training workflow</li>
+        <li>Registered model <code>makawalu-cbm</code> with version aliases (latest / candidate / production)</li>
+        <li>Cloud Run service serving the latest candidate, with traffic-split scripts</li>
+        <li>Runbook section with the four capstone decisions documented + fairness analysis attached</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Track 2 — HIPIMR                            -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="track-hipimr">
+    <div class="section-eyebrow">Track 2</div>
+    <h2 class="section-title">HIPIMR — Hawai‘i Pacific Islands Mammography Registry</h2>
+
+    <div class="track-block">
+      <span class="tb-label">Architecture</span>
+      <h3>The shape</h3>
+      <div class="tb-line">Queen\'s PACS nightly → HIPIMR DICOM store → de-id store → density CNN training tier → registry-integrated serving + longitudinal cohort tracking</div>
+
+      <h4>The HIPIMR-specific challenge</h4>
+      <p>HIPIMR is a <em>longitudinal registry</em> — DICOMs arrive monthly for years; cohort grows continuously; vocabulary refreshes interact with ETL; results from earlier years must remain reproducible as new data lands. The architectural moves all serve durability over time.</p>
+
+      <h4>Topology + ingest</h4>
+      <ul>
+        <li><code>srl-hipimr-prod</code> with CMEK keys that rotate annually (key versions retained for archive reads)</li>
+        <li>Nightly Cloud Run Job + Eventarc pull-from-Queen\'s pattern (M3L2 ingest path)</li>
+        <li>The DICOM store is the system of record; <em>every</em> read is Data Access logged for the registry-audit trail</li>
+        <li>Storage class lifecycle: hot for &lt;2 years, nearline for 2-5 years, archive for &gt;5 years</li>
+      </ul>
+
+      <h4>Density CNN model (M6L2)</h4>
+      <ul>
+        <li>ResNet50 → continuous density score (BI-RADS A-D as ordinal output)</li>
+        <li>Trained on de-id\'d backfill cohorts; retrained quarterly with new ingest</li>
+        <li>Each quarterly retrain registered as a new version with the cohort cutoff date as a label</li>
+      </ul>
+
+      <h4>Registry integration (M9 + M11)</h4>
+      <ul>
+        <li>Density score per study writes back to a registry-tier BigQuery table</li>
+        <li>OMOP-shaped registry data (M9) enables cross-cohort queries: "density &gt; threshold for &gt; 3 years"</li>
+        <li>ACHILLES re-runs quarterly to surface ingest gaps as the registry grows</li>
+      </ul>
+
+      <h4>The capstone-specific decisions</h4>
+      <ul>
+        <li><strong>Multi-year cohort snapshotting.</strong> A paper from 2024 should reproduce against the 2024-cohort snapshot, not the 2026 live state. Versioned BigQuery snapshots + the training-mirror snapshots.</li>
+        <li><strong>Vocabulary version skew.</strong> The OHDSI vocabulary used by the 2022 cohort may differ from the 2026 vocabulary. Snapshot the vocabulary at cohort-build time alongside the data.</li>
+        <li><strong>Long-tail storage cost.</strong> Lifecycle policies + nearline / archive tiering. Set up day one or the bill grows quietly.</li>
+        <li><strong>Per-cohort retention.</strong> IRB-approved retention varies; the runbook tracks each cohort\'s retention date.</li>
+      </ul>
+
+      <h4>Deliverables</h4>
+      <ul>
+        <li>Terraform for HIPIMR prod project + perimeter + DICOM store + lifecycle policies</li>
+        <li>Vertex Pipeline for quarterly density CNN retraining</li>
+        <li>Registered <code>hipimr-density</code> model with quarter-labelled version history</li>
+        <li>Quarterly ACHILLES report + the registry BigQuery integration</li>
+        <li>Runbook with multi-year retention plan + cohort snapshot inventory</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Track 3 — HALO                              -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="track-halo">
+    <div class="section-eyebrow">Track 3</div>
+    <h2 class="section-title">HALO — HCC + immunotherapy outcomes</h2>
+
+    <div class="track-block">
+      <span class="tb-label">Architecture</span>
+      <h3>The shape</h3>
+      <div class="tb-line">Queen\'s EHR nightly FHIR → de-id\'d FHIR store → OMOP transformation → BigQuery analytical + ATLAS cohorts → Vertex outcome predictor + federated extension via PacificFed</div>
+
+      <h4>The HALO-specific shape</h4>
+      <p>HALO is OMOP-native. The architectural emphasis is on the analytics layer (M9) and the federated analytics extension (M9L3) for cross-site validation of HCC outcome predictions in NHPI patients. The ML layer (a survival / outcome model in Vertex) is downstream of the analytics.</p>
+
+      <h4>Data path (M8 + M9)</h4>
+      <ul>
+        <li>Nightly Queen\'s extract → FHIR store in <code>srl-halo-prod</code></li>
+        <li>Healthcare API <code>deidentify</code> → sibling de-id FHIR store</li>
+        <li>OMOP ETL (Vertex Pipeline) → BigQuery OMOP tables in research tier</li>
+        <li>OHDSI vocabulary in <code>srl-shared-services.omop_vocab</code> (shared with PacificFed sites)</li>
+      </ul>
+
+      <h4>Analytics layer (M9)</h4>
+      <ul>
+        <li>Broadsea on Cloud Run — ATLAS UI for collaborators</li>
+        <li>Capr-defined cohorts in git for reproducibility</li>
+        <li>Quarterly ACHILLES + monthly cohort-build SLO tracking</li>
+      </ul>
+
+      <h4>Outcome predictor (M6)</h4>
+      <ul>
+        <li>Time-to-event Cox or DeepSurv model on the cohort\'s features</li>
+        <li>Vertex Pipeline for the cohort-export → train → register flow</li>
+        <li>Vertex Endpoint for low-latency outcome scoring on a new patient (with explainability)</li>
+      </ul>
+
+      <h4>Federated extension (M9L3 + M10)</h4>
+      <ul>
+        <li>Same cohort definition runs on Queen\'s\' own OMOP + UH\'s + future partner sites</li>
+        <li>Federated analytics for meta-analysis (M9L3)</li>
+        <li>Optional: federated learning for the predictor (M10) when 2+ sites have aligned data + protocol</li>
+      </ul>
+
+      <h4>The capstone-specific decisions</h4>
+      <ul>
+        <li><strong>Cohort drift.</strong> HCC + immunotherapy patient counts grow as treatments shift. Cohort definition needs scheduled re-validation; ACHILLES dashboard helps.</li>
+        <li><strong>Outcome-definition mapping.</strong> "Death from HCC" vs "all-cause mortality within 5 years" — the OMOP <code>death</code> + <code>death_cause</code> mapping is non-trivial; document it in the runbook.</li>
+        <li><strong>Federated readiness.</strong> The cohort + predictor design must be portable to other OMOP sites without code changes. Test this with a synthetic second-site OMOP dataset.</li>
+        <li><strong>IRB + DUA across sites.</strong> Each PacificFed site has its own protocol; the runbook tracks the joint study state.</li>
+      </ul>
+
+      <h4>Deliverables</h4>
+      <ul>
+        <li>Terraform for HALO PHI + research projects + Broadsea Cloud Run stack</li>
+        <li>OMOP ETL Vertex Pipeline + ACHILLES schedule</li>
+        <li>Capr-defined HCC + IO cohort (versioned in git)</li>
+        <li>Registered <code>halo-outcome-predictor</code> model with deployed Endpoint</li>
+        <li>Federated analytics PoC against a synthetic second-site OMOP dataset</li>
+        <li>Runbook with cohort drift + outcome mapping + federated readiness sections</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Track 4 — ShepBERT                          -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal" id="track-shepbert">
+    <div class="section-eyebrow">Track 4</div>
+    <h2 class="section-title">ShepBERT — clinical NLP at lab scale</h2>
+
+    <div class="track-block">
+      <span class="tb-label">Architecture</span>
+      <h3>The shape</h3>
+      <div class="tb-line">UH EHR FHIR DocumentReference → de-id → OMOP NOTE → sharded GCS corpus → LoRA fine-tune on Bio_ClinicalBERT → GKE multi-adapter serving</div>
+
+      <h4>The ShepBERT-specific shape</h4>
+      <p>Two characteristic moves vs the other tracks: <em>LoRA fine-tuning</em> at the model layer (compact adapters per task), and <em>GKE multi-adapter serving</em> at the inference layer (one base model + many task adapters loaded dynamically). Pavel\'s pipeline is the worked example throughout.</p>
+
+      <h4>Data path (M7L1 + M8)</h4>
+      <ul>
+        <li>Nightly EHR FHIR DocumentReference extracts to <code>srl-shepbert-prod</code> FHIR store</li>
+        <li>Healthcare API de-id (rule set + DLP for free text) → sibling de-id store</li>
+        <li>OMOP NOTE materialisation via Cloud Run Job</li>
+        <li>Vertex Pipeline section-aware chunks notes → sharded JSONL training corpus in GCS</li>
+      </ul>
+
+      <h4>Fine-tuning (M7L2)</h4>
+      <ul>
+        <li>Base: <code>emilyalsentzer/Bio_ClinicalBERT</code></li>
+        <li>LoRA with r=16, alpha=32, target_modules=[query, value], 5 epochs</li>
+        <li>One adapter per task (entity extraction, classification, etc.)</li>
+        <li>Vertex Pipeline: corpus → LoRA train → evaluate (per-entity + slice) → conditional register</li>
+        <li>Adapters under ~100 MB each — many adapters per base in the registry</li>
+      </ul>
+
+      <h4>Multi-adapter serving on GKE (M5 + M7L3)</h4>
+      <ul>
+        <li>vLLM with <code>--enable-lora</code> on a GKE GPU pool</li>
+        <li>Base Bio_ClinicalBERT loaded once into GPU memory; adapters loaded dynamically</li>
+        <li>Per-request: client specifies which adapter; vLLM swaps in milliseconds</li>
+        <li>One inference instance serves many ShepBERT tasks at marginal cost per added task</li>
+      </ul>
+
+      <h4>The capstone-specific decisions</h4>
+      <ul>
+        <li><strong>Section-aware chunking.</strong> 512-token windows wasted on boilerplate kill F1. Implement section detection (HPI / PE / A&amp;P) before chunking.</li>
+        <li><strong>Adapter rank selection.</strong> Sweep r=8, 16, 32; pick where per-task F1 plateaus.</li>
+        <li><strong>Fairness slices.</strong> Per service line + per NHPI grouping; the gate check uses worst-slice delta, not aggregate.</li>
+        <li><strong>Multi-tenancy on the serving instance.</strong> One inference SA serves N adapters; per-request audit must capture which adapter ran on what request, not just "the inference instance was called."</li>
+      </ul>
+
+      <h4>Deliverables</h4>
+      <ul>
+        <li>Terraform for ShepBERT projects + FHIR stores + corpus bucket + GKE cluster</li>
+        <li>Vertex Pipeline for LoRA fine-tuning with the M7L2 evaluation gate</li>
+        <li>At least one registered adapter version with the production alias</li>
+        <li>vLLM Deployment on GKE serving the base + adapter</li>
+        <li>Runbook with section-aware chunking + rank choice + fairness slices documented</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Universal checklist                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Implementation checklist</div>
+    <h2 class="section-title">The universal walkthrough — module by module</h2>
+    <p style="margin-bottom: 1rem;">Regardless of track, walk these steps in order. Each step references the canonical module + lesson; check off as you complete.</p>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📋 The capstone walkthrough</div>
+      <ol class="exercise-steps">
+        <li><strong>M0L1 — Setup.</strong> Confirm gcloud installed + authed; pick the GCP org + folder you\'ll work in; create a sandbox project for the capstone.</li>
+        <li><strong>M1L2 — Topology.</strong> Decide your three project names (<code>srl-yourstudy-dev/staging/prod</code>). Document them in the runbook.</li>
+        <li><strong>M1L3 — Identity.</strong> Define the IAM matrix for your track (personas + scopes + roles). Document in the runbook.</li>
+        <li><strong>M3L1 — Perimeter + BAA.</strong> Open the UH ITS ticket for BAA enrollment on prod. While waiting, set up the perimeter in dry-run mode with your three projects.</li>
+        <li><strong>M11L1 — Terraform.</strong> Use the SRL Terraform modules (or write a thin version) to instantiate your projects + perimeter membership + service accounts. Run plan + apply.</li>
+        <li><strong>M2 — Containers.</strong> Build a base training container + push to Artifact Registry. CI/CD via Cloud Build for the image (M2L2).</li>
+        <li><strong>M8L1 — Data plane.</strong> Stand up your Healthcare API store (DICOM for Makawalu/HIPIMR, FHIR for HALO/ShepBERT). Configure the de-id config (M8L2 DLP template).</li>
+        <li><strong>M6L2 / M7L2 — Pipeline.</strong> Write the training pipeline as KFP code; compile to JSON via CI (M11L2); submit smoke run against dev.</li>
+        <li><strong>M9 — Analytics (HALO + ShepBERT tracks).</strong> Deploy Broadsea Cloud Run + register WebAPI source against your OMOP dataset; load vocabulary.</li>
+        <li><strong>M6L3 / M7L3 — Serving.</strong> Pick Cloud Run vs Vertex Endpoint vs GKE per your track\'s requirements; deploy a candidate version.</li>
+        <li><strong>M4L3 — Operations.</strong> Configure an SLO + alert policy on the serving workload. Set up the billing-export query (M1L4) filtered to your study.</li>
+        <li><strong>M8L3 — End-to-end.</strong> Walk one cohort through your full ingest → de-id → training pipeline; document each step in the runbook.</li>
+        <li><strong>M11L3 — Runbook.</strong> Fill in the per-study runbook template; commit to the lab handbook repo.</li>
+        <li><strong>(Optional) M10 — Federated.</strong> If your track has a federation play (Makawalu/HALO/ShepBERT all do), prototype against a synthetic second site.</li>
+      </ol>
+    </div>
+
+    <div class="callout">
+      <strong>Realistic pacing.</strong> Most labs won\'t do all 14 steps in one six-hour session. The capstone is structured so each step\'s deliverables stand alone — a finished step is useful even if the next step is months away. The full walkthrough is what you accumulate over the first 6-12 months of running a study with this platform.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Course close                                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Closing the course</div>
+    <h2 class="section-title">What you have now</h2>
+    <p style="margin-bottom: 1rem;">Twelve modules. Roughly 30 dense lessons. A glossary that turns "VPC SC" and "DP-SGD" into actionable concepts. The patterns from M1 through M11 are the substrate; M12 is the assembly into a real research cloud.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The end state</h3>
+
+    <div class="del-card">
+      <div class="dc">→</div>
+      <div class="db">A HIPAA-grade, audited, perimeter-protected research cloud that lives as Terraform in a git repo.</div>
+    </div>
+    <div class="del-card">
+      <div class="dc">→</div>
+      <div class="db">A data pipeline that ingests, de-identifies, and materialises cohorts on a schedule, with operational metrics and alerts.</div>
+    </div>
+    <div class="del-card">
+      <div class="dc">→</div>
+      <div class="db">Models trained, evaluated with fairness slices, registered with versioned lineage, and served with canary discipline.</div>
+    </div>
+    <div class="del-card">
+      <div class="dc">→</div>
+      <div class="db">A runbook the next member of the lab reads on day one and understands.</div>
+    </div>
+    <div class="del-card">
+      <div class="dc">→</div>
+      <div class="db">A reproducibility statement that lets the work survive turnover, IRB review, and the journal revision in three years.</div>
+    </div>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Where to go from here</h3>
+
+    <p style="margin-bottom: 1rem;">Read the <a href="../glossary.html">glossary</a> when you hit a term you don\'t remember. Revisit individual modules when you need the depth on a specific decision. Treat the lab handbook (M11L3) as the living document — every new study, every new model, every new collaborator adds an entry.</p>
+
+    <p style="margin-bottom: 1rem;">The course was built around five real SRL studies — HIPIMR, Makawalu, HALO, ShepBERT, PacificFed. Your next study\'s architecture probably looks like one of them with the details swapped. The patterns repeat; the names change.</p>
+
+    <div class="callout">
+      <strong>The single sentence to remember from twelve modules.</strong> Sensitive data stays in a secure cloud boundary. Curated containers and compute spin up beside it, do the work, and terminate. Data never moves. You never pay for idle capacity. Every architectural choice in this course points back at that line — and now you can build it.
+    </div>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m11-lesson3.html" class="btn">← M11L3: Lab handbook</a>
+    <a href="../index.html" class="btn btn-primary">Course home →</a>
+  </div>
+
 </main>
-<footer style="border-top:1px solid var(--border);padding:2rem;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text3)">
-  Shepherd Research Lab · University of Hawaiʻi Cancer Center
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
 </footer>
-<script>
-  // Load Google Fonts for placeholder too
-</script>
+
+<script src="../js/main.js"></script>
 </body>
 </html>
