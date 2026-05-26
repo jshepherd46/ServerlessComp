@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M5 · Lesson 2: Production workloads on GKE — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Probe row */
+.probe {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .9rem 1.15rem; margin-bottom: 8px;
+  display: grid; grid-template-columns: 140px 1fr;
+  gap: 1rem; align-items: start;
+}
+.probe .pn {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--teal); padding-top: 2px;
+}
+.probe .pb { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.probe .pb strong { color: var(--text); font-weight: 600; }
+.probe .pb code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--amber); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+@media (max-width: 640px) {
+  .probe { grid-template-columns: 1fr; }
+  .probe .pn { color: var(--amber); }
+}
+
+/* Namespace tree */
+.nstree {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text2); line-height: 1.7; overflow-x: auto;
+}
+.nstree .cls { color: var(--purple); }
+.nstree .ns { color: var(--blue); }
+.nstree .res { color: var(--teal); }
+.nstree .ann { color: var(--text3); font-style: italic; }
+
+/* Helm structure */
+.helm-tree {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r); padding: .85rem 1.15rem;
+  margin: .5rem 0 1.25rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.65;
+}
+.helm-tree .dir { color: var(--blue); font-weight: 500; }
+.helm-tree .file { color: var(--text2); }
+.helm-tree .ann { color: var(--text3); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M5 · Lesson 2 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 5</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 2 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Production workloads<br>on GKE</h1>
+    <p class="lesson-sub">L1 got a Deployment running. This lesson is everything else you need before the cluster holds real research workloads: rolling update strategy, Jobs and CronJobs for batch, Secret Manager wiring via Workload Identity, Helm to template the lab's standard manifests, and the namespace strategy that keeps studies clean.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 kubectl, Helm, External Secrets, ResourceQuota</span>
+      <span>📍 Module 5 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Deployments deeper               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Deployments at production grade</div>
+    <h2 class="section-title">Strategy, probes, requests</h2>
+    <p style="margin-bottom: 1rem;">A bare Deployment works in dev. A production-grade Deployment specifies how rolling updates behave, how Kubernetes decides a Pod is ready, and what resources each Pod commits to. Three additions to every prod manifest.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">1. Rolling update strategy</h3>
+
+<pre class="code-block">apiVersion: apps/v1
+kind: Deployment
+metadata: {name: xai-serve}
+spec:
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1          <span class="cm"># at most 1 extra Pod during rollout</span>
+      maxUnavailable: 0    <span class="cm"># zero downtime — every old Pod stays up until its replacement is Ready</span>
+  selector: {matchLabels: {app: xai-serve}}
+  template:
+    ...</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;"><code class="code-inline">maxUnavailable: 0</code> is the safe default for SLO-bound services. <code class="code-inline">maxSurge: 1</code> trades a small temporary capacity bump for zero-downtime rollouts. For Pods with large startup costs (model weights, JIT compile), the slow-but-safe rollout matters more than rollout speed.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">2. Three probes, distinct purposes</h3>
+
+    <div class="probe">
+      <div class="pn">startupProbe</div>
+      <div class="pb"><strong>"Is the Pod alive yet?"</strong> Runs only at startup. Buys time for slow initialisations — a 4 GB model load, a JIT warmup. While the startup probe is running, the other probes don't apply. Configure <code>failureThreshold</code> high enough to cover your worst-case startup.</div>
+    </div>
+
+    <div class="probe">
+      <div class="pn">readinessProbe</div>
+      <div class="pb"><strong>"Should the Service route traffic here?"</strong> Runs throughout the Pod's life. If it fails, the Pod is removed from the Service's endpoint list — no traffic, no restart. Use to drain in-flight work during graceful shutdown, or to back off when a dependency is down.</div>
+    </div>
+
+    <div class="probe">
+      <div class="pn">livenessProbe</div>
+      <div class="pb"><strong>"Is the Pod stuck and needs killing?"</strong> If it fails, Kubernetes restarts the container. Use sparingly — a misconfigured liveness probe causes restart loops. Most services need readiness + startup, no liveness.</div>
+    </div>
+
+<pre class="code-block">    spec:
+      containers:
+        - name: app
+          image: <span class="am">$IMG</span>
+          ports: [{containerPort: 8080}]
+          startupProbe:
+            httpGet: {path: /healthz/startup, port: 8080}
+            periodSeconds: 5
+            failureThreshold: 36     <span class="cm"># 3 minutes max startup</span>
+          readinessProbe:
+            httpGet: {path: /healthz/ready, port: 8080}
+            periodSeconds: 5
+            failureThreshold: 3</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">3. Resource requests and limits</h3>
+
+<pre class="code-block">          resources:
+            requests:
+              memory: 2Gi
+              cpu: 1000m            <span class="cm"># 1 vCPU</span>
+              ephemeral-storage: 1Gi
+            limits:
+              memory: 4Gi
+              cpu: 2000m
+              ephemeral-storage: 2Gi</pre>
+
+    <p style="font-size:13.5px;"><strong>Requests</strong> tell GKE what to schedule; in Autopilot, that's also what you're billed for. <strong>Limits</strong> are hard ceilings — a Pod exceeding memory limit gets OOM-killed. Set requests honestly (autoscaling decisions depend on them); set limits with headroom for spikes.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Jobs and CronJobs                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Batch on GKE</div>
+    <h2 class="section-title">Jobs and CronJobs</h2>
+    <p style="margin-bottom: 1rem;">Cloud Run Jobs (M2L3 + M4) handle most batch up to the 24-hour ceiling. On GKE, two analogous objects extend that further and add parallelism patterns Cloud Run doesn't have.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Job — run-to-completion</h3>
+
+<pre class="code-block">apiVersion: batch/v1
+kind: Job
+metadata: {name: density-cnn-train}
+spec:
+  backoffLimit: 2          <span class="cm"># retry the Pod twice on failure before giving up</span>
+  activeDeadlineSeconds: 28800  <span class="cm"># 8h hard timeout</span>
+  template:
+    spec:
+      serviceAccountName: train-job-ksa
+      restartPolicy: OnFailure
+      containers:
+        - name: trainer
+          image: <span class="am">$IMG</span>
+          command: [<span class="str">"python"</span>, <span class="str">"train.py"</span>]
+          resources:
+            requests: {memory: 16Gi, cpu: 4000m}
+            limits:   {memory: 16Gi, cpu: 4000m}</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">The Pod runs, exits 0 on success, exits non-zero on failure. Kubernetes retries up to <code class="code-inline">backoffLimit</code> times. <code class="code-inline">activeDeadlineSeconds</code> kills the whole Job if it exceeds the limit — protect against runaway training.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Parallel Job — fan-out batch</h3>
+
+<pre class="code-block">spec:
+  parallelism: 8       <span class="cm"># up to 8 Pods running concurrently</span>
+  completions: 100     <span class="cm"># run 100 successful task instances total</span>
+  template: ...</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Useful for embarrassingly parallel batch — process 100 DICOMs in 8 parallel workers. Each Pod picks up work via an external queue (Pub/Sub, Firestore, BigQuery). Kubernetes manages the fleet; your code handles work distribution.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">CronJob — Job on a schedule</h3>
+
+<pre class="code-block">apiVersion: batch/v1
+kind: CronJob
+metadata: {name: nightly-ingest}
+spec:
+  schedule: <span class="str">"0 2 * * *"</span>          <span class="cm"># 02:00 daily, cluster's timezone</span>
+  timeZone: <span class="str">"Pacific/Honolulu"</span>
+  concurrencyPolicy: Forbid     <span class="cm"># don't start a new run if the previous is still going</span>
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: ingest-job-ksa
+          restartPolicy: OnFailure
+          containers:
+            - name: ingest
+              image: <span class="am">$IMG</span></pre>
+
+    <div class="callout">
+      <strong>CronJob vs Cloud Scheduler → Cloud Run Job.</strong> Both work. CronJob is in-cluster, sees cluster identity, can mount Persistent Volumes. Cloud Scheduler → Cloud Run Job is serverless, scales to zero, no cluster cost. Default to Cloud Scheduler + Cloud Run Job; pick CronJob when the work needs cluster-local state (mounted volume, in-cluster networking to another Pod).
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: ConfigMaps + Secrets             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Configuration in the cluster</div>
+    <h2 class="section-title">ConfigMaps, Secrets, and Workload-Identity wiring</h2>
+    <p style="margin-bottom: 1rem;">M3L3 said: every secret lives in <a class="g-term" href="../glossary.html#secret-manager">Secret Manager</a>, never in code. That discipline holds on GKE — but Kubernetes has its own concept of Secrets, and you need to know how to bridge them without duplicating the secret material.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">ConfigMaps — non-sensitive config</h3>
+
+<pre class="code-block"><span class="cm"># Plain config — endpoint URLs, feature flags, model parameters</span>
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: xai-config}
+data:
+  MODEL_PATH: <span class="str">"/models/v3"</span>
+  INFERENCE_BATCH_SIZE: <span class="str">"4"</span>
+  LOG_LEVEL: <span class="str">"INFO"</span>
+---
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          envFrom:
+            - configMapRef: {name: xai-config}</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">All key-value pairs appear as environment variables in the container. Or mount as files:</p>
+
+<pre class="code-block">          volumeMounts:
+            - name: config-vol
+              mountPath: /etc/xai
+      volumes:
+        - name: config-vol
+          configMap: {name: xai-config}</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The Secret Manager pattern — don't duplicate secrets into the cluster</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">You could create Kubernetes Secrets manually with the same values as your Secret Manager secrets. <strong>Don't.</strong> Two stores of the same secret means two rotation paths, two audit logs, and inevitable drift. Instead: have your application read directly from Secret Manager at startup, using the Pod's <a class="g-term" href="../glossary.html#workload-identity">Workload Identity</a> bound to a GSA with <code class="code-inline">roles/secretmanager.secretAccessor</code>.</p>
+
+<pre class="code-block"><span class="cm"># In your app — Python example. No env vars, no mounted files.</span>
+<span class="kw">from</span> google.cloud <span class="kw">import</span> secretmanager
+client = secretmanager.SecretManagerServiceClient()
+resp = client.access_secret_version(
+    request={<span class="str">"name"</span>: <span class="str">"projects/srl-makawalu-prod/secrets/xai-api-key/versions/latest"</span>}
+)
+api_key = resp.payload.data.decode()</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">The KSA from M5L1's pattern maps to a GSA that holds the accessor role. The Python client picks up Workload Identity credentials with zero config.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">When you DO need Kubernetes Secrets — External Secrets Operator</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">Some workloads can't easily call Secret Manager directly — third-party Helm charts, off-the-shelf services like ATLAS WebAPI, anything that expects a file at <code class="code-inline">/etc/credentials</code>. The clean answer: the External Secrets Operator (ESO) syncs Secret Manager into Kubernetes Secrets automatically.</p>
+
+<pre class="code-block">apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata: {name: xai-api-key, namespace: makawalu}
+spec:
+  refreshInterval: 1h
+  secretStoreRef: {name: gcp-secret-store, kind: ClusterSecretStore}
+  target:
+    name: xai-api-key       <span class="cm"># the resulting Kubernetes Secret</span>
+  data:
+    - secretKey: API_KEY
+      remoteRef: {key: xai-api-key-prod}</pre>
+
+    <p style="font-size:13.5px;">ESO re-fetches every hour; you rotate in Secret Manager and the in-cluster Secret updates automatically. The Secret Manager remains the source of truth.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Helm                             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Templates and reuse</div>
+    <h2 class="section-title">Helm — your lab's reusable chart</h2>
+    <p style="margin-bottom: 1rem;">By the third study, you'll have copy-pasted the same Deployment + Service + HPA YAML five times. <strong>Helm</strong> is the package manager that templates these manifests so each study customises with a small values file instead of duplicating hundreds of lines.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Anatomy of a chart</h3>
+
+    <div class="helm-tree">
+<span class="dir">srl-app/</span>
+├── <span class="file">Chart.yaml</span>            <span class="ann"># chart metadata + version</span>
+├── <span class="file">values.yaml</span>           <span class="ann"># default values — overridable</span>
+└── <span class="dir">templates/</span>
+    ├── <span class="file">deployment.yaml</span>    <span class="ann"># Pod template, with {{ .Values.* }} substitutions</span>
+    ├── <span class="file">service.yaml</span>
+    ├── <span class="file">hpa.yaml</span>           <span class="ann"># HorizontalPodAutoscaler</span>
+    ├── <span class="file">serviceaccount.yaml</span> <span class="ann"># KSA with Workload Identity annotation</span>
+    └── <span class="file">configmap.yaml</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">A minimal values.yaml for SRL apps</h3>
+
+<pre class="code-block"><span class="cm"># srl-app/values.yaml — defaults; each install overrides what it needs</span>
+image:
+  repository: us-west1-docker.pkg.dev/srl-shared-services/research
+  name: ""        <span class="cm"># required override per app</span>
+  tag: latest
+
+replicas: 2
+
+resources:
+  requests: {memory: 512Mi, cpu: 250m}
+  limits:   {memory: 1Gi, cpu: 500m}
+
+serviceAccount:
+  create: true
+  gcpServiceAccount: ""  <span class="cm"># required override</span>
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+ingress:
+  enabled: false</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Installing the chart per study</h3>
+
+<pre class="code-block"><span class="cm"># Install for Makawalu — override image and SA only</span>
+helm install xai-serve ./srl-app \
+  --namespace=makawalu \
+  --create-namespace \
+  --set image.name=xai-serve \
+  --set image.tag=0.3.0 \
+  --set serviceAccount.gcpServiceAccount=xai-serve-sa@srl-makawalu-prod.iam.gserviceaccount.com \
+  --set replicas=3
+
+<span class="cm"># Same chart, different study, different values</span>
+helm install shepbert-api ./srl-app \
+  --namespace=shepbert \
+  --create-namespace \
+  --set image.name=shepbert-api \
+  --set image.tag=0.5.1 \
+  --set serviceAccount.gcpServiceAccount=shepbert-api-sa@srl-shepbert-prod.iam.gserviceaccount.com \
+  --set resources.requests.memory=4Gi
+
+<span class="cm"># Upgrade — change image tag, helm re-templates and re-applies</span>
+helm upgrade xai-serve ./srl-app --namespace=makawalu --reuse-values \
+  --set image.tag=0.3.1
+
+<span class="cm"># Rollback — same idea as kubectl rollout undo, at the chart level</span>
+helm rollback xai-serve 1 --namespace=makawalu</pre>
+
+    <div class="callout">
+      <strong>The discipline this enables.</strong> One <code class="code-inline">srl-app</code> chart in your lab repo, owned by you, reviewed by you, versioned with the rest of the runbook. Every study's deploy is a values file + one helm command. Drift between studies disappears; the next study setup is 15 minutes instead of half a day.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Namespaces                       -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Multi-study isolation</div>
+    <h2 class="section-title">The namespace strategy</h2>
+    <p style="margin-bottom: 1rem;">From M1L2: one project per study. Inside a multi-tenant cluster (the case when you share a GKE cluster across studies — common for sandbox or pre-prod), the equivalent at the cluster level is <strong>one namespace per study</strong>. Namespaces carry RBAC, ResourceQuotas, and NetworkPolicies, giving each study its own slice of the cluster without sharing identity or capacity.</p>
+
+    <div class="nstree">
+<span class="cls">📦 GKE cluster: srl-research-cluster</span>
+├── <span class="ns">📁 namespace: makawalu</span>
+│   ├── <span class="res">RoleBinding</span>: <span class="ann">srl-makawalu-leads@ → edit</span>
+│   ├── <span class="res">ResourceQuota</span>: <span class="ann">cpu=20, memory=80Gi, gpu=2</span>
+│   ├── <span class="res">NetworkPolicy</span>: <span class="ann">deny-all + selective allow</span>
+│   └── <span class="res">Deployment/xai-serve, Job/density-cnn-train</span>
+├── <span class="ns">📁 namespace: shepbert</span>
+│   ├── <span class="res">RoleBinding</span>: <span class="ann">srl-shepbert-leads@ → edit</span>
+│   ├── <span class="res">ResourceQuota</span>: <span class="ann">cpu=10, memory=40Gi</span>
+│   └── <span class="res">Deployment/shepbert-api</span>
+└── <span class="ns">📁 namespace: kube-system</span>          <span class="ann"># GKE-managed; off-limits</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">ResourceQuota — caps a namespace's slice</h3>
+
+<pre class="code-block">apiVersion: v1
+kind: ResourceQuota
+metadata: {name: makawalu-quota, namespace: makawalu}
+spec:
+  hard:
+    requests.cpu: <span class="str">"20"</span>
+    requests.memory: 80Gi
+    requests.nvidia.com/gpu: <span class="str">"2"</span>
+    persistentvolumeclaims: <span class="str">"5"</span>
+    pods: <span class="str">"50"</span></pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Quotas prevent one study from starving another. In a multi-tenant cluster they're not optional — set them per namespace at creation.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">NetworkPolicy — default-deny inside the cluster</h3>
+
+<pre class="code-block"><span class="cm"># Inside makawalu namespace: deny all cross-namespace traffic by default</span>
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: deny-other-namespaces, namespace: makawalu}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}        <span class="cm"># Pods in the same namespace</span></pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Then allow specific cross-namespace traffic only where needed (shared OMOP vocabulary in <code class="code-inline">shared-services</code> namespace, say). The default-deny posture matches the M3 perimeter discipline applied at the in-cluster level.</p>
+
+    <div class="callout">
+      <strong>Project-per-study still wins for prod.</strong> Multi-namespace-in-one-cluster is a fine pattern for dev / pre-prod (shared cluster, contained namespaces). For prod PHI workloads, stay with project-per-study and one cluster per project — the VPC SC perimeter, billing, and audit story are cleaner than trying to do multi-tenancy at the namespace level.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 5.2</div>
+    <h2 class="section-title">Deployment + Job + Helm + Workload Identity</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🛠 Production-shaped workloads end-to-end</div>
+      <ol class="exercise-steps">
+        <li>Restart your Autopilot cluster from M5L1 if you tore it down:<br>
+          <code class="code-inline">gcloud container clusters create-auto srl-demo-cluster --location=us-west1 --release-channel=regular --network=demo-vpc --subnetwork=demo-subnet</code><br>
+          <code class="code-inline">gcloud container clusters get-credentials srl-demo-cluster --location=us-west1</code>
+        </li>
+        <li>Create a namespace + quota for a hypothetical study:<br>
+          <code class="code-inline">kubectl create namespace demo-study</code><br>
+<pre class="code-block">cat &lt;&lt;EOF | kubectl apply -f -
+apiVersion: v1
+kind: ResourceQuota
+metadata: {name: demo-quota, namespace: demo-study}
+spec:
+  hard: {requests.cpu: <span class="str">"4"</span>, requests.memory: 8Gi, pods: <span class="str">"10"</span>}
+EOF</pre>
+        </li>
+        <li><strong>Workload Identity setup</strong> — create a GSA, KSA, and bind them. (You can skip granting GCP roles if the demo doesn't call GCP APIs.)<br>
+          <code class="code-inline">gcloud iam service-accounts create demo-app-sa</code><br>
+          <code class="code-inline">kubectl create serviceaccount demo-app-ksa -n demo-study</code><br>
+          <code class="code-inline">kubectl annotate serviceaccount demo-app-ksa -n demo-study iam.gke.io/gcp-service-account=demo-app-sa@$PROJECT.iam.gserviceaccount.com</code><br>
+          <code class="code-inline">gcloud iam service-accounts add-iam-policy-binding demo-app-sa@$PROJECT.iam.gserviceaccount.com --role=roles/iam.workloadIdentityUser --member="serviceAccount:$PROJECT.svc.id.goog[demo-study/demo-app-ksa]"</code>
+        </li>
+        <li><strong>Build a minimal Helm chart</strong> for hello-flask. From a fresh directory:<br>
+          <code class="code-inline">helm create srl-app</code><br>
+          Edit <code class="code-inline">srl-app/values.yaml</code> to set image repo + name + tag for your hello-flask. Edit <code class="code-inline">srl-app/templates/deployment.yaml</code> to add <code class="code-inline">serviceAccountName: {{ .Values.serviceAccount.name }}</code> if not already there. (The default <code class="code-inline">helm create</code> output is close; one small tweak.)
+        </li>
+        <li><strong>Install with the chart:</strong><br>
+          <code class="code-inline">helm install demo-app ./srl-app -n demo-study --set image.repository=us-west1-docker.pkg.dev/$PROJECT/practice/hello-flask --set image.tag=0.2.0 --set serviceAccount.create=false --set serviceAccount.name=demo-app-ksa</code><br>
+          Confirm: <code class="code-inline">kubectl get pods -n demo-study</code>.
+        </li>
+        <li><strong>Create a CronJob</strong> that runs every minute and prints a hello (saves <code class="code-inline">cronjob.yaml</code>):
+<pre class="code-block">apiVersion: batch/v1
+kind: CronJob
+metadata: {name: hello-cron, namespace: demo-study}
+spec:
+  schedule: <span class="str">"*/1 * * * *"</span>
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: hello
+              image: busybox
+              args: [<span class="str">"sh"</span>, <span class="str">"-c"</span>, <span class="str">"echo hello from $(date)"</span>]</pre>
+          <code class="code-inline">kubectl apply -f cronjob.yaml</code>. Wait a couple minutes; check executions: <code class="code-inline">kubectl get jobs -n demo-study</code>, then logs: <code class="code-inline">kubectl logs job/&lt;jobname&gt; -n demo-study</code>.
+        </li>
+        <li><strong>Practice helm upgrade:</strong> change the replicas value:<br>
+          <code class="code-inline">helm upgrade demo-app ./srl-app -n demo-study --reuse-values --set replicas=3</code><br>
+          Watch the rolling update happen: <code class="code-inline">kubectl rollout status deployment/demo-app -n demo-study</code>.
+        </li>
+        <li><strong>Tear down</strong> at the end:<br>
+          <code class="code-inline">helm uninstall demo-app -n demo-study</code><br>
+          <code class="code-inline">kubectl delete cronjob hello-cron -n demo-study</code><br>
+          <code class="code-inline">kubectl delete namespace demo-study</code><br>
+          Then delete the cluster if you're done for the session.
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">kubectl create namespace + ResourceQuota</span>
+        <span class="tag">Workload Identity binding</span>
+        <span class="tag">helm create / install / upgrade</span>
+        <span class="tag">CronJob</span>
+        <span class="tag">kubectl rollout status</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>You set a <code class="code-inline">livenessProbe</code> on a service that takes 90 seconds to load a model. Pods start restarting in a loop. What's wrong, and what's the right shape?</span>
+        <a href="#" class="check-btn" onclick="alert('The livenessProbe runs from Pod start, so it fails during the slow load and Kubernetes restarts the container - which starts another slow load, fails again, loops forever. Fix: add a startupProbe with a generous failureThreshold (covering 90+ seconds), which suspends the liveness check until startup completes. Best practice: most services need readiness + startup, no liveness at all. Liveness is for "the process is alive but hung" - rare in practice.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your team duplicated the Secret Manager value into a Kubernetes Secret "to make it easier to mount." A month later, the in-cluster Secret is stale because someone rotated only the Secret Manager copy. What's the durable fix?</span>
+        <a href="#" class="check-btn" onclick="alert('Stop duplicating. Two paths: (1) have the app read directly from Secret Manager at startup using Workload Identity - no Kubernetes Secret involved. Best for code you control. (2) Use the External Secrets Operator (ESO) to sync Secret Manager into Kubernetes Secrets on a schedule - the Secret Manager remains the source of truth, the cluster copy auto-refreshes. Best for third-party Helm charts that demand mounted Secrets.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You\'re sharing a dev cluster across three studies. Why is one namespace per study with quotas + RBAC the right partition rather than three clusters?</span>
+        <a href="#" class="check-btn" onclick="alert('Cost and operations. Three clusters mean three control planes, three node-pool baselines, three upgrade cycles, three monitoring stacks. For dev / pre-prod where workloads are small and bursty, a single cluster with namespace isolation gives you the same logical separation (RBAC scoped per namespace, ResourceQuota caps per namespace, NetworkPolicy default-deny between namespaces) at a fraction of the operational overhead. For prod PHI workloads the calculus flips - project-per-study and cluster-per-project is worth the overhead for the perimeter and audit story.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You install <code class="code-inline">srl-app</code> chart for Makawalu and ShepBERT. Both deploys go fine, but ShepBERT pods can\'t pull the image. Where do you check first?</span>
+        <a href="#" class="check-btn" onclick="alert('The image reference path - did the values override actually take effect? helm get values shepbert-api -n shepbert will show you the resolved chart values. Also: is the GSA bound to ShepBERT\'s KSA via Workload Identity, and does that GSA have artifactregistry.reader on the shared registry? If ShepBERT\'s GSA is missing the role (a recurring M1L3 gotcha), the image pull fails with 403 - even though Makawalu\'s GSA pulled the same image fine.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m5-lesson1.html" class="btn">← Lesson 5.1: Fundamentals</a>
+    <a href="m5-lesson3.html" class="btn btn-primary">Lesson 5.3: GKE at scale →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

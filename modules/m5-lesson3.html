@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M5 · Lesson 3: GKE at scale — GPU pools, networking, ops — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Service type grid */
+.svc-types {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin: 1rem 0 1.5rem;
+}
+.svc-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+}
+.svc-card.ip { border-left: 3px solid var(--teal); }
+.svc-card.lb { border-left: 3px solid var(--blue); }
+.svc-card.ilb { border-left: 3px solid var(--green); }
+.svc-card.ing { border-left: 3px solid var(--amber); }
+.svc-card h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+  text-transform: none; letter-spacing: 0;
+}
+.svc-card .st {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  letter-spacing: .04em; margin-bottom: .5rem; display: block;
+}
+.svc-card.ip .st { color: var(--teal); }
+.svc-card.lb .st { color: var(--blue); }
+.svc-card.ilb .st { color: var(--green); }
+.svc-card.ing .st { color: var(--amber); }
+.svc-card p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.svc-card .use { font-style: italic; color: var(--text3); font-size: 11.5px; }
+@media (max-width: 640px) { .svc-types { grid-template-columns: 1fr; } }
+
+/* Layer cards */
+.layer-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--purple);
+}
+.layer-card .ll {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--purple); letter-spacing: .04em; margin-bottom: .3rem;
+}
+.layer-card h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+  text-transform: none; letter-spacing: 0;
+}
+.layer-card p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .3rem; }
+.layer-card code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* Channel row */
+.chan {
+  display: grid; grid-template-columns: 110px 1fr;
+  gap: 1rem; align-items: center;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: .65rem 1rem; margin-bottom: 6px;
+}
+.chan .cn {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--amber); letter-spacing: .04em;
+}
+.chan .cb { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M5 · Lesson 3 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 5</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 3</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot done" title="Lesson 2"></div>
+      <div class="progress-dot active" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 3 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">GKE at scale<br>— GPUs, networking, ops</h1>
+    <p class="lesson-sub">L1 + L2 got you running. This lesson is the rest of what a research lab actually needs from GKE — GPU compute for training, the networking primitives, observability, autoscaling, and the upgrade discipline that keeps a cluster running for years.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 GPU node pools, Ingress/Gateway, HPA, release channels</span>
+      <span>📍 Module 5 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: GPU pools                        -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Compute for ML</div>
+    <h2 class="section-title">GPU node pools — getting training onto GKE</h2>
+    <p style="margin-bottom: 1rem;">The single most common reason to escalate from Cloud Run to GKE: GPU training and inference that needs more than what Cloud Run GPUs cover. On GKE the pattern is dedicated GPU pools (Standard) or GPU-bearing Pod requests (Autopilot), with workloads scheduled onto GPUs via Pod resource requests.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Autopilot — just ask for GPUs</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Autopilot provisions appropriate GPU nodes automatically when a Pod requests them. Simplest path; less control over machine families.</p>
+
+<pre class="code-block">apiVersion: batch/v1
+kind: Job
+metadata: {name: density-cnn-train}
+spec:
+  template:
+    spec:
+      <span class="kw">nodeSelector</span>:
+        cloud.google.com/gke-accelerator: <span class="str">nvidia-l4</span>      <span class="cm"># or nvidia-tesla-a100, etc.</span>
+      restartPolicy: OnFailure
+      serviceAccountName: train-job-ksa
+      containers:
+        - name: trainer
+          image: us-west1-docker.pkg.dev/srl-shared-services/research/cnn-train:0.4
+          resources:
+            requests:
+              cpu: 4000m
+              memory: 16Gi
+              <span class="kw">nvidia.com/gpu: 1</span>
+            limits:
+              cpu: 4000m
+              memory: 16Gi
+              nvidia.com/gpu: 1</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Autopilot sees the GPU request and provisions an L4-equipped node. When the Job completes, the node deprovisions. You pay only for the time the GPU node ran. No node-pool management.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Standard — explicit GPU node pool</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">When you need specific machine types, spot pricing, or stable pool sizing, use Standard with a dedicated GPU pool:</p>
+
+<pre class="code-block">gcloud container node-pools create gpu-pool \
+  --cluster=srl-ml-cluster --location=us-west1 \
+  --machine-type=a2-highgpu-1g \
+  --accelerator=type=nvidia-tesla-a100,count=1,gpu-driver-version=DEFAULT \
+  --enable-autoscaling --min-nodes=0 --max-nodes=4 \
+  --node-taints=workload=gpu:NoSchedule</pre>
+
+    <p style="font-size:13.5px;margin-bottom:.75rem;">The <code class="code-inline">--node-taints</code> ensures only Pods with a matching toleration land on GPU nodes — CPU workloads stay off the expensive pool. Match in the Pod spec:</p>
+
+<pre class="code-block">      tolerations:
+        - key: workload
+          operator: Equal
+          value: gpu
+          effect: NoSchedule</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The cost shape</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">A100 is roughly $3-4/GPU-hour on-demand; L4 is roughly $0.70/GPU-hour. Spot pricing cuts both by ~70% with the risk of preemption. For training that checkpoints, spot is almost always the right call. For low-latency inference where preemption ruins UX, on-demand.</p>
+
+    <div class="callout">
+      <strong>Two patterns SRL actually uses.</strong> <em>Makawalu CBM training</em> — Job on Autopilot with one L4, checkpoint every epoch to GCS, restart on failure. <em>PacificFed FL aggregator</em> — long-running Deployment on Standard with a dedicated multi-A100 pool, never preempted, lifecycle managed manually because uptime is the whole point.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Networking                       -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">In and out of the cluster</div>
+    <h2 class="section-title">Networking — Services, Ingress, Gateway</h2>
+    <p style="margin-bottom: 1rem;">M5L1 introduced Service. There are four practical variants for exposing workloads — three on the Service object and one above it. Pick by who's talking to the Pod.</p>
+
+    <div class="svc-types">
+      <div class="svc-card ip">
+        <span class="st">type: ClusterIP (default)</span>
+        <h4>Internal-only</h4>
+        <p>A stable DNS name and IP reachable only from inside the cluster. Cluster-local Pods call it by name.</p>
+        <div class="use">Use for: service-to-service inside the cluster.</div>
+      </div>
+      <div class="svc-card lb">
+        <span class="st">type: LoadBalancer (external)</span>
+        <h4>Public regional LB</h4>
+        <p>Provisions a public IP + a Google L4 load balancer in front of the Service. Reachable from the internet.</p>
+        <div class="use">Use for: rare. Most public services should go through Gateway / Ingress for HTTPS + WAF.</div>
+      </div>
+      <div class="svc-card ilb">
+        <span class="st">annotations: cloud.google.com/load-balancer-type: Internal</span>
+        <h4>Internal LB</h4>
+        <p>Same as LoadBalancer but the IP is RFC1918, reachable only from inside the VPC.</p>
+        <div class="use">Use for: cross-cluster services, on-prem hybrid, any in-VPC consumer outside the cluster.</div>
+      </div>
+      <div class="svc-card ing">
+        <span class="st">kind: Gateway (recommended) or Ingress (older)</span>
+        <h4>HTTPS routing with WAF</h4>
+        <p>Layer 7 routing: path-based or host-based, TLS termination, Cloud Armor attached, IAP integration. The right answer for public web traffic.</p>
+        <div class="use">Use for: clinician-facing UIs, public APIs, anything exposed externally to humans.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Gateway — a modern HTTPS front door</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">The Gateway API supersedes Ingress for new deployments. It's more expressive and shares the API across cloud and OSS.</p>
+
+<pre class="code-block">apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata: {name: xai-gateway}
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: SecretRef
+            name: xai-tls-cert
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: xai-route}
+spec:
+  parentRefs:
+    - name: xai-gateway
+  hostnames: [<span class="str">"xai.makawalu.uhcancercenter.org"</span>]
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - name: xai-serve
+          port: 80</pre>
+
+    <p style="font-size:13.5px;">The same Cloud Armor policy from M3L2 can attach via <code class="code-inline">GCPBackendPolicy</code>. IAP attaches via <code class="code-inline">GCPGatewayPolicy</code>. The HTTP routing is portable; the GCP-specific behaviour (WAF, IAP) attaches through targeted policy objects.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Observability                    -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowing what's happening</div>
+    <h2 class="section-title">Observability — kubectl, Cloud Logging, Cloud Monitoring</h2>
+    <p style="margin-bottom: 1rem;">GKE pipes everything to Cloud Logging and Cloud Monitoring automatically. The skill is knowing which tool answers which question — and where the gaps are.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">kubectl — for live, ad-hoc investigation</h3>
+
+<pre class="code-block"><span class="cm"># What's running, by namespace</span>
+kubectl get pods -n makawalu -o wide
+
+<span class="cm"># Why is this Pod not Ready?</span>
+kubectl describe pod xai-serve-abc -n makawalu
+
+<span class="cm"># Last 100 log lines, follow live</span>
+kubectl logs deployment/xai-serve -n makawalu --tail=100 -f
+
+<span class="cm"># Exec into a Pod (interactive shell)</span>
+kubectl exec -it xai-serve-abc -n makawalu -- /bin/sh
+
+<span class="cm"># Resource utilisation snapshot</span>
+kubectl top pods -n makawalu --sort-by=memory</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Cloud Logging — for historical queries and cross-cluster views</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">Every container's stdout/stderr lands here automatically. The query for "errors from xai-serve in the last hour":</p>
+
+<pre class="code-block">resource.type=<span class="str">"k8s_container"</span>
+resource.labels.cluster_name=<span class="str">"srl-ml-cluster"</span>
+resource.labels.namespace_name=<span class="str">"makawalu"</span>
+resource.labels.container_name=<span class="str">"app"</span>
+labels.<span class="str">"k8s-pod/app"</span>=<span class="str">"xai-serve"</span>
+severity&gt;=ERROR</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Save as a saved query in Logs Explorer; reuse during incidents.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Cloud Monitoring — for SLOs and dashboards</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">GKE ships with a pre-built dashboard per cluster. The metrics that matter for an SLO:</p>
+
+    <ul style="list-style:none;padding-left:1rem;margin-bottom:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <code class="code-inline">kubernetes.io/container/cpu/core_usage_time</code> — CPU per container</li>
+      <li>→ <code class="code-inline">kubernetes.io/container/memory/used_bytes</code> — memory per container</li>
+      <li>→ <code class="code-inline">kubernetes.io/container/restart_count</code> — restart counter (alert on increases)</li>
+      <li>→ Custom metrics from your app via OpenTelemetry → Cloud Monitoring</li>
+    </ul>
+
+    <p style="font-size:13.5px;">SLO setup mirrors M4L3 — create an SLO target on the metric of interest, set burn-rate alerts, wire to a notification channel.</p>
+
+    <div class="callout">
+      <strong>The one piece GKE doesn't do for free:</strong> distributed tracing. If you want to see a request flow across multiple services in your cluster, instrument with OpenTelemetry. For most research labs, the per-service request-latency histogram in Monitoring is sufficient; tracing comes in when you have ≥3 services on the critical path.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Autoscaling                      -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Three layers</div>
+    <h2 class="section-title">Autoscaling — Pods, nodes, vertical sizing</h2>
+    <p style="margin-bottom: 1rem;">Cloud Run had one autoscaler (request-based). GKE has three working at different levels. In Autopilot they're all rolled together; in Standard you configure each.</p>
+
+    <div class="layer-card">
+      <div class="ll">Layer 1 — HorizontalPodAutoscaler (HPA)</div>
+      <h4>Scale the Pod count up and down</h4>
+      <p>Watches a metric (CPU, memory, custom); adds or removes Pod replicas to keep the metric within a target. The most useful autoscaler for serving workloads.</p>
+<pre class="code-block">apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: xai-serve, namespace: makawalu}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: xai-serve
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource: {name: cpu, target: {type: Utilization, averageUtilization: 70}}</pre>
+    </div>
+
+    <div class="layer-card">
+      <div class="ll">Layer 2 — Cluster Autoscaler (Standard) / Autopilot</div>
+      <h4>Scale the node count up and down</h4>
+      <p>When the HPA wants more Pods but no node has room, the cluster autoscaler adds a node. When Pods drain off a node, it removes the node. In Autopilot this is invisible; in Standard you configure min/max per pool.</p>
+    </div>
+
+    <div class="layer-card">
+      <div class="ll">Layer 3 — VerticalPodAutoscaler (VPA)</div>
+      <h4>Right-size resource requests automatically</h4>
+      <p>Watches actual resource usage over time and updates the Pod's requests to match. Useful for guessing the right starting point; controversial in prod because it churns deployments. Most labs use VPA in "off" mode (recommendation-only) to inform manual tuning.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Cost levers on GKE</h3>
+
+    <ul style="list-style:none;padding-left:1rem;margin-bottom:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>HPA <code class="code-inline">minReplicas</code></strong> — Cloud Run's <code class="code-inline">min-instances</code> equivalent. Default to 1; raise only if you have a measured reason.</li>
+      <li>→ <strong>Resource requests</strong> — request only what you actually use. Pods asking for 8 GB and using 2 GB pay for 8.</li>
+      <li>→ <strong>Spot nodes for batch</strong> — training that checkpoints can run on spot for ~70% off. Add a spot pool with a clear toleration and put your Jobs there.</li>
+      <li>→ <strong>Cluster lifecycle</strong> — dev clusters that you only need office hours can be created in the morning, deleted in the evening. Helm makes redeploy fast.</li>
+    </ul>
+
+    <p style="font-size:13.5px;">Run the M1L4 billing query filtered to <code class="code-inline">service.description = "Kubernetes Engine"</code> on the first of every month. Watch the per-service distribution; tune the outliers.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Upgrades                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Keeping the cluster alive for years</div>
+    <h2 class="section-title">Upgrades, release channels, maintenance windows</h2>
+    <p style="margin-bottom: 1rem;">A GKE cluster has a Kubernetes version, and Kubernetes versions move quarterly. Auto-upgrade is on by default in Autopilot. The discipline is choosing the right channel and the right maintenance window so upgrades happen on your terms, not in the middle of a study run.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Release channels</h3>
+
+    <div class="chan">
+      <div class="cn">RAPID</div>
+      <div class="cb">Newest minor + patches first. ~2-4 weeks behind upstream. Best for development clusters where you want to try new features early.</div>
+    </div>
+    <div class="chan">
+      <div class="cn">REGULAR</div>
+      <div class="cb">Default. ~2-3 months behind upstream. Recommended for most prod clusters — balances stability with not falling behind.</div>
+    </div>
+    <div class="chan">
+      <div class="cn">STABLE</div>
+      <div class="cb">Most conservative. ~6 months behind upstream. Use when an upgrade-related outage would be unacceptable and you can absorb the upstream lag.</div>
+    </div>
+
+    <p style="margin-top:1rem;font-size:13.5px;margin-bottom:1rem;">SRL default: <strong>REGULAR</strong> for prod clusters, <strong>RAPID</strong> for sandbox.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Maintenance windows</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">Pin upgrades to a window when downtime risk is lowest:</p>
+
+<pre class="code-block">gcloud container clusters update srl-ml-cluster --location=us-west1 \
+  --maintenance-window-start=<span class="str">"2026-06-01T11:00:00Z"</span> \
+  --maintenance-window-end=<span class="str">"2026-06-01T15:00:00Z"</span> \
+  --maintenance-window-recurrence=<span class="str">"FREQ=WEEKLY;BYDAY=SU"</span></pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Sunday 3–7 AM HST. No clinician demos, no training runs scheduled. The upgrade may take a few minutes; Pods drain to a temporary node, the old node upgrades, drained Pods reschedule. Zero-downtime if your Deployments use <code class="code-inline">PodDisruptionBudget</code> + rolling-update strategy.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">PodDisruptionBudget — surviving evictions</h3>
+
+<pre class="code-block">apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: xai-serve-pdb, namespace: makawalu}
+spec:
+  minAvailable: 1
+  selector: {matchLabels: {app: xai-serve}}</pre>
+
+    <p style="font-size:13.5px;">During an upgrade, the autoscaler honours the PDB and won't evict more Pods than the budget allows. Without it, all Pods can be evicted simultaneously during a node drain.</p>
+
+    <div class="callout">
+      <strong>The minimum runbook entry for GKE.</strong> <em>Cluster:</em> name, location, channel, maintenance window. <em>Per workload:</em> Deployment + PDB + HPA + Service + (Gateway if public) + ServiceAccount with WI binding. When you start a new study, you copy these patterns from the runbook; the cluster you inherit a year from now is comprehensible because the patterns are consistent.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 5.3</div>
+    <h2 class="section-title">HPA + Gateway + PodDisruptionBudget</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">⚙️ Operational shaping</div>
+      <ol class="exercise-steps">
+        <li>Restart your Autopilot cluster from earlier if needed (<code class="code-inline">srl-demo-cluster</code>). Re-deploy hello-flask via the Helm chart from M5L2.</li>
+        <li><strong>Add an HPA</strong> on the hello-flask Deployment:
+<pre class="code-block">apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: hello-flask, namespace: demo-study}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: demo-app}
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource: {name: cpu, target: {type: Utilization, averageUtilization: 60}}</pre>
+          <code class="code-inline">kubectl apply -f hpa.yaml</code>. Confirm: <code class="code-inline">kubectl get hpa -n demo-study</code>.
+        </li>
+        <li><strong>Generate load to see scaling.</strong> From inside the cluster:<br>
+          <code class="code-inline">kubectl run loadgen --rm -it --image=busybox --restart=Never -n demo-study -- /bin/sh -c "while true; do wget -q -O- http://demo-app.demo-study.svc.cluster.local/; done"</code><br>
+          Wait a couple minutes; <code class="code-inline">kubectl get hpa -n demo-study --watch</code> — replicas should climb. Stop the loadgen (<kbd>Ctrl-C</kbd>); replicas scale back down after the cooldown.
+        </li>
+        <li><strong>Add a PodDisruptionBudget:</strong>
+<pre class="code-block">apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: demo-app-pdb, namespace: demo-study}
+spec:
+  minAvailable: 1
+  selector: {matchLabels: {app.kubernetes.io/instance: demo-app}}</pre>
+          <code class="code-inline">kubectl apply -f pdb.yaml</code>. Confirm with <code class="code-inline">kubectl get pdb -n demo-study</code>.
+        </li>
+        <li><strong>Simulate a drain</strong> (replicates what an upgrade does). Pick a node hosting demo-app Pods, then:<br>
+          <code class="code-inline">kubectl get pods -n demo-study -o wide</code> (note the node names)<br>
+          <code class="code-inline">kubectl drain &lt;node&gt; --ignore-daemonsets --delete-emptydir-data</code> (will respect your PDB; will not evict beyond it)
+        </li>
+        <li><strong>Set up an internal LB</strong> in front of demo-app — useful pattern for cross-namespace service-to-service:
+<pre class="code-block">apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app-ilb
+  namespace: demo-study
+  annotations:
+    networking.gke.io/load-balancer-type: <span class="str">"Internal"</span>
+spec:
+  type: LoadBalancer
+  selector: {app.kubernetes.io/instance: demo-app}
+  ports: [{port: 80, targetPort: 8080}]</pre>
+          <code class="code-inline">kubectl apply -f ilb.yaml</code>. Wait a couple of minutes — <code class="code-inline">kubectl get svc demo-app-ilb -n demo-study</code> should show a private IP. Reachable only from inside the VPC.
+        </li>
+        <li><strong>Configure the maintenance window:</strong><br>
+          <code class="code-inline">gcloud container clusters update srl-demo-cluster --location=us-west1 --maintenance-window-start="2026-06-01T11:00:00Z" --maintenance-window-end="2026-06-01T15:00:00Z" --maintenance-window-recurrence="FREQ=WEEKLY;BYDAY=SU"</code>
+        </li>
+        <li><strong>Run the M1L4 billing query</strong> filtered to GKE:<br>
+          <code class="code-inline">bq query --use_legacy_sql=false 'SELECT service.description AS svc, ROUND(SUM(cost),2) usd FROM \`[YOUR_BILLING_DATASET].gcp_billing_export_v1_XXXX\` WHERE service.description LIKE "Kubernetes%" GROUP BY svc'</code>
+        </li>
+        <li><strong>Tear down everything</strong> when you're done — the cluster itself accrues cost regardless of workload count:<br>
+          <code class="code-inline">helm uninstall demo-app -n demo-study</code><br>
+          <code class="code-inline">kubectl delete namespace demo-study</code><br>
+          <code class="code-inline">gcloud container clusters delete srl-demo-cluster --location=us-west1</code>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Commands you used</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">HorizontalPodAutoscaler</span>
+        <span class="tag">PodDisruptionBudget</span>
+        <span class="tag">kubectl drain</span>
+        <span class="tag">Internal LoadBalancer (GKE annotation)</span>
+        <span class="tag">gcloud container clusters update --maintenance-window</span>
+        <span class="tag">BQ billing-export query</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>You want to run Makawalu's CBM training on GKE Autopilot with an L4 GPU. What's the minimum Pod spec change from a CPU-only Pod?</span>
+        <a href="#" class="check-btn" onclick="alert('Two additions. (1) nodeSelector with cloud.google.com/gke-accelerator: nvidia-l4 so Autopilot provisions an L4-equipped node. (2) Resource request/limit for nvidia.com/gpu: 1. Everything else (image, env, SA, namespace) stays identical to the CPU version. Autopilot handles node provisioning + driver install transparently.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You have a clinician-facing XAI demo that needs to be public-https with WAF protection. Service type LoadBalancer or Gateway?</span>
+        <a href="#" class="check-btn" onclick="alert('Gateway. Service type LoadBalancer gives you an L4 IP and that is it - no HTTPS, no path routing, no Cloud Armor integration. Gateway gives you L7 routing, managed TLS, and a place to attach a GCPBackendPolicy for Cloud Armor. For any HTTPS-facing service the answer is Gateway (or Ingress on older clusters).');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>HPA is at <code class="code-inline">minReplicas: 1, maxReplicas: 20</code>. Traffic spikes; your monitoring shows 4 Pods running but latency p99 is climbing. Three possible causes?</span>
+        <a href="#" class="check-btn" onclick="alert('(1) The HPA scaling metric does not capture the real bottleneck - CPU may be at 50% while a slow downstream is the real limit; bind the HPA to a custom metric that does reflect saturation. (2) The Pod resource request is too small, so each Pod hits its limit before CPU utilisation triggers a scale-up - bump the request. (3) Cluster capacity is the limit - Autopilot or cluster autoscaler is slow to provision; check whether new Pods are Pending while scaling.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>The cluster auto-upgraded on a Wednesday afternoon and one Deployment briefly hit zero ready Pods. What did you forget to add?</span>
+        <a href="#" class="check-btn" onclick="alert('A PodDisruptionBudget. Without one, GKE can evict all Pods of a Deployment simultaneously during a node drain. With a PDB specifying minAvailable: 1 (or 50%), the upgrade respects the budget and at least one Pod remains serving at all times. Also missed: a maintenance window pinned to off-hours - upgrades should not run at the worst possible time for your study.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- M5 + Phase 2 opener                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Closing M5</div>
+    <h2 class="section-title">You can now run research workloads on Kubernetes</h2>
+    <div class="callout">
+      <strong>The arc of M5.</strong> L1 — the model and your first cluster. L2 — Deployments, Jobs, Helm, namespaces, Workload Identity. L3 — GPU pools, Gateway, autoscaling, upgrades. Combined: the substrate for everything Phase 2 builds. The next modules are workloads that run <em>on</em> what you just built.
+    </div>
+    <p style="margin-top: 1rem;">M6 is deep learning in the cloud — CNNs, imaging, the Vertex AI vs GKE decision for training, the HIPIMR / Makawalu pipelines made concrete. M7 is BERT, LLMs, and frontier-model deployment — ShepBERT and Vertex Model Garden. M8 is secure data pipelines and de-identification at scale — the Healthcare API in depth, DLP-at-scale, the Cloud Healthcare → BigQuery flow. Everything you've built in M1–M5 is the platform those modules ship on.</p>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m5-lesson2.html" class="btn">← Lesson 5.2: Production workloads</a>
+    <a href="m6.html" class="btn btn-primary">M6: Deep learning in the cloud →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

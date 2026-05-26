@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M5 · Lesson 1: GKE fundamentals and your first cluster — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Comparison */
+.cmp {
+  display: grid; grid-template-columns: 180px 1fr 1fr;
+  gap: 0; margin: 1rem 0 1.5rem;
+  border: 1px solid var(--border); border-radius: var(--r2); overflow: hidden;
+}
+.cmp > div {
+  padding: .8rem 1.1rem; border-bottom: 1px solid var(--border);
+  font-size: 12.5px; line-height: 1.55;
+}
+.cmp > div:nth-last-child(-n+3) { border-bottom: none; }
+.cmp .ch {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  letter-spacing: .06em; text-transform: uppercase;
+  background: var(--bg2);
+}
+.cmp .ch.cr { color: var(--amber); }
+.cmp .ch.gk { color: var(--blue); }
+.cmp .key {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--text3); background: var(--bg2);
+}
+.cmp .v { color: var(--text2); }
+@media (max-width: 720px) {
+  .cmp { grid-template-columns: 1fr; }
+  .cmp .key { font-weight: 600; color: var(--amber); }
+}
+
+/* Object cards */
+.obj {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--teal);
+}
+.obj h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+  text-transform: none; letter-spacing: 0;
+}
+.obj .o-kind {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--teal); letter-spacing: .04em; margin-bottom: .5rem;
+}
+.obj p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.obj p:last-child { margin-bottom: 0; }
+.obj code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--amber); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* Mode comparison */
+.mode-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin: 1rem 0 1.5rem;
+}
+.mode {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+}
+.mode.auto { border-left: 3px solid var(--green); }
+.mode.std { border-left: 3px solid var(--amber); }
+.mode h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.mode .mt {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  letter-spacing: .04em; margin-bottom: .55rem; display: block;
+}
+.mode.auto .mt { color: var(--green); }
+.mode.std .mt { color: var(--amber); }
+.mode p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.mode .mu { font-size: 11.5px; color: var(--text3); font-style: italic; }
+@media (max-width: 640px) { .mode-row { grid-template-columns: 1fr; } }
+
+/* Identity bridge diagram */
+.bridge {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.7; overflow-x: auto;
+}
+.bridge .gcp { color: var(--amber); }
+.bridge .k8s { color: var(--blue); }
+.bridge .wi { color: var(--green); }
+.bridge .arr { color: var(--text3); }
+.bridge .ann { color: var(--text3); font-style: italic; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M5 · Lesson 1 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 5</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot active" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 1 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">GKE fundamentals<br>and your first cluster</h1>
+    <p class="lesson-sub">M4L3 told you when to escalate from Cloud Run to GKE. This lesson is the escalation. Same image, same service account, same secrets — different runtime. By the end you'll have hello-flask running on an Autopilot cluster, and the Kubernetes vocabulary every later lesson assumes.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 GKE Autopilot, kubectl, Workload Identity</span>
+      <span>📍 Module 5 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: From Cloud Run to GKE            -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The shift</div>
+    <h2 class="section-title">From Cloud Run to GKE — what actually changes</h2>
+    <p style="margin-bottom: 1rem;">The image is the same. The container contract from M2L3 (listen on the port, handle SIGTERM, be stateless, log to stdout) is the same. What changes is the surface area you control and the deploy interface.</p>
+
+    <div class="cmp">
+      <div class="ch"></div>
+      <div class="ch cr">Cloud Run</div>
+      <div class="ch gk">GKE</div>
+
+      <div class="key">Unit of deploy</div>
+      <div class="v">A <em>service</em> (one spec). gcloud run deploy.</div>
+      <div class="v">A <em>Deployment</em>, plus a <em>Service</em>, plus a <em>HorizontalPodAutoscaler</em>, in YAML. kubectl apply.</div>
+
+      <div class="key">Identity</div>
+      <div class="v">Attached service account on the service.</div>
+      <div class="v"><a class="g-term" href="../glossary.html#workload-identity">Workload Identity</a> binds a Kubernetes ServiceAccount to a GCP service account.</div>
+
+      <div class="key">Networking</div>
+      <div class="v">HTTPS endpoint provisioned for you.</div>
+      <div class="v">You author Service + Ingress (or Gateway) objects. More flexible; more responsibility.</div>
+
+      <div class="key">Scaling</div>
+      <div class="v">Request-based autoscaler, built in.</div>
+      <div class="v">HPA on CPU / memory / custom metrics. Cluster autoscaler manages nodes (Standard) or Google manages them (Autopilot).</div>
+
+      <div class="key">Multi-container</div>
+      <div class="v">Sidecars are recent and constrained.</div>
+      <div class="v">First-class: Pods naturally hold multiple containers.</div>
+
+      <div class="key">State</div>
+      <div class="v">Ephemeral filesystem only.</div>
+      <div class="v">PersistentVolumeClaim, ConfigMap, Secret, emptyDir, downwardAPI — many shapes.</div>
+
+      <div class="key">Operational cost</div>
+      <div class="v">Near-zero between requests with scale-to-zero.</div>
+      <div class="v">Cluster has a baseline cost; pods can scale to 0 replicas but cluster nodes persist.</div>
+    </div>
+
+    <div class="callout">
+      <strong>The trade you're making.</strong> Cloud Run hides Kubernetes from you for the 80% case. GKE exposes it for the 20% where you need it. The skills from M2 + M4 do not get thrown out — they get extended. Same image, same SA, same secrets discipline; new vocabulary for the runtime that surrounds them.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: K8s object model                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The vocabulary</div>
+    <h2 class="section-title">Five Kubernetes primitives carry almost everything</h2>
+    <p style="margin-bottom: 1rem;">You will hear about Kubernetes objects in the dozens. For a research lab you need to be fluent in five. The rest are variations.</p>
+
+    <div class="obj">
+      <div class="o-kind">apiVersion: v1 · kind: Pod</div>
+      <h4><a class="g-term" href="../glossary.html#pod">Pod</a> — one or more containers sharing a network and storage</h4>
+      <p>The smallest deployable unit. Pods are <em>ephemeral</em> — they die and get replaced. You almost never create Pods directly; controllers like Deployment make them for you.</p>
+    </div>
+
+    <div class="obj">
+      <div class="o-kind">apiVersion: apps/v1 · kind: Deployment</div>
+      <h4>Deployment — a managed set of Pod replicas</h4>
+      <p>Declares "I want N copies of this Pod template running." Handles rolling updates, rollback, and replacing failed Pods. The <strong>workhorse</strong> object for long-running services. Cloud Run's equivalent is a service.</p>
+    </div>
+
+    <div class="obj">
+      <div class="o-kind">apiVersion: v1 · kind: Service</div>
+      <h4>Service — a stable network identity in front of Pods</h4>
+      <p>Pods come and go; their IPs change. A Service has a stable DNS name (<code>xai-serve.default.svc.cluster.local</code>) and load-balances across the Pods that match its selector. Three types you'll use: <code>ClusterIP</code> (internal-only), <code>LoadBalancer</code> (external IP), and <code>ExternalName</code> (DNS alias).</p>
+    </div>
+
+    <div class="obj">
+      <div class="o-kind">apiVersion: v1 · kind: Namespace</div>
+      <h4><a class="g-term" href="../glossary.html#namespace">Namespace</a> — a logical partition inside the cluster</h4>
+      <p>Used for multi-tenancy. Per M1L2: one namespace per study. RBAC, quotas, and network policies attach at the namespace level. <code>kubectl get pods -n makawalu</code> only shows that study's Pods.</p>
+    </div>
+
+    <div class="obj">
+      <div class="o-kind">apiVersion: v1 · kind: ConfigMap / Secret</div>
+      <h4>ConfigMap and Secret — configuration mounted into Pods</h4>
+      <p>ConfigMap holds plain config (env vars, YAML, config files); Secret holds sensitive values. Both get mounted as environment variables or files. M5L2 shows the pattern that wires Secret Manager (M3L3) into Kubernetes Secrets via Workload Identity.</p>
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">A complete deployment in 30 lines</h3>
+
+<pre class="code-block"><span class="cm"># hello-flask.yaml</span>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-flask
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: hello-flask}
+  template:
+    metadata:
+      labels: {app: hello-flask}
+    spec:
+      serviceAccountName: hello-flask-ksa     <span class="cm"># bound via Workload Identity</span>
+      containers:
+        - name: app
+          image: us-west1-docker.pkg.dev/srl-shared-services/research/hello-flask:0.2.0
+          ports: [{containerPort: 8080}]
+          resources:
+            requests: {memory: 256Mi, cpu: 250m}
+            limits:   {memory: 512Mi, cpu: 500m}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-flask
+spec:
+  type: ClusterIP
+  selector: {app: hello-flask}
+  ports:
+    - port: 80
+      targetPort: 8080</pre>
+
+    <p style="font-size:13.5px;">Apply once: <code class="code-inline">kubectl apply -f hello-flask.yaml</code>. The cluster reconciles toward the desired state — creates two Pods, exposes the Service, keeps them alive. Replace the image tag, re-apply, and it does a rolling update automatically.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Autopilot vs Standard            -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The mode decision</div>
+    <h2 class="section-title">Autopilot vs Standard</h2>
+    <p style="margin-bottom: 1rem;">GKE has two operating modes. Pick once per cluster; you cannot convert later. The decision shapes ~80% of your cluster operational experience.</p>
+
+    <div class="mode-row">
+      <div class="mode auto">
+        <span class="mt">Default for SRL</span>
+        <h4><a class="g-term" href="../glossary.html#gke-autopilot">GKE Autopilot</a></h4>
+        <p>Google manages nodes. You declare Pods with resource requests; Autopilot provisions compute, handles upgrades, right-sizes nodes, deletes idle capacity. You only see Pods — never nodes.</p>
+        <p>Per-Pod pricing model (CPU-seconds + memory-seconds + ephemeral storage). No node-pool minimums.</p>
+        <div class="mu">Use for: 95% of research workloads — APIs, ingest jobs, training, ATLAS deployments.</div>
+      </div>
+      <div class="mode std">
+        <span class="mt">Specialist mode</span>
+        <h4>GKE Standard</h4>
+        <p>You manage nodes. Multiple node pools (CPU pool, GPU pool, spot pool), per-pool configuration of machine types, autoscaling parameters, OS images. More control; more knobs.</p>
+        <p>Per-node pricing — you pay for nodes whether Pods fill them or not.</p>
+        <div class="mu">Use for: very specific hardware needs (Trillium TPUs, custom kernels), tight cost control on large stable workloads, multi-tenant cluster shared across many studies.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">When Autopilot is genuinely wrong</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ You need a node-level <code class="code-inline">DaemonSet</code> for something privileged (security agent, custom CNI) that Autopilot blocks.</li>
+      <li>→ You want to mix Spot VMs and standard nodes with very specific ratios.</li>
+      <li>→ Your workload uses node-local SSDs or specific machine families Autopilot doesn't currently support.</li>
+      <li>→ You're running a multi-tenant shared cluster where per-node cost predictability matters more than the operational simplicity.</li>
+    </ul>
+
+    <p style="margin-top:1rem;font-size:13.5px;">None of these apply to a typical research lab's first cluster. Start with Autopilot. Only move to Standard when a concrete constraint forces it.</p>
+
+    <div class="callout">
+      <strong>What this means in practice.</strong> For the rest of this module, every cluster command targets Autopilot. The YAML is identical between modes — Pod specs are portable. Only the cluster-level creation differs, and Autopilot is two flags.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Identity and RBAC                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Identity inside the cluster</div>
+    <h2 class="section-title">RBAC and Workload Identity — the bridge from M1L3</h2>
+    <p style="margin-bottom: 1rem;">Two identity systems intersect in GKE. <strong>RBAC</strong> governs who can do what <em>inside</em> the cluster (kubectl operations, pod-level actions). <strong>GCP IAM</strong> governs what cluster workloads can do <em>on GCP services</em> outside the cluster. <a class="g-term" href="../glossary.html#workload-identity">Workload Identity</a> is the bridge between them.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">RBAC — humans and tools inside the cluster</h3>
+
+<pre class="code-block"><span class="cm"># A namespace-scoped role for postdocs in Makawalu's namespace</span>
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: makawalu
+  name: postdoc-edit
+rules:
+  - apiGroups: [<span class="str">""</span>, <span class="str">"apps"</span>, <span class="str">"batch"</span>]
+    resources: [<span class="str">"pods"</span>, <span class="str">"pods/log"</span>, <span class="str">"deployments"</span>, <span class="str">"jobs"</span>, <span class="str">"configmaps"</span>]
+    verbs: [<span class="str">"get"</span>, <span class="str">"list"</span>, <span class="str">"watch"</span>, <span class="str">"create"</span>, <span class="str">"update"</span>, <span class="str">"patch"</span>, <span class="str">"delete"</span>]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: makawalu
+  name: postdocs-bind
+subjects:
+  - kind: Group
+    name: srl-postdocs@hawaii.edu          <span class="cm"># Google Group from M1L3</span>
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: postdoc-edit
+  apiGroup: rbac.authorization.k8s.io</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">The Group binding works because GKE integrates with Google Groups out of the box — exactly the M1L3 pattern of binding to groups, not individuals.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Workload Identity — pods talking to GCP services</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">A Kubernetes ServiceAccount (KSA) binds to a Google Service Account (GSA). Pods that <code class="code-inline">serviceAccountName: my-ksa</code> automatically authenticate as the bound GSA when calling GCP APIs — no key files, audited per pod.</p>
+
+    <div class="bridge">
+<span class="ann">Pod spec:</span>
+  serviceAccountName: <span class="k8s">xai-serve-ksa</span>      <span class="ann"># Kubernetes ServiceAccount</span>
+                       <span class="arr">│</span>
+                       <span class="arr">│  Workload Identity binding (annotation on KSA</span>
+                       <span class="arr">│  + iam.workloadIdentityUser binding on GSA)</span>
+                       <span class="arr">▼</span>
+                <span class="gcp">xai-serve-sa@srl-makawalu-prod.iam.gserviceaccount.com</span>   <span class="ann"># GCP SA</span>
+                       <span class="arr">│</span>
+                       <span class="arr">▼</span>
+                <span class="wi">roles/secretmanager.secretAccessor</span>           <span class="ann"># M1L3 patterns</span>
+                <span class="wi">roles/storage.objectViewer (inference bucket)</span>
+                <span class="wi">roles/cloudkms.cryptoKeyEncrypterDecrypter (M3L3)</span>
+    </div>
+
+    <p style="font-size:13.5px;">The patterns from M1L3 (one SA per workload) and M3L3 (CMEK + secret accessor scoped narrowly) hold without modification. The only addition is the KSA→GSA binding step.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Setting up the bridge</h3>
+
+<pre class="code-block"><span class="cm"># 1. Create the GSA per workload (M1L3 pattern)</span>
+gcloud iam service-accounts create xai-serve-sa --project=srl-makawalu-prod
+
+<span class="cm"># 2. Create the KSA in the cluster</span>
+kubectl create serviceaccount xai-serve-ksa --namespace=makawalu
+
+<span class="cm"># 3. Annotate the KSA with the GSA email (tells GKE which GSA to assume)</span>
+kubectl annotate serviceaccount xai-serve-ksa \
+  --namespace=makawalu \
+  iam.gke.io/gcp-service-account=xai-serve-sa@srl-makawalu-prod.iam.gserviceaccount.com
+
+<span class="cm"># 4. Grant the KSA the right to impersonate the GSA</span>
+gcloud iam service-accounts add-iam-policy-binding \
+  xai-serve-sa@srl-makawalu-prod.iam.gserviceaccount.com \
+  --role=roles/iam.workloadIdentityUser \
+  --member=<span class="str">"serviceAccount:srl-makawalu-prod.svc.id.goog[makawalu/xai-serve-ksa]"</span></pre>
+
+    <div class="callout">
+      <strong>What this delivers.</strong> Inside the Pod, the Google Cloud SDK auto-detects Workload Identity. <code class="code-inline">from google.cloud import storage; storage.Client()</code> picks up the GSA's credentials with zero config. No key files, no env vars, no copy-pasted JSON. The same Python code that runs on Cloud Run runs unchanged on GKE.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Your first cluster               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Putting it together</div>
+    <h2 class="section-title">Your first cluster: hello-flask on Autopilot</h2>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Create an Autopilot cluster (one command)</h3>
+
+<pre class="code-block">gcloud services enable container.googleapis.com
+
+gcloud container clusters create-auto srl-demo-cluster \
+  --location=us-west1 \
+  --release-channel=regular \
+  --enable-private-nodes \
+  --enable-private-endpoint=false \
+  --master-ipv4-cidr=172.16.0.0/28 \
+  --network=demo-vpc \
+  --subnetwork=demo-subnet</pre>
+
+    <p style="font-size:13.5px;margin-bottom:.75rem;">The flags worth noting: <code class="code-inline">create-auto</code> selects Autopilot. <code class="code-inline">--enable-private-nodes</code> gives every Pod no public IP (M3L2 discipline). <code class="code-inline">--release-channel=regular</code> opts in to auto-upgrades on a balanced cadence. Provisioning takes 3–5 minutes.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Wire kubectl to the cluster</h3>
+
+<pre class="code-block">gcloud container clusters get-credentials srl-demo-cluster \
+  --location=us-west1
+
+<span class="cm"># Confirm kubectl can talk to the cluster</span>
+kubectl cluster-info
+kubectl get nodes      <span class="cm"># Autopilot: shows nodes but you don't manage them</span></pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Deploy hello-flask</h3>
+
+<pre class="code-block"><span class="cm"># Save the YAML from Section 2 as hello-flask.yaml, then:</span>
+kubectl apply -f hello-flask.yaml
+
+<span class="cm"># Watch the rollout</span>
+kubectl get pods -l app=hello-flask -w
+
+<span class="cm"># Hit the service from inside the cluster</span>
+kubectl run curl-test --rm -it --image=curlimages/curl --restart=Never -- \
+  curl -s http://hello-flask/</pre>
+
+    <p style="font-size:13.5px;">Two Pods come up; the Service load-balances between them. The Pods can pull the image from Artifact Registry because Autopilot nodes have the right IAM by default.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Expose it (carefully)</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">A ClusterIP Service is internal-only. To expose externally, you'd add an Ingress (or Gateway) — covered in M5L3. For now, port-forward for testing:</p>
+
+<pre class="code-block">kubectl port-forward service/hello-flask 8080:80
+<span class="cm"># In another terminal:</span>
+curl http://localhost:8080/</pre>
+
+    <div class="callout">
+      <strong>What just happened.</strong> Same image as Cloud Run. Same identity model (KSA→GSA→narrow IAM). Same secrets approach. The cluster reconciles toward your declared state. Two Pods running; if one dies, GKE replaces it within seconds. This is the substrate every M5L2 + M5L3 capability builds on.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 5.1</div>
+    <h2 class="section-title">Stand up Autopilot and migrate hello-flask</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">☸️ From Cloud Run to GKE in 30 minutes</div>
+      <ol class="exercise-steps">
+        <li>Use the VPC + subnet you built in M3L2's exercise (<code class="code-inline">demo-vpc</code> / <code class="code-inline">demo-subnet</code>). Recreate them if you tore them down.</li>
+        <li>Enable the container API and create the Autopilot cluster:<br>
+          <code class="code-inline">gcloud services enable container.googleapis.com</code><br>
+          <code class="code-inline">gcloud container clusters create-auto srl-demo-cluster --location=us-west1 --release-channel=regular --network=demo-vpc --subnetwork=demo-subnet</code><br>
+          Wait 3-5 minutes.
+        </li>
+        <li>Wire kubectl:<br>
+          <code class="code-inline">gcloud container clusters get-credentials srl-demo-cluster --location=us-west1</code><br>
+          <code class="code-inline">kubectl cluster-info</code>
+        </li>
+        <li>Save this as <code class="code-inline">hello-flask.yaml</code> (use your image from M2L2):
+<pre class="code-block">apiVersion: apps/v1
+kind: Deployment
+metadata: {name: hello-flask}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: hello-flask}}
+  template:
+    metadata: {labels: {app: hello-flask}}
+    spec:
+      containers:
+        - name: app
+          image: us-west1-docker.pkg.dev/<span class="am">PROJECT_ID</span>/practice/hello-flask:0.2.0
+          ports: [{containerPort: 8080}]
+          resources:
+            requests: {memory: 256Mi, cpu: 250m}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: hello-flask}
+spec:
+  type: ClusterIP
+  selector: {app: hello-flask}
+  ports: [{port: 80, targetPort: 8080}]</pre>
+          Replace <code class="code-inline">PROJECT_ID</code> with yours. <code class="code-inline">kubectl apply -f hello-flask.yaml</code>.
+        </li>
+        <li>Watch Pods come up:<br>
+          <code class="code-inline">kubectl get pods -l app=hello-flask -w</code><br>
+          Both should hit Running within ~30 seconds.
+        </li>
+        <li>Hit the service from inside the cluster:<br>
+          <code class="code-inline">kubectl run curl-test --rm -it --image=curlimages/curl --restart=Never -- curl -s http://hello-flask/</code>
+        </li>
+        <li><strong>Set up Workload Identity</strong> for a per-workload KSA (skip the GSA binding for now — the demo service doesn't call GCP APIs):<br>
+          <code class="code-inline">kubectl create serviceaccount hello-flask-ksa</code><br>
+          Edit the deployment YAML to add <code class="code-inline">serviceAccountName: hello-flask-ksa</code> under <code class="code-inline">spec.template.spec</code>. Re-apply. Confirm the new pods use the new KSA.
+        </li>
+        <li><strong>Do a rolling update.</strong> Edit the deployment YAML to bump the image tag (or change <code class="code-inline">replicas: 3</code>). <code class="code-inline">kubectl apply -f hello-flask.yaml</code>. Watch:<br>
+          <code class="code-inline">kubectl rollout status deployment/hello-flask</code><br>
+          Old pods are replaced one at a time, zero downtime.
+        </li>
+        <li><strong>Practice rollback:</strong><br>
+          <code class="code-inline">kubectl rollout undo deployment/hello-flask</code><br>
+          Back to the previous spec. The revision system is conceptually like Cloud Run's.
+        </li>
+        <li><strong>Tear down</strong> when you're done — clusters cost money even idle:<br>
+          <code class="code-inline">gcloud container clusters delete srl-demo-cluster --location=us-west1</code>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Commands you used</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud container clusters create-auto</span>
+        <span class="tag">gcloud container clusters get-credentials</span>
+        <span class="tag">kubectl cluster-info</span>
+        <span class="tag">kubectl apply -f</span>
+        <span class="tag">kubectl get pods -w</span>
+        <span class="tag">kubectl rollout status / undo</span>
+        <span class="tag">kubectl run --rm -it</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>You hit one of M4L3's GKE escalation triggers — the training job now runs 28 hours. Walk through the migration shape: what stays the same, what changes?</span>
+        <a href="#" class="check-btn" onclick="alert('Stays the same: image (same Artifact Registry URL), GCP service account (same SA, same narrow roles), Secret Manager bindings (same secrets), VPC SC perimeter (Autopilot inside it), the data buckets, CMEK keys, audit logging. Changes: deployment unit is now Deployment + Service YAML instead of gcloud run deploy; identity binding is KSA annotated to the existing GSA; you author rolling-update behavior in the Deployment spec instead of relying on Cloud Run revisions; you size resource requests explicitly. The architecture above the image is unchanged.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why is GKE Autopilot the default for SRL's first cluster, and what would push you to Standard?</span>
+        <a href="#" class="check-btn" onclick="alert('Autopilot removes node-level operations - no node pools to size, no upgrade choreography, no node-level monitoring. For a research lab where the goal is research output, that operational simplicity is worth the modest pricing premium. What pushes you to Standard: specific machine types not available in Autopilot, DaemonSets requiring node-level privileges, very predictable steady-state workloads where per-node pricing wins, or multi-tenant clusters where you want to control node-pool isolation.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>A Pod with <code class="code-inline">serviceAccountName: xai-serve-ksa</code> tries to read a GCS bucket and gets 403. Workload Identity is set up. Walk through where you check.</span>
+        <a href="#" class="check-btn" onclick="alert('Three places, in order. (1) The KSA annotation: kubectl describe sa xai-serve-ksa -n makawalu — does iam.gke.io/gcp-service-account point at the right GSA? (2) The GSA binding: gcloud iam service-accounts get-iam-policy xai-serve-sa@... — does the policy include roles/iam.workloadIdentityUser for the KSA in the format serviceAccount:PROJECT.svc.id.goog[NAMESPACE/KSA]? (3) The GSA permissions on the bucket: does the GSA have roles/storage.objectViewer on the actual bucket? If 1 and 2 are right and 3 is missing, the bridge works but the GSA does not have permission to read. If 1 or 2 is wrong, the bridge itself is broken.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Cloud Run's revision model gave you instant rollback. GKE Deployment has a rollout history too. What's the conceptual equivalent and how is it different?</span>
+        <a href="#" class="check-btn" onclick="alert('Conceptually equivalent: kubectl rollout history deployment/X lists previous ReplicaSets; kubectl rollout undo reverts to the previous one (or kubectl rollout undo --to-revision=N for a specific one). Differences: Kubernetes keeps a configurable history (default 10 ReplicaSets); the rollback creates new Pods rather than re-routing to existing ones; rollback time is therefore on the order of Pod startup time (seconds for small images) rather than the sub-second traffic flip Cloud Run does. For most research apps the difference is invisible; for cold-start-sensitive paths it matters.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="../index.html" class="btn">← All modules</a>
+    <a href="m5-lesson2.html" class="btn btn-primary">Lesson 5.2: Production workloads →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
