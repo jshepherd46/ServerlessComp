@@ -108,7 +108,7 @@ ServerlessComp/
 |---|-------|-------|-------|--------|
 | M5 | INFRA | Kubernetes (GKE) for research workloads | 10 | Complete (L1–L3) |
 | M6 | ML | Deep learning in the cloud: CNNs & imaging | 10 | Complete (L1–L3) |
-| M7 | ML | BERT, LLMs & frontier model deployment | 10 | Stub |
+| M7 | ML | BERT, LLMs & frontier model deployment | 10 | Complete (L1–L3) |
 | M8 | HIPAA | Secure data pipelines & de-identification | 6 | Stub |
 
 ### Phase 3 — Analytics, Federated & Capstone (M9–M12)

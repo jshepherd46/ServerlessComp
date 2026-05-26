@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M7 · Lesson 2: Fine-tuning at lab scale — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* FT comparison */
+.ft-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin: 1rem 0 1.5rem;
+}
+.ft {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+}
+.ft.lora { border-left: 3px solid var(--green); }
+.ft.full { border-left: 3px solid var(--coral); }
+.ft.zero { border-left: 3px solid var(--blue); }
+.ft.peft { border-left: 3px solid var(--amber); }
+.ft h4 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.ft .ft-tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  letter-spacing: .04em; margin-bottom: .55rem; display: block;
+}
+.ft.lora .ft-tag { color: var(--green); }
+.ft.full .ft-tag { color: var(--coral); }
+.ft.zero .ft-tag { color: var(--blue); }
+.ft.peft .ft-tag { color: var(--amber); }
+.ft p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: .35rem; }
+.ft .when { font-size: 11.5px; color: var(--text3); font-style: italic; }
+@media (max-width: 640px) { .ft-row { grid-template-columns: 1fr; } }
+
+/* Hyperparam table */
+.hp {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.25rem;
+  margin: 1rem 0 1.5rem;
+}
+.hp-row {
+  display: grid; grid-template-columns: 180px 1fr;
+  gap: 1rem; padding: .5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+  align-items: start;
+}
+.hp-row:last-child { border-bottom: none; }
+.hp-row .hp-k {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal);
+}
+.hp-row .hp-v { color: var(--text2); line-height: 1.55; }
+.hp-row .hp-v strong { color: var(--text); }
+@media (max-width: 640px) {
+  .hp-row { grid-template-columns: 1fr; }
+  .hp-row .hp-k { color: var(--amber); }
+}
+
+/* Metric */
+.metric {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .85rem 1.15rem; margin-bottom: 8px;
+}
+.metric h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+  text-transform: none; letter-spacing: 0;
+}
+.metric p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M7 · Lesson 2 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 7</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 2 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Fine-tuning<br>at lab scale</h1>
+    <p class="lesson-sub">L1 set up the data plane. This lesson is the training itself — choose between zero-shot, LoRA, full fine-tune; the ShepBERT pipeline end to end; the evaluation patterns that actually catch problems; and the runbook section for fine-tuned NLP models.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 Hugging Face Transformers + PEFT, Vertex Custom Training, Accelerate</span>
+      <span>📍 Module 7 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: FT decision tree                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The decision</div>
+    <h2 class="section-title">How much fine-tuning do you actually need?</h2>
+    <p style="margin-bottom: 1rem;">Four options in order of compute cost. Try them from lightest to heaviest; stop when one works. Most clinical NLP tasks land at LoRA — the others are real but rarer.</p>
+
+    <div class="ft-row">
+      <div class="ft zero">
+        <span class="ft-tag">Option 1 — Zero compute</span>
+        <h4>Zero/few-shot with a strong base</h4>
+        <p>Use Bio_ClinicalBERT or Gemini directly with smart prompting. No training. Works for tasks where the base model already has the knowledge — common with general clinical summaries, simple entity extraction.</p>
+        <div class="when">Try first. If F1 / clinical-evaluator approval clears the bar, ship it.</div>
+      </div>
+      <div class="ft peft">
+        <span class="ft-tag">Option 2 — Prompt tuning / soft prompts</span>
+        <h4>Train ~thousands of "prompt vector" parameters</h4>
+        <p>Adds learned prefix tokens to the input; the model itself stays frozen. Tiny artifact, fastest training, often works surprisingly well.</p>
+        <div class="when">Try when zero-shot is close but not enough. Cheap to experiment with.</div>
+      </div>
+      <div class="ft lora">
+        <span class="ft-tag">Option 3 — LoRA / PEFT</span>
+        <h4>Train rank-decomposition matrices on top of frozen weights</h4>
+        <p>~0.5-2% of base parameters trained; the rest frozen. Adapter checkpoint is ~50-150 MB. Catches most of the benefit of full fine-tuning at a fraction of the compute. <strong>The SRL default for ShepBERT.</strong></p>
+        <div class="when">Where most clinical adapter tasks land.</div>
+      </div>
+      <div class="ft full">
+        <span class="ft-tag">Option 4 — Full fine-tune</span>
+        <h4>Update every parameter</h4>
+        <p>Highest cost (compute + memory), biggest artifact, risk of catastrophic forgetting. Justified when LoRA hits a clear ceiling on the metric you care about — usually when the target domain is very different from pretraining.</p>
+        <div class="when">When LoRA has been tried at multiple ranks and the metric still misses.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Why LoRA wins for lab-scale clinical NLP</h3>
+
+    <ul style="list-style:none;padding-left:1rem;font-size:13.5px;color:var(--text2);line-height:1.8;">
+      <li>→ <strong>Tiny artifacts.</strong> LoRA adapters are 50-150 MB. Many adapters per base — one per study, one per task, one per UH site if needed.</li>
+      <li>→ <strong>Tiny compute.</strong> A100 single-GPU for hours, not days. Spot-friendly. The whole pipeline is cheap enough to iterate weekly.</li>
+      <li>→ <strong>Adapter composition.</strong> Multiple adapters can be loaded into the same base; the base stays in GPU memory and you swap adapters at inference time. One server, many studies.</li>
+      <li>→ <strong>Lower forgetting risk.</strong> Base weights frozen → behaviour on unrelated tasks doesn't degrade.</li>
+      <li>→ <strong>Easier compliance story.</strong> Reproducing a result means re-running the LoRA training with the same data + hyperparameters — small data, small compute, fast.</li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: LoRA in practice                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">LoRA in practice</div>
+    <h2 class="section-title">The hyperparameters that actually matter</h2>
+
+    <p style="margin-bottom: 1rem;">LoRA has a small number of knobs. Most of them have sensible defaults; two of them are worth understanding deeply because they drive everything else.</p>
+
+    <div class="hp">
+      <div class="hp-row">
+        <div class="hp-k">r (rank)</div>
+        <div class="hp-v"><strong>The single most important knob.</strong> Higher rank = more parameters = more capacity = better fit, but more compute and bigger artifact. <strong>Start at r=8</strong> for most clinical encoder tasks; bump to 16 or 32 if validation metrics plateau. ShepBERT uses r=16 for its UH adapter.</div>
+      </div>
+
+      <div class="hp-row">
+        <div class="hp-k">alpha (LoRA scaling)</div>
+        <div class="hp-v">Effectively learning-rate scaling for the LoRA matrices. <strong>Conventional choice:</strong> alpha = 2 × r (so r=16 → alpha=32). Lets you change r without re-tuning the learning rate. Don't over-think; the default works.</div>
+      </div>
+
+      <div class="hp-row">
+        <div class="hp-k">target_modules</div>
+        <div class="hp-v">Which transformer layers get LoRA matrices. Default <code class="code-inline">["q_proj", "v_proj"]</code> (query and value projections). For tasks where the base model needs more adaptation, expand to all attention matrices and the feed-forward layers. Bigger surface = more capacity = bigger artifact.</div>
+      </div>
+
+      <div class="hp-row">
+        <div class="hp-k">lora_dropout</div>
+        <div class="hp-v">Standard dropout regularisation on LoRA outputs. 0.05-0.1 typical. Increase if you see overfitting on the validation set.</div>
+      </div>
+
+      <div class="hp-row">
+        <div class="hp-k">learning rate</div>
+        <div class="hp-v">LoRA learning rates are typically 5-10× higher than full fine-tune rates. <strong>Start at 1e-4</strong> for clinical encoder tasks; sweep 5e-5 to 5e-4 with Vizier if metrics need lifting.</div>
+      </div>
+
+      <div class="hp-row">
+        <div class="hp-k">epochs</div>
+        <div class="hp-v">3-10 typical for clinical adapters; LoRA converges fast. Watch validation loss; early-stop on plateau. Going long doesn't help and risks overfitting.</div>
+      </div>
+
+      <div class="hp-row">
+        <div class="hp-k">batch size</div>
+        <div class="hp-v">As large as one GPU memory allows for stable training. Use gradient accumulation if you need effective batch sizes larger than physical memory permits.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The minimal LoRA training script</h3>
+
+<pre class="code-block"><span class="kw">from</span> transformers <span class="kw">import</span> AutoModelForTokenClassification, AutoTokenizer, TrainingArguments, Trainer
+<span class="kw">from</span> peft <span class="kw">import</span> LoraConfig, get_peft_model, TaskType
+<span class="kw">from</span> datasets <span class="kw">import</span> load_dataset
+
+base = AutoModelForTokenClassification.from_pretrained(
+    <span class="str">"emilyalsentzer/Bio_ClinicalBERT"</span>,
+    num_labels=len(LABELS),
+)
+
+config = LoraConfig(
+    task_type=TaskType.TOKEN_CLS,
+    r=16, lora_alpha=32, lora_dropout=0.1,
+    target_modules=[<span class="str">"query"</span>, <span class="str">"value"</span>],   <span class="cm"># BERT module names</span>
+    bias=<span class="str">"none"</span>,
+)
+model = get_peft_model(base, config)
+model.print_trainable_parameters()         <span class="cm"># roughly 1% of base</span>
+
+dataset = load_dataset(<span class="str">"json"</span>, data_files={
+    <span class="str">"train"</span>: <span class="str">"gs://srl-shepbert-training/v3/train-*.jsonl"</span>,
+    <span class="str">"eval"</span>:  <span class="str">"gs://srl-shepbert-training/v3/eval-*.jsonl"</span>,
+})
+
+args = TrainingArguments(
+    output_dir=<span class="str">"/tmp/shepbert-adapter"</span>,
+    num_train_epochs=5,
+    learning_rate=1e-4,
+    per_device_train_batch_size=16,
+    gradient_accumulation_steps=2,
+    fp16=<span class="kw">True</span>,                            <span class="cm"># half-precision for memory</span>
+    eval_strategy=<span class="str">"epoch"</span>,
+    save_strategy=<span class="str">"epoch"</span>,
+    load_best_model_at_end=<span class="kw">True</span>,
+    metric_for_best_model=<span class="str">"f1"</span>,
+    logging_dir=os.environ[<span class="str">"AIP_TENSORBOARD_LOG_DIR"</span>],
+)
+
+Trainer(model=model, args=args, train_dataset=dataset[<span class="str">"train"</span>], eval_dataset=dataset[<span class="str">"eval"</span>]).train()
+model.save_pretrained(<span class="str">"gs://srl-shepbert-training/adapters/uh-ner-v3-7/"</span>)</pre>
+
+    <div class="callout">
+      <strong>The result.</strong> A ~100 MB adapter file (<code class="code-inline">adapter_model.safetensors</code> + <code class="code-inline">adapter_config.json</code>) in GCS, ready to register in Vertex Model Registry per M6L3. At serve time, you load Bio_ClinicalBERT once + load the adapter — the inference container is small, the base model is shared across multiple adapters (one per task), and a new task = new adapter, not new full model.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: ShepBERT pipeline                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The pipeline</div>
+    <h2 class="section-title">ShepBERT fine-tuning, end to end</h2>
+
+    <p style="margin-bottom: 1rem;">Built with the M6L2 Pipelines patterns — same shape as Makawalu's CBM workflow, different content. Five components, run by Vertex AI Pipelines on a schedule (weekly) and on-demand when new label sets land.</p>
+
+<pre class="code-block"><span class="cm"># Conceptual pipeline shape - actual KFP code from M6L2 template</span>
+<span class="kw">@dsl.pipeline</span>(name=<span class="str">"shepbert-finetune"</span>, pipeline_root=<span class="str">"gs://srl-shepbert-training/pipelines/"</span>)
+<span class="kw">def</span> shepbert_pipeline(
+    note_table: str = <span class="str">"srl-halo-prod.omop.note"</span>,
+    labels_table: str = <span class="str">"srl-shepbert-prod.labels.entities_v3"</span>,
+    base_model: str = <span class="str">"emilyalsentzer/Bio_ClinicalBERT"</span>,
+    lora_r: int = 16,
+    epochs: int = 5,
+):
+    <span class="cm"># 1. Build dataset from BigQuery</span>
+    dataset = build_corpus(note_table=note_table, labels_table=labels_table)
+
+    <span class="cm"># 2. Fine-tune with LoRA on a single A100</span>
+    adapter = lora_finetune(
+        dataset=dataset.outputs[<span class="str">"corpus"</span>],
+        base_model=base_model,
+        r=lora_r, epochs=epochs,
+    )
+
+    <span class="cm"># 3. Evaluate on held-out + by clinical slice</span>
+    eval_results = evaluate_adapter(
+        adapter=adapter.outputs[<span class="str">"model_out"</span>],
+        dataset=dataset.outputs[<span class="str">"corpus"</span>],
+    )
+
+    <span class="cm"># 4. Conditional register + canary notify</span>
+    <span class="kw">with</span> dsl.If(eval_results.outputs[<span class="str">"f1"</span>] &gt; 0.80):
+        register_adapter(adapter=adapter.outputs[<span class="str">"model_out"</span>], metrics=eval_results.outputs[<span class="str">"metrics"</span>])
+        notify_pubsub(message=<span class="str">"shepbert-adapter-updated"</span>)</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The five components, made concrete</h3>
+
+    <div class="dpath" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);border-left:3px solid var(--coral);padding:.9rem 1.15rem;margin-bottom:8px;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--coral);letter-spacing:.04em;margin-bottom:.25rem;">build_corpus</div>
+      <p style="font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:0;">Queries the BigQuery <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--teal);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:3px;">note</code> + <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--teal);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:3px;">labels</code> tables; chunks notes section-aware (HPI / PE / A&amp;P); writes JSONL shards to GCS. Output artifact: corpus path + manifest.</p>
+    </div>
+
+    <div class="dpath" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);border-left:3px solid var(--coral);padding:.9rem 1.15rem;margin-bottom:8px;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--coral);letter-spacing:.04em;margin-bottom:.25rem;">lora_finetune</div>
+      <p style="font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:0;">Vertex Custom Training, single A100, spot. Runs the LoRA script from Section 2. Saves checkpoint per epoch. Logs to Vertex Experiments + TensorBoard. Output: adapter artifact in GCS.</p>
+    </div>
+
+    <div class="dpath" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);border-left:3px solid var(--coral);padding:.9rem 1.15rem;margin-bottom:8px;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--coral);letter-spacing:.04em;margin-bottom:.25rem;">evaluate_adapter</div>
+      <p style="font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:0;">Loads base + adapter; runs on the held-out split; computes entity-level F1, slice metrics by service line + race/ethnicity (fairness), and per-section accuracy (HPI vs A&amp;P vs PE). Output: structured metrics JSON.</p>
+    </div>
+
+    <div class="dpath" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);border-left:3px solid var(--coral);padding:.9rem 1.15rem;margin-bottom:8px;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--coral);letter-spacing:.04em;margin-bottom:.25rem;">register_adapter (conditional)</div>
+      <p style="font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:0;">If F1 passes the gate AND the worst slice doesn't regress vs the current production adapter, register a new version in Vertex Model Registry. Aliases: <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--teal);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:3px;">candidate</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--teal);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:3px;">latest</code>; <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--teal);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:3px;">production</code> stays where it is until a human promotes.</p>
+    </div>
+
+    <div class="dpath" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);border-left:3px solid var(--coral);padding:.9rem 1.15rem;margin-bottom:8px;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--coral);letter-spacing:.04em;margin-bottom:.25rem;">notify_pubsub</div>
+      <p style="font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:0;">Publishes to <code style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--teal);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:3px;">shepbert.adapter_updated</code>. Downstream: M4L2's canary deployer subscribes; the new adapter goes to 10% canary on the GKE inference service; a Slack message hits Pavel + the on-call channel.</p>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Evaluation                       -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Evaluation patterns</div>
+    <h2 class="section-title">Metrics that actually catch problems</h2>
+    <p style="margin-bottom: 1rem;">A single headline F1 is necessary and insufficient. For clinical NLP, the failure modes that matter most are slice-specific — and aggregate metrics hide them. Four metric layers, in order.</p>
+
+    <div class="metric">
+      <h4>1. Aggregate metric (the headline)</h4>
+      <p>For ShepBERT entity extraction: micro-F1 across all entities. The number on the dashboard. Useful for "is this version better than the previous one in expectation" — but never sufficient for "is this version safe to deploy."</p>
+    </div>
+
+    <div class="metric">
+      <h4>2. Per-entity-class breakdown</h4>
+      <p>F1 per entity type (drug, symptom, anatomy, diagnosis). A new version with the same overall F1 may have improved diagnosis recall at the cost of drug precision. Almost always more revealing than the aggregate.</p>
+    </div>
+
+    <div class="metric">
+      <h4>3. Slice metrics — the fairness check</h4>
+      <p>F1 per: service line (oncology / cardiology / primary care), patient subgroup (race/ethnicity, age band), document type (admission / discharge / progress). A regression on Pacific Islander patients invisible in aggregate metrics is exactly the failure mode the OMOP &amp; HIPAA tracks of this course exist to prevent.</p>
+    </div>
+
+    <div class="metric">
+      <h4>4. Clinical-expert spot review</h4>
+      <p>For each new adapter version, pull 50-100 disagreement cases (current vs candidate model) and have a clinician adjudicate. Slow; necessary. The disagreement set is where you find that the new model is "right" but in a brittle way, or "wrong" but in a learn-from-it way. M6L3's runbook step for human-in-loop promotion lives here.</p>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The structured output of evaluate_adapter</h3>
+
+<pre class="code-block">{
+  <span class="str">"version"</span>: <span class="str">"shepbert-uh-ner-v3-7"</span>,
+  <span class="str">"trained_on"</span>: {
+    <span class="str">"note_table"</span>: <span class="str">"srl-halo-prod.omop.note"</span>,
+    <span class="str">"snapshot_date"</span>: <span class="str">"2026-05-15"</span>,
+    <span class="str">"n_train"</span>: 38421, <span class="str">"n_eval"</span>: 4275
+  },
+  <span class="str">"aggregate"</span>: {<span class="str">"f1"</span>: 0.83, <span class="str">"precision"</span>: 0.81, <span class="str">"recall"</span>: 0.85},
+  <span class="str">"per_entity"</span>: {
+    <span class="str">"drug"</span>: {<span class="str">"f1"</span>: 0.89},
+    <span class="str">"symptom"</span>: {<span class="str">"f1"</span>: 0.78},
+    <span class="str">"anatomy"</span>: {<span class="str">"f1"</span>: 0.81},
+    <span class="str">"diagnosis"</span>: {<span class="str">"f1"</span>: 0.85}
+  },
+  <span class="str">"slices"</span>: {
+    <span class="str">"by_service_line"</span>: {
+      <span class="str">"oncology"</span>: {<span class="str">"f1"</span>: 0.86, <span class="str">"n"</span>: 1280},
+      <span class="str">"primary_care"</span>: {<span class="str">"f1"</span>: 0.79, <span class="str">"n"</span>: 2104}
+    },
+    <span class="str">"by_pii_band"</span>: {
+      <span class="str">"NHPI"</span>: {<span class="str">"f1"</span>: 0.81, <span class="str">"n"</span>: 612},
+      <span class="str">"non-NHPI"</span>: {<span class="str">"f1"</span>: 0.84, <span class="str">"n"</span>: 3663}
+    }
+  },
+  <span class="str">"deltas_vs_production"</span>: {
+    <span class="str">"aggregate_f1"</span>: <span class="str">"+0.02"</span>,
+    <span class="str">"worst_slice_delta"</span>: <span class="str">"-0.01"</span>
+  }
+}</pre>
+
+    <div class="callout">
+      <strong>The gate test in <code class="code-inline">register_adapter</code> uses two clauses</strong> — aggregate F1 passes the threshold AND <code class="code-inline">worst_slice_delta &gt; -0.02</code>. A new version that gains 0.02 in aggregate but regresses 0.05 on a clinical slice <em>fails the gate</em>. The runbook documents the slices that matter; the pipeline enforces them.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 7.2</div>
+    <h2 class="section-title">LoRA fine-tune a clinical encoder, evaluate slice metrics</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🔧 The full loop on a small task</div>
+      <ol class="exercise-steps">
+        <li>In Vertex Workbench (or anywhere with a GPU), install dependencies:<br>
+          <code class="code-inline">pip install transformers peft datasets accelerate seqeval</code>
+        </li>
+        <li><strong>Use a public clinical-NLP dataset</strong> as a stand-in. The <code class="code-inline">i2b2-2010</code> or <code class="code-inline">n2c2</code> datasets require access, but <code class="code-inline">tner/bionlp2004</code> on Hugging Face is open and biological-NLP shaped:<br>
+<pre class="code-block"><span class="kw">from</span> datasets <span class="kw">import</span> load_dataset
+ds = load_dataset(<span class="str">"tner/bionlp2004"</span>)
+print(ds[<span class="str">"train"</span>][0])</pre>
+        </li>
+        <li>Load Bio_ClinicalBERT + tokenizer:<br>
+<pre class="code-block"><span class="kw">from</span> transformers <span class="kw">import</span> AutoTokenizer, AutoModelForTokenClassification
+tok = AutoTokenizer.from_pretrained(<span class="str">"emilyalsentzer/Bio_ClinicalBERT"</span>)
+LABELS = ds[<span class="str">"train"</span>].features[<span class="str">"tags"</span>].feature.names
+base = AutoModelForTokenClassification.from_pretrained(
+    <span class="str">"emilyalsentzer/Bio_ClinicalBERT"</span>,
+    num_labels=len(LABELS),
+    id2label={i: l <span class="kw">for</span> i, l <span class="kw">in</span> enumerate(LABELS)},
+    label2id={l: i <span class="kw">for</span> i, l <span class="kw">in</span> enumerate(LABELS)},
+)</pre>
+        </li>
+        <li>Wrap with LoRA via PEFT:<br>
+<pre class="code-block"><span class="kw">from</span> peft <span class="kw">import</span> LoraConfig, get_peft_model, TaskType
+config = LoraConfig(
+    task_type=TaskType.TOKEN_CLS,
+    r=16, lora_alpha=32, lora_dropout=0.1,
+    target_modules=[<span class="str">"query"</span>, <span class="str">"value"</span>], bias=<span class="str">"none"</span>,
+)
+model = get_peft_model(base, config)
+model.print_trainable_parameters()</pre>
+        </li>
+        <li>Tokenize + align labels (token classification trick — labels are per-word, tokenizer splits subwords):<br>
+<pre class="code-block"><span class="kw">def</span> align(examples):
+    enc = tok(examples[<span class="str">"tokens"</span>], is_split_into_words=<span class="kw">True</span>, truncation=<span class="kw">True</span>)
+    labels = []
+    <span class="kw">for</span> i, lbl <span class="kw">in</span> enumerate(examples[<span class="str">"tags"</span>]):
+        word_ids = enc.word_ids(batch_index=i)
+        labels.append([lbl[wid] <span class="kw">if</span> wid <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span> <span class="kw">else</span> -100 <span class="kw">for</span> wid <span class="kw">in</span> word_ids])
+    enc[<span class="str">"labels"</span>] = labels
+    <span class="kw">return</span> enc
+
+ds_tok = ds.map(align, batched=<span class="kw">True</span>, remove_columns=ds[<span class="str">"train"</span>].column_names)</pre>
+        </li>
+        <li>Set up training and run (a few minutes on a T4):<br>
+<pre class="code-block"><span class="kw">from</span> transformers <span class="kw">import</span> TrainingArguments, Trainer, DataCollatorForTokenClassification
+args = TrainingArguments(
+    output_dir=<span class="str">"/tmp/demo-adapter"</span>,
+    num_train_epochs=3,
+    learning_rate=1e-4,
+    per_device_train_batch_size=16,
+    eval_strategy=<span class="str">"epoch"</span>,
+    save_strategy=<span class="str">"no"</span>,
+    fp16=<span class="kw">True</span>,
+)
+trainer = Trainer(
+    model=model, args=args,
+    train_dataset=ds_tok[<span class="str">"train"</span>], eval_dataset=ds_tok[<span class="str">"validation"</span>],
+    data_collator=DataCollatorForTokenClassification(tok),
+)
+trainer.train()</pre>
+        </li>
+        <li>Evaluate with <code class="code-inline">seqeval</code> entity-level F1:<br>
+<pre class="code-block"><span class="kw">from</span> seqeval.metrics <span class="kw">import</span> classification_report
+preds = trainer.predict(ds_tok[<span class="str">"test"</span>])
+<span class="cm"># Decode predictions back to label strings, then call classification_report</span>
+print(classification_report(true_labels, pred_labels, digits=3))</pre>
+          Note the per-entity F1 alongside the aggregate. That's the M7L2 evaluation pattern in miniature.
+        </li>
+        <li>Save the adapter:<br>
+          <code class="code-inline">model.save_pretrained("/tmp/demo-adapter")</code><br>
+          (Files: <code class="code-inline">adapter_config.json</code>, <code class="code-inline">adapter_model.safetensors</code>. Total size ~100 MB.)
+        </li>
+        <li>Push the adapter directory to GCS, register as a Vertex Model (mirrors M6L3):<br>
+          <code class="code-inline">gcloud storage cp -r /tmp/demo-adapter gs://$PROJECT-demo/adapters/v1/</code>
+        </li>
+        <li><strong>Bonus:</strong> wrap the whole training in a Vertex Custom Training job (build a small Dockerfile, push to Artifact Registry, submit). That's the production shape.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">Hugging Face Transformers</span>
+        <span class="tag">PEFT (LoRA)</span>
+        <span class="tag">Trainer + TrainingArguments</span>
+        <span class="tag">seqeval entity-level metrics</span>
+        <span class="tag">Bio_ClinicalBERT base</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>A colleague is full-fine-tuning Bio_ClinicalBERT on 40K UH notes and storing 440 MB checkpoints per epoch. Why is LoRA almost certainly the better choice?</span>
+        <a href="#" class="check-btn" onclick="alert('Three reasons. (1) Compute: LoRA trains ~1-2% of parameters; same A100 finishes in 2-3 hours vs 1-2 days for full fine-tune. (2) Storage: LoRA adapter is ~100 MB regardless of base size; many adapters per base. (3) Catastrophic forgetting: full fine-tune can degrade the model\'s general clinical knowledge in pursuit of the UH-specific task; LoRA leaves the base intact. The case for full fine-tune exists only when LoRA at multiple ranks hits a clear ceiling on the metric that matters.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Your new ShepBERT adapter has aggregate F1 of 0.85 (up from 0.83) but the NHPI slice F1 dropped from 0.82 to 0.78. Should it promote to production?</span>
+        <a href="#" class="check-btn" onclick="alert('No. The fairness regression is exactly the failure mode aggregate metrics hide. Two reasonable responses. (1) Investigate: is the NHPI subset under-represented in this training run? Run a re-train with stratified sampling or class-balancing. (2) Hold production at the older version and treat the new one as a candidate for the human-in-loop review queue. NEVER auto-promote a version that worsens a fairness slice. The pipeline\'s gate test should catch this and fail the conditional register step.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why does the ShepBERT pipeline chunk notes "section-aware" (HPI / PE / A&P) rather than just truncating at 512 tokens?</span>
+        <a href="#" class="check-btn" onclick="alert('Because the 512-token window wastes most of its budget on boilerplate and templated headers if you slice naively. Section-aware chunking gives each chunk semantically coherent content - all of HPI, or all of A&P - so the model can use the full window for one section\'s reasoning. Better F1 per chunk, less compute wasted on padding, and downstream consumers get section-tagged outputs which are more useful for cohort definitions.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You want to serve three different ShepBERT adapters (NER, classification, summarization) from one inference service. What\'s the LoRA serving pattern that makes this efficient?</span>
+        <a href="#" class="check-btn" onclick="alert('Load Bio_ClinicalBERT base into GPU memory ONCE; load the three adapters into CPU or smaller GPU pool, hot-swap as needed by setting active adapter per request. A single instance hosts the base + many adapters. Memory cost stays close to the base alone; latency per request is the base inference time + a tiny adapter-injection overhead. M7L3 covers serving patterns including multi-adapter routing.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m7-lesson1.html" class="btn">← Lesson 7.1: NLP data plane</a>
+    <a href="m7-lesson3.html" class="btn btn-primary">Lesson 7.3: Frontier models and LLM deployment →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

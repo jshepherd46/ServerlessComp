@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M7 · Lesson 1: Clinical NLP on GCP — the data plane — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Hard things */
+.hard {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .9rem 1.15rem; margin-bottom: 8px;
+}
+.hard h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+  text-transform: none; letter-spacing: 0;
+}
+.hard p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: 0; }
+.hard p em { color: var(--text3); font-style: italic; }
+
+/* Model card */
+.modelcard {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem; margin-bottom: 8px;
+  display: grid; grid-template-columns: 170px 1fr;
+  gap: 1rem; align-items: start;
+}
+.modelcard .mn {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--coral);
+}
+.modelcard .mb { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.modelcard .mb strong { color: var(--text); }
+.modelcard .mb code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+@media (max-width: 640px) {
+  .modelcard { grid-template-columns: 1fr; }
+  .modelcard .mn { color: var(--amber); }
+}
+
+/* Path step */
+.dpath {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .9rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--coral);
+}
+.dpath .ds {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--coral); letter-spacing: .04em; margin-bottom: .25rem;
+}
+.dpath h4 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+  text-transform: none; letter-spacing: 0;
+}
+.dpath p { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin-bottom: 0; }
+.dpath code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M7 · Lesson 1 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 7</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot active" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 1 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Clinical NLP on GCP<br>— the data plane</h1>
+    <p class="lesson-sub">M6 was imaging — pixels in, scores out. M7 is text — clinical notes in, structured concepts or generation out. Different data plane, same architectural skeleton. This lesson is what makes clinical text hard, the BERT family, where models live, and the data path Pavel's ShepBERT pipeline runs on.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 BigQuery, Healthcare API FHIR/HL7, OMOP NOTE_NLP, Hugging Face</span>
+      <span>📍 Module 7 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Why clinical NLP is hard         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The lay of the land</div>
+    <h2 class="section-title">What makes clinical text different</h2>
+    <p style="margin-bottom: 1rem;">A model that achieves 95% F1 on the IMDB review benchmark performs poorly on discharge summaries. The reasons are specific, and they shape every architectural choice from here on.</p>
+
+    <div class="hard">
+      <h4>PHI everywhere — in the input, in the output</h4>
+      <p>A clinical note contains names, MRNs, dates, providers, locations. Any model that reads a note is reading PHI. Any model that <em>generates</em> may surface training-set names verbatim. Both are HIPAA concerns from the first byte. <em>Implication:</em> compute lives inside the perimeter; training data is de-identified before training; outputs are post-filtered.</p>
+    </div>
+
+    <div class="hard">
+      <h4>Abbreviations are domain-specific and ambiguous</h4>
+      <p>"MS" is multiple sclerosis, mitral stenosis, or morphine sulfate depending on context. A clinical-domain model has seen these contexts during pretraining; a general-purpose model has not. <em>Implication:</em> start from a clinical-domain base (ClinicalBERT, BioMedLM, etc), not vanilla BERT.</p>
+    </div>
+
+    <div class="hard">
+      <h4>Notes are templated, repetitive, and structured-within-unstructured</h4>
+      <p>Most "free text" notes follow templates (HPI / PE / Assessment / Plan). The same boilerplate appears thousands of times. <em>Implication:</em> tokenisation and section parsing matter enormously; throwing a whole note at a 512-token window without section awareness wastes the budget on boilerplate.</p>
+    </div>
+
+    <div class="hard">
+      <h4>Outcomes are sparse and confounded</h4>
+      <p>"Did this patient have a stroke in the next 90 days?" is a label you can derive from billing codes — but billing codes are themselves a downstream artifact of clinical documentation. The label and the input are not independent. <em>Implication:</em> evaluate carefully; many clinical NLP benchmarks reward learning shortcuts that don't generalize.</p>
+    </div>
+
+    <div class="hard">
+      <h4>Site shift is real and unforgiving</h4>
+      <p>A model fine-tuned on MIMIC notes (Beth Israel) drops accuracy on UH Hawai'i notes. Demographics, documentation conventions, EHR templates, abbreviation conventions all shift between institutions. <em>Implication:</em> federated fine-tuning (M10) or domain adaptation on local notes; never deploy a foreign-site-only model as your primary inference path.</p>
+    </div>
+
+    <div class="callout">
+      <strong>Where this leads.</strong> The architectural moves are mostly the same as M6 — perimeter, CMEK, audited workloads, Vertex training, registry-backed serving. The differences are: <em>more de-identification work upstream</em>, <em>tighter constraints on what data leaves the perimeter</em>, and <em>more evaluation discipline</em>. M7 takes the patterns from M6 and adds the NLP-specific layers.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: The BERT family                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The model zoo</div>
+    <h2 class="section-title">Encoder, decoder, and which to reach for</h2>
+
+    <p style="margin-bottom: 1rem;">Transformer models split into three families by architecture. Each is good at different tasks. Knowing the split keeps you from picking a chainsaw to peel an apple.</p>
+
+    <div class="modelcard">
+      <div class="mn">Encoder-only</div>
+      <div class="mb"><strong>BERT, RoBERTa, ClinicalBERT, BioBERT, BlueBERT.</strong> Reads input, produces a representation. Best for classification, entity extraction, similarity, retrieval embeddings. The right base for <strong>ShepBERT</strong> and most clinical NLP "label a note" / "extract entities" tasks.</div>
+    </div>
+
+    <div class="modelcard">
+      <div class="mn">Decoder-only</div>
+      <div class="mb"><strong>Gemini, GPT-4, Claude, Llama, Med-PaLM-2.</strong> Generates output autoregressively. Best for summarization, question-answering, chart-grounded generation. The right base for "summarize this discharge note" or "draft a referral letter" tasks. M7L3 covers their deployment.</div>
+    </div>
+
+    <div class="modelcard">
+      <div class="mn">Encoder-decoder</div>
+      <div class="mb"><strong>T5, BART, Flan-T5.</strong> Reads input, generates output. Best when the task has a structured "in/out" shape — translation, code generation, structured extraction with templated outputs. Less common than encoder-only or decoder-only in clinical NLP today.</div>
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">Clinical-domain base models worth knowing</h3>
+
+    <div class="modelcard">
+      <div class="mn">ClinicalBERT</div>
+      <div class="mb">BERT-base pretrained on MIMIC clinical notes (the Beth Israel ICU dataset). Strong starting point for most clinical encoder tasks. <code>emilyalsentzer/Bio_ClinicalBERT</code> on Hugging Face.</div>
+    </div>
+
+    <div class="modelcard">
+      <div class="mn">BioBERT</div>
+      <div class="mb">BERT-base further pretrained on PubMed abstracts + PMC full-text. Better for biomedical literature, slightly less specific to bedside notes. <code>dmis-lab/biobert-base-cased-v1.1</code>.</div>
+    </div>
+
+    <div class="modelcard">
+      <div class="mn">BlueBERT (Bio+Clinical)</div>
+      <div class="mb">Pretrained on both PubMed and MIMIC. Hybrid — broadly useful when your downstream task is mixed clinical/biomedical text. <code>bionlp/bluebert_pubmed_mimic_uncased_L-12_H-768_A-12</code>.</div>
+    </div>
+
+    <div class="modelcard">
+      <div class="mn">BioMedLM / PMC-LLaMA / Med-PaLM-2</div>
+      <div class="mb">Larger clinical/biomedical LLMs in the decoder family. For generative tasks. Some require licensing or specific deployment paths (Med-PaLM-2 is via Vertex AI Model Garden, not download).</div>
+    </div>
+
+    <div class="callout">
+      <strong>SRL's default.</strong> Start from <strong>Bio_ClinicalBERT</strong> for encoder tasks (classification, entity extraction). Start from <strong>Med-PaLM-2 via Vertex Model Garden</strong> for generation tasks where its license fits, or <strong>Gemini via the Vertex API</strong> for de-identified inputs only. ShepBERT extends Bio_ClinicalBERT with LoRA fine-tuning on UH OMOP NOTE_NLP — M7L2 covers the pipeline.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: Clinical text data plane         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Where text lives</div>
+    <h2 class="section-title">Three data layers for clinical NLP on GCP</h2>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">Layer 1 — Raw clinical notes (Cloud Healthcare API FHIR store)</h3>
+    <p style="margin-bottom: 1rem; font-size: 13.5px;">Notes arrive from the EHR as <a class="g-term" href="../glossary.html#fhir">FHIR</a> <code class="code-inline">DocumentReference</code> resources or HL7v2 messages, ingested into a Cloud Healthcare API FHIR store. Same M3L1 perimeter discipline as DICOM: BAA-covered, CMEK-encrypted, Data Access logged. This is the system of record.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Layer 2 — Structured + de-identified text (BigQuery, OMOP NOTE / NOTE_NLP)</h3>
+    <p style="margin-bottom: 1rem; font-size: 13.5px;">For HALO and other OMOP-based studies, notes are transformed into the OMOP <code class="code-inline">NOTE</code> table; downstream NLP results (entities, codes, attributes) populate <code class="code-inline">NOTE_NLP</code>. Both are queryable from BigQuery. De-identification happens at this layer — names, dates, providers all replaced with surrogates per HIPAA Safe Harbor or expert-determination rules.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Layer 3 — Training corpus (GCS objects, sharded)</h3>
+    <p style="margin-bottom: 1rem; font-size: 13.5px;">For training and large-scale embedding extraction, BigQuery is the wrong shape — per-row queries are slow at training time. Materialise the de-id'd corpus as sharded GCS objects (JSONL or Arrow) that training pipelines read in random order.</p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">When to use each</h3>
+
+<pre class="code-block"><span class="cm"># Layer 1 - production ingestion and source of truth</span>
+gcloud healthcare fhir-stores import gcs <span class="am">$FHIR_STORE</span> \
+  --gcs-uri=gs://srl-shepbert-landing/ \
+  --content-structure=BUNDLE
+
+<span class="cm"># Layer 2 - SQL-friendly analysis and cohort queries</span>
+SELECT note_id, person_id, note_date, note_text
+FROM `srl-halo-prod.omop.note`
+WHERE concept_id IN (
+  SELECT note_concept_id FROM `srl-halo-prod.omop.note_nlp`
+  WHERE concept_id = 4324326  <span class="cm"># "discharge summary"</span>
+)
+LIMIT 1000;
+
+<span class="cm"># Layer 3 - training-time random access</span>
+<span class="kw">import</span> tensorflow <span class="kw">as</span> tf
+ds = tf.data.Dataset.list_files(<span class="str">"gs://srl-shepbert-training/v3/train-*.jsonl"</span>)
+ds = ds.interleave(<span class="kw">lambda</span> f: tf.data.TextLineDataset(f), num_parallel_calls=tf.data.AUTOTUNE)</pre>
+
+    <div class="callout">
+      <strong>The canonical flow.</strong> EHR → FHIR store (audit/perimeter/SoR) → Vertex Pipeline (de-identify + OMOP-shape) → BigQuery <code class="code-inline">NOTE</code>/<code class="code-inline">NOTE_NLP</code> (analytics + cohort) → GCS sharded corpus (training input). Three layers, each with a different consumer; each layer's de-identification stricter than the one above it.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: ShepBERT data path                -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The worked example</div>
+    <h2 class="section-title">ShepBERT — UH clinical NLP, end to end</h2>
+    <p style="margin-bottom: 1rem;">ShepBERT (Pavel Bushuyev) fine-tunes Bio_ClinicalBERT with LoRA on UH OMOP NLP data. The aim: clinical entity extraction adapted to UH documentation conventions, supporting downstream HALO and HIPIMR cohort definitions. Six concrete steps from EHR to served API.</p>
+
+    <div class="dpath">
+      <div class="ds">Step 1 — Ingest</div>
+      <h4>EHR → FHIR store</h4>
+      <p>Nightly extract from UH EHR posts FHIR DocumentReference resources to <code>srl-shepbert-prod</code>'s FHIR store. Same perimeter + CMEK + Data Access logging as HIPIMR DICOM (M3).</p>
+    </div>
+
+    <div class="dpath">
+      <div class="ds">Step 2 — De-identification</div>
+      <h4>Healthcare API de-id → de-id'd FHIR store</h4>
+      <p>The Healthcare API <code>deidentify</code> operation runs on the FHIR store with HIPAA Safe Harbor rules plus custom rules for UH-specific patterns (provider initials, internal site codes). Output: a sibling de-id'd FHIR store. M8 covers the de-id rules in depth.</p>
+    </div>
+
+    <div class="dpath">
+      <div class="ds">Step 3 — OMOP transformation</div>
+      <h4>De-id'd FHIR → BigQuery OMOP NOTE table</h4>
+      <p>A Cloud Run Job (or Dataflow for large batches) reads de-id'd FHIR, maps to OMOP NOTE schema, writes to BigQuery. Concept-mapping uses ATLAS-shared vocabulary (M9) so terms align with HALO.</p>
+    </div>
+
+    <div class="dpath">
+      <div class="ds">Step 4 — Corpus materialisation</div>
+      <h4>BigQuery → sharded GCS for training</h4>
+      <p>Vertex Pipeline step exports a snapshot of <code>NOTE</code> (with section-aware chunking + tokenisation prep) as JSONL shards to <code>gs://srl-shepbert-training/v3/</code>. Versioned by date and pipeline run — training reads from a specific snapshot, not the live BigQuery table.</p>
+    </div>
+
+    <div class="dpath">
+      <div class="ds">Step 5 — LoRA fine-tune</div>
+      <h4>Vertex Custom Training: Bio_ClinicalBERT + LoRA adapters</h4>
+      <p>Single-GPU A100. Base model frozen; LoRA matrices (~1% of parameter count) trained on the UH corpus. Checkpoints every epoch to GCS. M7L2 covers the script.</p>
+    </div>
+
+    <div class="dpath">
+      <div class="ds">Step 6 — Register + serve</div>
+      <h4>Adapter artifact in Vertex Model Registry; served from GKE</h4>
+      <p>LoRA adapters are small (~100 MB); the full model is the base + adapters at load time. Served from GKE alongside other ShepBERT pipeline pods (the choice from M6L3's serving matrix). Inference: load base + adapter at startup; serve via FastAPI; per-request audit log per M3L3.</p>
+    </div>
+
+    <p style="font-size:13.5px;margin-top:1rem;">Same architectural skeleton as Makawalu's pipeline from M6 — different model family, different data layer, identical platform shape.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 7.1</div>
+    <h2 class="section-title">Stand up a FHIR store, ingest, query notes</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">📝 The clinical-text plumbing</div>
+      <ol class="exercise-steps">
+        <li>Enable APIs:<br>
+          <code class="code-inline">gcloud services enable healthcare.googleapis.com bigquery.googleapis.com</code>
+        </li>
+        <li>Create a Healthcare dataset (or reuse from M6) and a FHIR store:<br>
+          <code class="code-inline">gcloud healthcare datasets create demo-clinical --location=us-west1</code><br>
+          <code class="code-inline">gcloud healthcare fhir-stores create demo-fhir --dataset=demo-clinical --location=us-west1 --version=R4</code>
+        </li>
+        <li><strong>Ingest a synthetic note.</strong> Create a tiny FHIR DocumentReference JSON with a fake note (no PHI - synthetic only for the exercise). Save as <code class="code-inline">note.json</code>:
+<pre class="code-block">{
+  <span class="str">"resourceType"</span>: <span class="str">"DocumentReference"</span>,
+  <span class="str">"status"</span>: <span class="str">"current"</span>,
+  <span class="str">"type"</span>: {<span class="str">"coding"</span>: [{<span class="str">"system"</span>: <span class="str">"http://loinc.org"</span>, <span class="str">"code"</span>: <span class="str">"11506-3"</span>, <span class="str">"display"</span>: <span class="str">"Progress note"</span>}]},
+  <span class="str">"subject"</span>: {<span class="str">"reference"</span>: <span class="str">"Patient/synthetic-001"</span>},
+  <span class="str">"content"</span>: [{
+    <span class="str">"attachment"</span>: {
+      <span class="str">"contentType"</span>: <span class="str">"text/plain"</span>,
+      <span class="str">"data"</span>: <span class="str">"UGF0aWVudCByZXBvcnRzIHN0YWJsZSBwYWluLiBQRSB1bnJlbWFya2FibGUu"</span>
+    }
+  }]
+}</pre>
+          (The base64 decodes to "Patient reports stable pain. PE unremarkable." Synthetic, no PHI.)
+        </li>
+        <li>POST it to the FHIR store:<br>
+<pre class="code-block">TOKEN=$(gcloud auth print-access-token)
+curl -X POST \
+  -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
+  -H <span class="str">"Content-Type: application/fhir+json"</span> \
+  -d @note.json \
+  <span class="str">"https://healthcare.googleapis.com/v1/projects/$PROJECT/locations/us-west1/datasets/demo-clinical/fhirStores/demo-fhir/fhir/DocumentReference"</span></pre>
+          You should get back the resource with an assigned ID.
+        </li>
+        <li><strong>Stream FHIR to BigQuery</strong> for analysis:<br>
+<pre class="code-block">bq mk --location=us-west1 demo_clinical
+
+gcloud healthcare fhir-stores update demo-fhir \
+  --dataset=demo-clinical --location=us-west1 \
+  --enable-update-create \
+  --pubsub-topic=projects/<span class="am">$PROJECT</span>/topics/fhir-events</pre>
+          (Or use the export-to-BQ operation for a snapshot.)
+        </li>
+        <li><strong>Run a query</strong> against the OMOP NOTE pattern (using a synthetic table for the exercise — in real life this comes from your OMOP ETL):<br>
+<pre class="code-block">bq query --use_legacy_sql=false '
+  SELECT note_id, note_text, note_class_concept_id
+  FROM `demo_clinical.note`
+  WHERE LENGTH(note_text) &gt; 100
+  LIMIT 10
+'</pre>
+        </li>
+        <li><strong>Load a tokenizer for ClinicalBERT</strong> in a Workbench notebook (or locally if installed):<br>
+<pre class="code-block"><span class="kw">from</span> transformers <span class="kw">import</span> AutoTokenizer
+tok = AutoTokenizer.from_pretrained(<span class="str">"emilyalsentzer/Bio_ClinicalBERT"</span>)
+text = <span class="str">"Patient reports stable pain. PE unremarkable."</span>
+print(tok.tokenize(text))
+<span class="cm"># Look at how clinical terms tokenize - especially abbreviations like "PE"</span></pre>
+          You\'ll see that PE tokenises as a single subword - one piece of why a clinical-domain base model exists.
+        </li>
+        <li><strong>Tear down:</strong> delete the FHIR store, BigQuery dataset.<br>
+          <code class="code-inline">gcloud healthcare fhir-stores delete demo-fhir --dataset=demo-clinical --location=us-west1</code><br>
+          <code class="code-inline">gcloud healthcare datasets delete demo-clinical --location=us-west1</code><br>
+          <code class="code-inline">bq rm -r -d demo_clinical</code>
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Tools you touched</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud healthcare fhir-stores create</span>
+        <span class="tag">FHIR DocumentReference REST</span>
+        <span class="tag">FHIR → BigQuery export</span>
+        <span class="tag">OMOP NOTE table pattern</span>
+        <span class="tag">Hugging Face transformers tokenizer</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Why train ShepBERT from Bio_ClinicalBERT rather than from vanilla BERT-base, even though vanilla BERT is bigger and was trained on more text?</span>
+        <a href="#" class="check-btn" onclick="alert('Domain match. Clinical text has domain-specific vocabulary (drug names, abbreviations like "PE", "MS", boilerplate template structure) that vanilla BERT under-tokenizes and has not learned the contextual usage of. Bio_ClinicalBERT was further-pretrained on MIMIC notes, so its embeddings and tokenizer are tuned for the clinical distribution. Starting from Bio_ClinicalBERT means you fine-tune the differences vs UH-specific notes, not the entire clinical domain.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You\'re asked to "just train ShepBERT on the raw FHIR store directly." Why is that the wrong shape?</span>
+        <a href="#" class="check-btn" onclick="alert('Three reasons. (1) Throughput: training reads thousands of notes per epoch in random order. Per-request FHIR API calls are too slow and rate-limited. (2) Reproducibility: the FHIR store changes as new notes land; training needs a versioned snapshot. (3) De-identification: the raw FHIR store is PHI; training data should be the de-id\'d, OMOP-shaped, sharded-GCS layer. The training corpus is downstream of de-id and OMOP transformation, never the live SoR.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>"PE" appears in a UH discharge note. What does a domain-blind model see, and what does Bio_ClinicalBERT see?</span>
+        <a href="#" class="check-btn" onclick="alert('A domain-blind model sees the two-letter token "PE" with no strong prior, likely tokenized into pieces. It might lean toward physical-education or proper-noun interpretations from web pretraining. Bio_ClinicalBERT has seen "PE" in clinical contexts thousands of times during pretraining, with surrounding tokens establishing whether it means physical exam, pulmonary embolism, or something else - the embedding is contextual and useful from the start. That difference is most of what domain pretraining buys you.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>A collaborator argues "Med-PaLM-2 is so much better than ClinicalBERT, just use it for entity extraction." Push back in one sentence.</span>
+        <a href="#" class="check-btn" onclick="alert('Wrong model family for the task: Med-PaLM-2 is a decoder LLM optimized for generation, and using it for structured entity extraction means prompt-engineering for outputs that an encoder model produces natively with a fraction of the compute. For "classify this note" or "extract these entities" tasks, an encoder fine-tuned model like Bio_ClinicalBERT + LoRA is faster, cheaper, more reliable, and more auditable than coaxing a generative LLM to behave deterministically.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="../index.html" class="btn">← All modules</a>
+    <a href="m7-lesson2.html" class="btn btn-primary">Lesson 7.2: Fine-tuning at lab scale →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
