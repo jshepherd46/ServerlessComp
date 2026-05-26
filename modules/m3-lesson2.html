@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M3 · Lesson 2: Network hardening — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+
+/* Layer stack */
+.layers {
+  display: flex; flex-direction: column; gap: 6px;
+  margin: 1rem 0 1.75rem;
+}
+.lyr {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .85rem 1.1rem;
+  display: grid; grid-template-columns: 150px 1fr;
+  gap: 1rem; align-items: center;
+}
+.lyr .ln {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  letter-spacing: .05em; color: var(--text); font-weight: 500;
+}
+.lyr .lp { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+.lyr.l1 { border-left: 3px solid var(--purple); }
+.lyr.l2 { border-left: 3px solid var(--blue); }
+.lyr.l3 { border-left: 3px solid var(--teal); }
+.lyr.l4 { border-left: 3px solid var(--amber); }
+.lyr.l5 { border-left: 3px solid var(--coral); }
+@media (max-width: 640px) {
+  .lyr { grid-template-columns: 1fr; }
+  .lyr .ln { font-size: 13px; color: var(--amber); }
+}
+
+/* Flow diagram */
+.netflow {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.7; overflow-x: auto;
+}
+.netflow .src { color: var(--blue); }
+.netflow .priv { color: var(--green); }
+.netflow .arr { color: var(--amber); }
+.netflow .out { color: var(--coral); }
+.netflow .ok-arr { color: var(--green); font-weight: 600; }
+.netflow .bad-arr { color: var(--coral); font-weight: 600; }
+.netflow .ann { color: var(--text3); font-style: italic; }
+.netflow .perim {
+  border: 2px dashed var(--green); border-radius: var(--r2);
+  padding: 1rem; margin: .25rem 0;
+  background: rgba(63,185,80,.04);
+}
+
+/* Path step */
+.pstep {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .9rem 1.15rem; margin-bottom: 8px;
+  border-left: 3px solid var(--green);
+}
+.pstep .ps-name {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+}
+.pstep .ps-tech {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--green); letter-spacing: .04em;
+  margin-bottom: .4rem;
+}
+.pstep .ps-body {
+  font-size: 12.5px; color: var(--text2); line-height: 1.55;
+}
+.pstep .ps-body code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M3 · Lesson 2 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 3</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 2</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot active" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 2 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Network hardening</h1>
+    <p class="lesson-sub">The VPC SC perimeter is the wall. This lesson is the plumbing inside it: keeping traffic off the public internet, denying public IPs by default, fronting the few public services with edge protection, and applying all of it to the real HIPIMR ingest path.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 VPC, Private Service Connect, Cloud NAT, Cloud Armor, VPC connectors</span>
+      <span>📍 Module 3 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Defense in depth                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Why this layer exists</div>
+    <h2 class="section-title">Network hardening sits inside the perimeter</h2>
+    <p style="margin-bottom: 1rem;">M3L1's perimeter denies any cross-boundary call without an explicit rule. Network hardening makes sure that even <em>inside</em> the perimeter, traffic stays where it should — and the few necessary public endpoints aren't bare to the open internet. Five layers, stacked.</p>
+
+    <div class="layers">
+      <div class="lyr l1">
+        <div class="ln">L1 — VPC SC perimeter</div>
+        <div class="lp">Cross-boundary control (M3L1). The only layer that operates on identity and resource regardless of network path.</div>
+      </div>
+      <div class="lyr l2">
+        <div class="ln">L2 — Private connectivity</div>
+        <div class="lp">Traffic from workloads inside the perimeter to GCP APIs never touches the public internet. <strong>Section 2.</strong></div>
+      </div>
+      <div class="lyr l3">
+        <div class="ln">L3 — No public IPs</div>
+        <div class="lp">Compute and GKE workloads have no external IPs. Outbound (when needed) goes through Cloud NAT. <strong>Section 3.</strong></div>
+      </div>
+      <div class="lyr l4">
+        <div class="ln">L4 — Internal-only services</div>
+        <div class="lp">Cloud Run / Functions reachable only from inside the VPC, fronted by VPC connectors. <strong>Section 4.</strong></div>
+      </div>
+      <div class="lyr l5">
+        <div class="ln">L5 — Edge protection on public endpoints</div>
+        <div class="lp">The few services that must face the internet sit behind Cloud Armor with WAF rules and rate limits. <strong>Section 5.</strong></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>The framing:</strong> any one of these layers can fail. The point of all five is that an adversary or a misconfiguration has to defeat several at once before they reach PHI. None of them is optional in a prod HIPAA project.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: Private connectivity             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Layer 2</div>
+    <h2 class="section-title">Private connectivity — never touch the internet</h2>
+    <p style="margin-bottom: 1rem;">A Cloud Run service inside <code class="code-inline">srl-makawalu-prod</code> needs to read from GCS and write to BigQuery. By default those calls go through Google's public API endpoints — which are technically over HTTPS, but the request leaves the VPC and traverses the internet on the way back to Google. The hardening: keep that traffic on Google's backbone.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Private Google Access — the simple case</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Enable <strong>Private Google Access</strong> on each subnet. VMs and pods in that subnet without public IPs can reach <code class="code-inline">*.googleapis.com</code> via private IPs, routed entirely on Google's network.</p>
+
+<pre class="code-block">gcloud compute networks subnets update srl-prod-subnet \
+  --region=us-west1 \
+  --enable-private-ip-google-access</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Private Service Connect — the rigorous case</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;"><a class="g-term" href="../glossary.html#private-service-connect">Private Service Connect (PSC)</a> goes further: instead of routing public endpoint traffic privately, you create an endpoint <em>inside your VPC</em> that <strong>is</strong> the address for the Google API. DNS for <code class="code-inline">storage.googleapis.com</code> resolves to your private IP. The service literally cannot be reached over the public endpoint from inside the VPC.</p>
+
+<pre class="code-block"><span class="cm"># Create a PSC endpoint for Google APIs (one-time per VPC)</span>
+gcloud compute addresses create psc-googleapis \
+  --global \
+  --purpose=PRIVATE_SERVICE_CONNECT \
+  --addresses=10.0.0.100 \
+  --network=srl-prod-vpc
+
+gcloud compute forwarding-rules create psc-googleapis-rule \
+  --global \
+  --network=srl-prod-vpc \
+  --address=psc-googleapis \
+  --target-google-apis-bundle=all-apis \
+  --service-directory-registration=projects/<span class="am">$PROJECT</span>/locations/us-west1</pre>
+
+    <p style="font-size:13px;color:var(--text2);">After this, your workloads' DNS resolves <code class="code-inline">storage.googleapis.com</code> → <code class="code-inline">10.0.0.100</code>. The packet never leaves the VPC. Pair with the VPC SC perimeter for the airtight closed-loop.</p>
+
+    <div class="callout">
+      <strong>The pragmatic choice:</strong> Private Google Access for nearly all cases. Add PSC when you specifically need DNS-level enforcement (regulators ask, or you want to be certain a misconfigured workload cannot reach the public endpoint). Both together is a common HIPAA-tier baseline.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: No public IPs                    -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Layer 3</div>
+    <h2 class="section-title">No public IPs, ever — Cloud NAT for outbound</h2>
+    <p style="margin-bottom: 1rem;">From M3L1's org policy: <code class="code-inline">constraints/compute.vmExternalIpAccess</code> denies public IPs on Compute Engine VMs. The same discipline applies to GKE nodes (use private clusters), Cloud SQL (use private IP), and Vertex AI Workbench (use Private Service Connect).</p>
+
+    <p style="margin-bottom: 1rem;">The problem: workloads sometimes legitimately need to reach the public internet — pulling Python packages, fetching a model from HuggingFace, calling an external Healthcare API. Without a public IP, how?</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Cloud NAT — outbound only, fully managed</h3>
+
+<pre class="code-block"><span class="cm"># Create a Cloud Router (NAT requires one)</span>
+gcloud compute routers create srl-prod-router \
+  --network=srl-prod-vpc \
+  --region=us-west1
+
+<span class="cm"># Attach a Cloud NAT to it</span>
+gcloud compute routers nats create srl-prod-nat \
+  --router=srl-prod-router \
+  --region=us-west1 \
+  --auto-allocate-nat-external-ips \
+  --nat-all-subnet-ip-ranges \
+  --enable-logging</pre>
+
+    <p style="margin-bottom: .75rem; font-size:13.5px;">Now any workload in <code class="code-inline">srl-prod-vpc</code> without a public IP can still reach external services — but only outbound. Nothing can reach in from the internet. The NAT logs show every outbound flow, which is exactly what you want when an auditor asks "where did this workload talk to?"</p>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">🚪</div>
+        <div class="principle-title">One-way doors</div>
+        <div class="principle-body">NAT is outbound only. Nothing initiates a connection inbound through it. The asymmetry is the security.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">📝</div>
+        <div class="principle-title">Logged by default</div>
+        <div class="principle-body">Every NAT flow appears in Cloud Logging. Filterable by source IP, destination, protocol. Audit-grade.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🌐</div>
+        <div class="principle-title">Stable egress IPs</div>
+        <div class="principle-body">Allocate static external IPs to the NAT if partners (Queen's, Vertex external endpoints) need to allow-list your egress.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">⛔</div>
+        <div class="principle-title">Per-subnet scoping</div>
+        <div class="principle-body">You can deny NAT to specific subnets — e.g., the high-sensitivity ones that should never reach anything external.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Internal-only services           -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Layer 4</div>
+    <h2 class="section-title">Internal-only Cloud Run and Functions</h2>
+    <p style="margin-bottom: 1rem;">By default, a Cloud Run service has a public <code class="code-inline">*.run.app</code> URL. For internal-only services — the ones other lab workloads call, but no human should reach — close that door at deploy time.</p>
+
+<pre class="code-block">gcloud run deploy makawalu-internal-api \
+  --image=<span class="am">$IMG</span> \
+  --region=us-west1 \
+  --service-account=internal-api-sa@srl-makawalu-prod.iam.gserviceaccount.com \
+  <span class="warn">--ingress=internal</span> \
+  --no-allow-unauthenticated \
+  --vpc-connector=srl-prod-connector \
+  --vpc-egress=all-traffic</pre>
+
+    <p style="font-size:13.5px;margin-bottom:1rem;">Three flags doing the work:</p>
+
+    <div class="hier-accordion">
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">🚪</span>
+          <div class="hier-label">
+            <div class="hier-label-name">--ingress=internal</div>
+            <div class="hier-label-desc">Service only accepts requests from inside the VPC or other Google services in the same project.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">The public <code class="code-inline">*.run.app</code> URL still exists but rejects requests from anywhere outside. Pair with <code class="code-inline">--no-allow-unauthenticated</code> so that even internal callers must present a valid identity. Use <code class="code-inline">--ingress=internal-and-cloud-load-balancing</code> when fronted by an external load balancer + Cloud Armor.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-project"></div>
+          <span class="hier-icon">🔌</span>
+          <div class="hier-label">
+            <div class="hier-label-name">--vpc-connector</div>
+            <div class="hier-label-desc">Wires the Cloud Run service into your VPC so it can reach private resources (Cloud SQL on private IP, internal services).</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Create one connector per region per VPC; reuse across services. <code class="code-inline">gcloud compute networks vpc-access connectors create srl-prod-connector --region=us-west1 --network=srl-prod-vpc --range=10.8.0.0/28</code>. Egress through the connector means outbound traffic from the service flows through your VPC's firewall rules and Cloud NAT — same path as a VM.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-resource"></div>
+          <span class="hier-icon">🚀</span>
+          <div class="hier-label">
+            <div class="hier-label-name">--vpc-egress=all-traffic</div>
+            <div class="hier-label-desc">All outbound from the service goes through the VPC connector — including public-internet traffic.</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Default is <code class="code-inline">private-ranges-only</code> — only private IPs go through the connector, public traffic uses Cloud Run's default egress. For HIPAA workloads in a PHI project, force everything through the VPC so all egress hits your audit logs and (when relevant) Cloud NAT logs.</p>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin-top:1rem; font-size:13.5px;">The same pattern applies to Cloud Functions (v2 is Cloud Run under the hood, so the flags map directly).</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Cloud Armor                      -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Layer 5</div>
+    <h2 class="section-title">Cloud Armor — protecting the few public endpoints</h2>
+    <p style="margin-bottom: 1rem;">Some services do need to face the internet — the Makawalu XAI demo, a public-facing FHIR portal, a clinician-facing tool. <a class="g-term" href="../glossary.html#cloud-armor">Cloud Armor</a> sits at the global load balancer layer in front of those services with WAF rules, rate limits, geo restrictions, and DDoS protection.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">The minimum useful Cloud Armor policy</h3>
+
+<pre class="code-block"><span class="cm"># Create a security policy</span>
+gcloud compute security-policies create srl-public-policy \
+  --description=<span class="str">"Baseline protection for public services"</span>
+
+<span class="cm"># 1. Rate-limit: 100 requests / 60s per source IP</span>
+gcloud compute security-policies rules create 1000 \
+  --security-policy=srl-public-policy \
+  --action=rate-based-ban \
+  --rate-limit-threshold-count=100 \
+  --rate-limit-threshold-interval-sec=60 \
+  --ban-duration-sec=600 \
+  --src-ip-ranges=<span class="str">"*"</span> \
+  --conform-action=allow \
+  --exceed-action=deny-429
+
+<span class="cm"># 2. Block known-bad SQLi patterns (OWASP rule)</span>
+gcloud compute security-policies rules create 2000 \
+  --security-policy=srl-public-policy \
+  --expression=<span class="str">"evaluatePreconfiguredExpr('sqli-v33-stable')"</span> \
+  --action=deny-403
+
+<span class="cm"># 3. Block known-bad XSS patterns</span>
+gcloud compute security-policies rules create 2010 \
+  --security-policy=srl-public-policy \
+  --expression=<span class="str">"evaluatePreconfiguredExpr('xss-v33-stable')"</span> \
+  --action=deny-403
+
+<span class="cm"># 4. Restrict to US clients (optional, depends on your audience)</span>
+gcloud compute security-policies rules create 3000 \
+  --security-policy=srl-public-policy \
+  --expression=<span class="str">"origin.region_code != 'US'"</span> \
+  --action=deny-403
+
+<span class="cm"># Attach to the backend service in front of your Cloud Run service</span>
+gcloud compute backend-services update makawalu-xai-backend \
+  --global \
+  --security-policy=srl-public-policy</pre>
+
+    <div class="callout">
+      <strong>What Cloud Armor is not:</strong> a substitute for authentication, IAM, or VPC SC. It is an extra filter at the edge — useful, cheap, and audit-friendly — but a public service should never depend on it as the only line of defense. Auth and least-privilege still apply.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: The HIPIMR ingest path           -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Putting all five layers together</div>
+    <h2 class="section-title">The HIPIMR ingest path, hardened end to end</h2>
+    <p style="margin-bottom: 1rem;">Nightly: Queen's PACS exports a batch of mammography DICOMs to a transfer GCS bucket; SRL ingests, de-identifies (where possible for research), and loads into the HIPIMR Healthcare API DICOM store. Every arrow in this picture is hardened.</p>
+
+    <div class="netflow">
+<span class="src">Queen's PACS</span> <span class="arr">─[mTLS, IP allow-list to NAT egress IP]─▶</span>
+        <span class="perim">
+<span class="ann">VPC SC perimeter (srl_phi)</span>
+
+<span class="priv">srl-hipimr-prod / VPC</span> (no public IPs, PGA + PSC enabled)
+  <span class="priv">├ GCS landing bucket</span>      <span class="ann"># CMEK, uniform IAM, audit logs on</span>
+  <span class="priv">├ Cloud Run Job (ingest-sa)</span> <span class="ann"># --ingress=internal --vpc-egress=all-traffic</span>
+  <span class="priv">├ Healthcare API DICOM store</span> <span class="ann"># CMEK, perimeter-restricted service</span>
+  <span class="priv">└ Pub/Sub: ingest-events</span>   <span class="ann"># perimeter-restricted</span>
+        </span>
+<span class="bad-arr">─X─</span> <span class="out">No reach inbound from public internet</span>
+<span class="ok-arr">───▶</span> <span class="ann">Downstream consumers (de-id, model training) subscribe via internal Pub/Sub</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">What each layer is doing</h3>
+
+    <div class="pstep">
+      <div class="ps-name">Queen's → GCS landing bucket</div>
+      <div class="ps-tech">mTLS + IP allow-list</div>
+      <div class="ps-body">Queen's writes via authenticated <code>gcloud storage cp</code> with their SA (signed under the BAA). Cloud Armor (or signed URLs in front of the bucket) restricts the source IP. The SA's role is <code>roles/storage.objectCreator</code> only — write, never read.</div>
+    </div>
+
+    <div class="pstep">
+      <div class="ps-name">GCS landing bucket → Cloud Run Job</div>
+      <div class="ps-tech">Eventarc + internal ingress</div>
+      <div class="ps-body">Eventarc trigger on <code>GCS object created</code> invokes the Cloud Run Job. The Job's URL is <code>--ingress=internal</code> — Eventarc reaches it via a Google-internal path, and no human URL works.</div>
+    </div>
+
+    <div class="pstep">
+      <div class="ps-name">Cloud Run Job → Healthcare API</div>
+      <div class="ps-tech">Private Service Connect + perimeter ingress allow</div>
+      <div class="ps-body">The Job uses Workload Identity → <code>ingest-sa</code>. Its API call to the Healthcare API DICOM store resolves to the PSC endpoint (private IP). The VPC SC perimeter has an ingress allow for the Healthcare API for SAs from the same project.</div>
+    </div>
+
+    <div class="pstep">
+      <div class="ps-name">Healthcare API → downstream consumers</div>
+      <div class="ps-tech">Pub/Sub, perimeter-restricted, internal subs</div>
+      <div class="ps-body">The DICOM store emits notifications to a perimeter-protected Pub/Sub topic. The de-id pipeline (running in the same perimeter) subscribes. Nothing crosses the boundary; nothing touches a public network.</div>
+    </div>
+
+    <p style="margin-top:1rem;font-size:13.5px;">Every hop has logs in the audit sink from M1L4. If anything ever breaks, you can trace the request from Queen's all the way to the DICOM store using the audit logs alone.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 3.2</div>
+    <h2 class="section-title">Stand up the network layer</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🛡 Private path, no public IPs, internal-only Cloud Run</div>
+      <ol class="exercise-steps">
+        <li>In your sandbox project, create a custom VPC + subnet (don't use the default):<br>
+          <code class="code-inline">gcloud compute networks create demo-vpc --subnet-mode=custom</code><br>
+          <code class="code-inline">gcloud compute networks subnets create demo-subnet --network=demo-vpc --region=us-west1 --range=10.10.0.0/24 --enable-private-ip-google-access</code>
+        </li>
+        <li>Create a Cloud Router + Cloud NAT for outbound:<br>
+          <code class="code-inline">gcloud compute routers create demo-router --network=demo-vpc --region=us-west1</code><br>
+          <code class="code-inline">gcloud compute routers nats create demo-nat --router=demo-router --region=us-west1 --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --enable-logging</code>
+        </li>
+        <li>Create a Serverless VPC Access connector:<br>
+          <code class="code-inline">gcloud compute networks vpc-access connectors create demo-connector --region=us-west1 --network=demo-vpc --range=10.8.0.0/28</code>
+        </li>
+        <li>Deploy your hello-flask from M2 as internal-only and force egress through the connector:<br>
+          <code class="code-inline">IMG=us-west1-docker.pkg.dev/$PROJECT/practice/hello-flask:0.2.0</code><br>
+          <code class="code-inline">gcloud run deploy demo-internal --image=$IMG --region=us-west1 --ingress=internal --no-allow-unauthenticated --vpc-connector=demo-connector --vpc-egress=all-traffic</code>
+        </li>
+        <li><strong>Try to hit it from your laptop</strong> with a valid auth token:<br>
+          <code class="code-inline">URL=$(gcloud run services describe demo-internal --region=us-west1 --format='value(status.url)')</code><br>
+          <code class="code-inline">curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" $URL/</code><br>
+          <strong>Expect 404 or 403</strong> — internal ingress blocks you. Auth is valid, network path is not.
+        </li>
+        <li>Spin up a tiny VM <em>inside</em> the VPC and hit it from there:<br>
+          <code class="code-inline">gcloud compute instances create demo-vm --zone=us-west1-a --subnet=demo-subnet --no-address --image-family=debian-12 --image-project=debian-cloud --service-account=$PROJECT-compute@developer.gserviceaccount.com --scopes=cloud-platform</code><br>
+          <code class="code-inline">gcloud compute ssh demo-vm --zone=us-west1-a --tunnel-through-iap</code><br>
+          On the VM: <code class="code-inline">TOKEN=$(curl -s -H "Metadata-Flavor: Google" http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=$URL)</code> then <code class="code-inline">curl -H "Authorization: Bearer $TOKEN" $URL/</code><br>
+          <strong>Expect a successful response.</strong> The internal path works.
+        </li>
+        <li><strong>Inspect the NAT logs</strong> in Cloud Logging:<br>
+          Filter: <code class="code-inline">jsonPayload.connection.nat_ip:* AND resource.labels.gateway_name="demo-nat"</code>. If the VM has done any outbound (apt update, etc.), you'll see flows here.
+        </li>
+        <li><strong>Tear down</strong> everything when finished — Cloud NAT, router, connector, VM, Cloud Run service, VPC. Each command is the verb-reverse of what you used to create them.</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Commands you used</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud compute networks subnets create --enable-private-ip-google-access</span>
+        <span class="tag">gcloud compute routers nats create</span>
+        <span class="tag">gcloud compute networks vpc-access connectors create</span>
+        <span class="tag">gcloud run deploy --ingress=internal --vpc-connector --vpc-egress=all-traffic</span>
+        <span class="tag">gcloud compute instances create --no-address</span>
+        <span class="tag">gcloud compute ssh --tunnel-through-iap</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 8: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Why does network hardening matter if you already have a VPC SC perimeter?</span>
+        <a href="#" class="check-btn" onclick="alert('Defense in depth. VPC SC denies cross-perimeter calls based on identity + project + service — but legitimate traffic INSIDE the perimeter still benefits from staying off the public internet. Private connectivity reduces eavesdropping risk on the path. No-public-IPs reduces accidental inbound exposure. Internal-only services reduce attack surface. Cloud Armor stops the few public endpoints from being trivially attacked. Each layer covers a different failure mode.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You deploy a Cloud Run service with <code class="code-inline">--ingress=internal</code> but no VPC connector. Your colleague says "the internal ingress takes care of network isolation." What is still wrong for HIPAA?</span>
+        <a href="#" class="check-btn" onclick="alert('Outbound. Without a VPC connector + --vpc-egress=all-traffic, the service\'s outbound calls (to Healthcare API, GCS, etc.) use Cloud Run\'s default egress — which traverses Google\'s network but not YOUR VPC. That means: no VPC firewall rules apply, no Cloud NAT logs the flow, and Private Service Connect (if you have it) is bypassed. For a PHI workload, that is the difference between "audit-grade" and "good enough."');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Queen's needs to write nightly DICOMs to your GCS landing bucket. They want a public bucket URL because "their firewall is restrictive." How do you push back?</span>
+        <a href="#" class="check-btn" onclick="alert('A public bucket is non-starter — it violates VPC SC and gives anyone with the URL read access by default. Two reasonable answers: (1) Allow Queen\'s static egress IP through an ingress rule on the perimeter for storage.googleapis.com, scoped to the specific SA they authenticate as. (2) Pre-signed URLs with short expiry generated by an authenticated Cloud Function; Queen\'s POSTs to that URL. Both keep the bucket private, audited, and IP-controlled.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Cloud Armor catches 4xx rate-limit violations on your public XAI demo. Does that mean you're protected against PHI exposure?</span>
+        <a href="#" class="check-btn" onclick="alert('No — and that\'s the wrong question. Cloud Armor stops abusive traffic and known-bad patterns at the edge. PHI protection comes from the service itself never serving PHI publicly: auth required, role-checked, the data path only touches de-identified inference inputs. Cloud Armor is hygiene; the PHI protection is in the application + VPC SC + IAM.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m3-lesson1.html" class="btn">← Lesson 3.1: Perimeter &amp; org policy</a>
+    <a href="m3-lesson3.html" class="btn btn-primary">Lesson 3.3: Keys, secrets, audit →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M3 · Lesson 1: Perimeter, BAA, and org policy — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+pre.code-block .warn { color: var(--coral); }
+
+/* Responsibility split */
+.resp-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px; margin: 1rem 0 1.5rem;
+}
+.resp-col {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+  border-top: 3px solid var(--green);
+}
+.resp-col:nth-child(2) { border-top-color: var(--amber); }
+.resp-col:nth-child(3) { border-top-color: var(--blue); }
+.resp-col h3 {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .25rem;
+  text-transform: none; letter-spacing: 0;
+}
+.resp-col .rc-tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  color: var(--green); letter-spacing: .06em;
+  text-transform: uppercase; margin-bottom: .65rem;
+  display: block;
+}
+.resp-col:nth-child(2) .rc-tag { color: var(--amber); }
+.resp-col:nth-child(3) .rc-tag { color: var(--blue); }
+.resp-col ul {
+  list-style: none; padding-left: 0;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.resp-col li {
+  font-size: 12px; color: var(--text2); line-height: 1.55;
+  padding-left: 14px; position: relative;
+}
+.resp-col li::before {
+  content: '·'; position: absolute; left: 4px; top: -2px;
+  color: var(--text3); font-weight: bold; font-size: 16px;
+}
+@media (max-width: 720px) { .resp-grid { grid-template-columns: 1fr; } }
+
+/* Workflow steps */
+.wf {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .85rem 1.1rem; margin-bottom: 8px;
+  display: grid; grid-template-columns: 36px 1fr 100px;
+  gap: 12px; align-items: center;
+}
+.wf .wn {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(63,185,80,.15); color: var(--green);
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+}
+.wf .wt {
+  font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--text); margin-bottom: .2rem;
+}
+.wf .wd { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.wf .who {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  color: var(--text3); letter-spacing: .04em;
+  text-align: right; text-transform: uppercase;
+}
+@media (max-width: 640px) {
+  .wf { grid-template-columns: 32px 1fr; }
+  .wf .who { display: none; }
+}
+
+/* Perimeter diagram */
+.peri {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); line-height: 1.7; overflow-x: auto;
+}
+.peri .label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  color: var(--text3); letter-spacing: .06em; text-transform: uppercase;
+  margin-bottom: .5rem; display: block;
+}
+.peri .border {
+  border: 2px dashed var(--green); border-radius: var(--r2);
+  padding: 1rem; margin: .25rem 0;
+  background: rgba(63,185,80,.04);
+}
+.peri .inside { color: var(--text); }
+.peri .outside { color: var(--text3); font-style: italic; }
+.peri .arr { color: var(--coral); font-weight: 600; }
+.peri .ok-arr { color: var(--green); font-weight: 600; }
+
+/* Policy card */
+.pol {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .9rem 1.15rem; margin-bottom: 8px;
+}
+.pol .pl-id {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--green); margin-bottom: .25rem;
+}
+.pol .pl-name {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+}
+.pol .pl-body { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M3 · Lesson 1 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 3</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 1</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot active" title="Lesson 1"></div>
+      <div class="progress-dot" title="Lesson 2"></div>
+      <div class="progress-dot" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 1 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Perimeter, BAA,<br>and org policy</h1>
+    <p class="lesson-sub">M1 gave you a topology. M2 gave you containers. Neither has touched PHI yet. This lesson is the boundary you draw before any patient data lands: who signs what, where the wall is, and which org policies pin every project below it.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~50 min reading + exercise</span>
+      <span>🔧 VPC SC, Org Policies, Access Context Manager</span>
+      <span>📍 Module 3 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Shared responsibility            -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The framework</div>
+    <h2 class="section-title">HIPAA on GCP is a three-way split</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#hipaa">HIPAA</a> compliance is not something Google sells you and it is not something you build from scratch. It is a shared responsibility across three parties — and each party's job is well-defined. Confusion about this is where most "are we compliant?" questions come from.</p>
+
+    <div class="resp-grid">
+      <div class="resp-col">
+        <span class="rc-tag">Google's responsibility</span>
+        <h3>The infrastructure</h3>
+        <ul>
+          <li>Physical security of data centres</li>
+          <li>Default encryption at rest + in transit</li>
+          <li>Service availability + maintenance</li>
+          <li>HIPAA-eligible services list (the BAA covers these and only these)</li>
+          <li>Signed <a class="g-term" href="../glossary.html#baa">BAA</a> with your institution</li>
+        </ul>
+      </div>
+      <div class="resp-col">
+        <span class="rc-tag">UH ITS / institution</span>
+        <h3>The legal &amp; org layer</h3>
+        <ul>
+          <li>Signs and maintains the BAA with Google</li>
+          <li>Enrols specific projects under the BAA</li>
+          <li>Approves IRB protocols and data-use agreements</li>
+          <li>Provides folder-level org policies for HIPAA tier</li>
+          <li>Breach notification process</li>
+        </ul>
+      </div>
+      <div class="resp-col">
+        <span class="rc-tag">You (the lab)</span>
+        <h3>The configuration</h3>
+        <ul>
+          <li>Build the <a class="g-term" href="../glossary.html#vpc-sc">VPC SC</a> perimeter around PHI projects</li>
+          <li>Apply <a class="g-term" href="../glossary.html#cmek">CMEK</a> + <a class="g-term" href="../glossary.html#secret-manager">Secret Manager</a> discipline</li>
+          <li>Enable <a class="g-term" href="../glossary.html#audit-logs">Data Access logs</a> on PHI services</li>
+          <li>Implement <a class="g-term" href="../glossary.html#least-privilege">least-privilege</a> IAM (M1L3)</li>
+          <li>Document everything in the runbook (M1L4)</li>
+          <li>Use only HIPAA-eligible services for PHI</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Two things to internalise.</strong> <em>First,</em> a signed BAA without correctly configured projects gets you nothing — the BAA is the necessary condition for compliance, not the sufficient one. <em>Second,</em> the rest of this module is the right-hand column. We assume the BAA exists. We focus on what you control.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: BAA workflow                     -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The institutional workflow</div>
+    <h2 class="section-title">Enrolling a project under the BAA</h2>
+    <p style="margin-bottom: 1rem;">Before any PHI lands in a project, that project must be enrolled under the institutional BAA. The mechanics vary by institution, but the workflow is roughly the same everywhere.</p>
+
+    <div class="wf">
+      <div class="wn">1</div>
+      <div>
+        <div class="wt">Create the project under the right folder</div>
+        <div class="wd">Per M1L2 — name it <code class="code-inline">srl-&lt;study&gt;-prod</code>, place it in the <code class="code-inline">shepherd-research-lab</code> folder, apply the <code class="code-inline">phi=yes</code> label.</div>
+      </div>
+      <div class="who">You</div>
+    </div>
+
+    <div class="wf">
+      <div class="wn">2</div>
+      <div>
+        <div class="wt">Open a HIPAA-tier project request with UH ITS</div>
+        <div class="wd">Provide: project ID, study name, PI, IRB protocol number, expected data types (DICOM, FHIR, OMOP), data sources, retention requirements.</div>
+      </div>
+      <div class="who">You → ITS</div>
+    </div>
+
+    <div class="wf">
+      <div class="wn">3</div>
+      <div>
+        <div class="wt">ITS enrols the project under the BAA</div>
+        <div class="wd">A small administrative action on Google's side. ITS confirms enrollment and may apply folder-level org policies you didn't put there.</div>
+      </div>
+      <div class="who">ITS</div>
+    </div>
+
+    <div class="wf">
+      <div class="wn">4</div>
+      <div>
+        <div class="wt">Verify in the console</div>
+        <div class="wd"><strong>IAM &amp; Admin → Compliance → Compliance reports →</strong> search "HIPAA." Your project should appear in the enrolled list. If not, do not load data.</div>
+      </div>
+      <div class="who">You</div>
+    </div>
+
+    <div class="wf">
+      <div class="wn">5</div>
+      <div>
+        <div class="wt">Build the perimeter (rest of this lesson)</div>
+        <div class="wd">VPC SC, org policies, network isolation. Enrollment makes PHI <em>allowed</em>; your configuration makes it <em>contained</em>.</div>
+      </div>
+      <div class="who">You</div>
+    </div>
+
+    <div class="wf">
+      <div class="wn">6</div>
+      <div>
+        <div class="wt">Apply CMEK + Data Access logs (M3L3)</div>
+        <div class="wd">The data-layer controls. Done before the first PHI write, not after.</div>
+      </div>
+      <div class="who">You</div>
+    </div>
+
+    <div class="wf">
+      <div class="wn">7</div>
+      <div>
+        <div class="wt">Document in the lab runbook</div>
+        <div class="wd">Project ID, BAA enrollment date, IRB protocol, perimeter ID, the SA for ingest. M1L4's "launching a new study" section.</div>
+      </div>
+      <div class="who">You</div>
+    </div>
+
+    <div class="callout">
+      <strong>The timing matters.</strong> Steps 1–4 typically take 1–5 business days at UH. Build them into study timelines from the very start. The single biggest cause of "we couldn't process data this week" is forgetting that step 2 has a turnaround.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: VPC Service Controls             -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The perimeter</div>
+    <h2 class="section-title">VPC Service Controls — the wall around PHI</h2>
+    <p style="margin-bottom: 1rem;"><a class="g-term" href="../glossary.html#vpc-sc">VPC Service Controls</a> draw a software-defined perimeter around a set of projects so their resources cannot be reached from outside the perimeter — <strong>even with valid IAM credentials.</strong> This is defence-in-depth on top of IAM. If a service account key leaks, the perimeter still holds.</p>
+
+    <p style="margin-bottom: 1rem;">A perimeter is a list of projects + a list of services that the perimeter applies to + rules for what can cross the wall.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">What the perimeter looks like for SRL</h3>
+
+    <div class="peri">
+<span class="label">SRL-PHI perimeter</span>
+<span class="border">
+  <span class="inside">📦 srl-hipimr-prod</span>      <span class="ann">— DICOM + density CNN</span>
+  <span class="inside">📦 srl-makawalu-prod</span>    <span class="ann">— POCUS XAI</span>
+  <span class="inside">📦 srl-halo-prod</span>        <span class="ann">— OMOP on BigQuery</span>
+  <span class="inside">📦 srl-shared-services</span>  <span class="ann">— registry, audit, KMS</span>
+
+  <span class="ann">Restricted services: GCS, BigQuery, Healthcare API, AI Platform, KMS, Secret Manager, Pub/Sub, Cloud Run, Logging, Container Registry</span>
+</span>
+
+<span class="outside">🚫 Outside the perimeter — anything else, anywhere:</span>
+   <span class="outside">a laptop with valid IAM, a personal project, another lab's perimeter, the public internet.</span>
+
+<span class="ann">A read from inside → inside:</span>     <span class="ok-arr">ALLOW</span>
+<span class="ann">A read from outside → inside:</span>    <span class="arr">DENY</span> <span class="outside">(unless explicit ingress rule)</span>
+<span class="ann">A read from inside → outside:</span>    <span class="arr">DENY</span> <span class="outside">(unless explicit egress rule)</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Ingress and egress rules — the explicit holes</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">A perimeter that allows nothing through is also a perimeter that lets you do nothing. You poke holes with named rules, each scoped to a specific identity, resource, and operation.</p>
+
+    <div class="hier-accordion">
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-folder"></div>
+          <span class="hier-icon">⬇️</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Ingress rule — letting trusted callers in</div>
+            <div class="hier-label-desc">"Allow Cloud Build's service account to push images to Artifact Registry inside the perimeter."</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Source = identity outside the perimeter (an SA in <code class="code-inline">srl-shared-services-cicd</code>). Destination = resource inside (Artifact Registry repo). Methods = the specific API calls. Without this rule, even legitimate CI pushes fail with VPC SC denied errors.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-project"></div>
+          <span class="hier-icon">⬆️</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Egress rule — letting workloads out</div>
+            <div class="hier-label-desc">"Allow the HALO workload SA to write de-identified results to a non-perimeter project."</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">Source = identity inside the perimeter. Destination = resource outside. Methods = restricted. Egress rules are the most consequential — they are the only paths data can take out. Every egress rule should map to a documented IRB-approved data-use plan.</p>
+        </div>
+      </div>
+      <div class="hier-item">
+        <button class="hier-trigger" aria-expanded="false">
+          <div class="hier-accent accent-resource"></div>
+          <span class="hier-icon">👤</span>
+          <div class="hier-label">
+            <div class="hier-label-name">Access level — letting humans in from specific contexts</div>
+            <div class="hier-label-desc">"Allow PI and key postdocs to query BigQuery from UH-network IPs with corp devices."</div>
+          </div>
+          <span class="hier-chevron">▾</span>
+        </button>
+        <div class="hier-body">
+          <p style="font-size:13px;color:var(--text2);">An <strong>access level</strong> is a named condition (IP range, device posture, identity, country) defined in Access Context Manager. Used in ingress rules to gate human access by context, not just identity. A leaked credential plus a non-UH IP fails the check.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">Dry-run mode — the only sane way to start</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">Turning on a perimeter in enforced mode without testing it will break something. Dry-run mode <em>logs</em> what would have been denied without actually denying. Run dry-run for a full week of normal lab activity, read the deny logs, add the ingress/egress rules you need, then flip to enforced.</p>
+
+<pre class="code-block"><span class="cm"># Create an access policy (one per org — UH usually already has this)</span>
+ORG=$(gcloud organizations list --format=<span class="str">"value(ID)"</span>)
+
+<span class="cm"># Create a service perimeter in dry-run mode</span>
+gcloud access-context-manager perimeters create srl_phi \
+  --title=<span class="str">"SRL PHI perimeter"</span> \
+  --perimeter-type=regular \
+  --resources=projects/<span class="am">$HIPIMR_PROD_NUM</span>,projects/<span class="am">$MAKAWALU_PROD_NUM</span>,projects/<span class="am">$HALO_PROD_NUM</span>,projects/<span class="am">$SHARED_NUM</span> \
+  --restricted-services=storage.googleapis.com,bigquery.googleapis.com,healthcare.googleapis.com,aiplatform.googleapis.com,cloudkms.googleapis.com,secretmanager.googleapis.com,pubsub.googleapis.com,run.googleapis.com,logging.googleapis.com \
+  --policy=<span class="am">$POLICY_ID</span> \
+  <span class="warn">--dry-run</span>
+
+<span class="cm"># Read denied-attempt logs across the perimeter projects</span>
+gcloud logging read \
+  <span class="str">'protoPayload.metadata.violationReason="vpcServiceControlsRestriction"'</span> \
+  --project=srl-shared-services --limit=20 --format=json</pre>
+
+    <p style="font-size:13px;color:var(--text2);margin-bottom:.5rem;">When the deny log is empty for a normal week of lab work, switch to enforced:</p>
+
+<pre class="code-block">gcloud access-context-manager perimeters update srl_phi \
+  --policy=<span class="am">$POLICY_ID</span> \
+  --no-dry-run</pre>
+
+    <div class="callout">
+      <strong>What the perimeter protects:</strong> the listed services in the listed projects. A perimeter on GCS in <code class="code-inline">srl-hipimr-prod</code> does not protect GCS in a different project, or any service not on the restricted list. Be explicit about both axes.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Org policies                     -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The guardrails</div>
+    <h2 class="section-title">Org policies that pin every project below the folder</h2>
+    <p style="margin-bottom: 1rem;">An <a class="g-term" href="../glossary.html#org-policy">org policy</a> applied at the SRL folder cascades to every project in the lab — automatically, no per-project work required. These are the constraints UH ITS may apply for you, but every one of them is something you should understand and verify.</p>
+
+    <div class="pol">
+      <div class="pl-id">constraints/compute.vmExternalIpAccess</div>
+      <div class="pl-name">No external IPs on VMs</div>
+      <div class="pl-body">Denies public IPs on Compute Engine instances. Forces all egress through <a class="g-term" href="../glossary.html#cloud-nat">Cloud NAT</a> (M3L2). A defence-in-depth measure on top of the perimeter.</div>
+    </div>
+
+    <div class="pol">
+      <div class="pl-id">constraints/iam.disableServiceAccountKeyCreation</div>
+      <div class="pl-name">No service account key files</div>
+      <div class="pl-body">Disables creating long-lived SA JSON keys. Forces <a class="g-term" href="../glossary.html#workload-identity">Workload Identity</a> on GKE, attached SAs on Cloud Run, and impersonation for local dev. Closes the #1 GCP credential-leak vector.</div>
+    </div>
+
+    <div class="pol">
+      <div class="pl-id">constraints/iam.allowedPolicyMemberDomains</div>
+      <div class="pl-name">Restrict identities to UH</div>
+      <div class="pl-body">Only principals from <code class="code-inline">hawaii.edu</code> (and a small allow-list of partner domains) can be granted IAM roles. Prevents accidentally adding a personal gmail to a PHI project.</div>
+    </div>
+
+    <div class="pol">
+      <div class="pl-id">constraints/gcp.resourceLocations</div>
+      <div class="pl-name">Restrict resource locations to approved regions</div>
+      <div class="pl-body">Limits resource creation to <code class="code-inline">us-west1</code>, <code class="code-inline">us-west2</code>, <code class="code-inline">us-central1</code>. Keeps data in the US so HIPAA + IRB obligations stay simple.</div>
+    </div>
+
+    <div class="pol">
+      <div class="pl-id">constraints/gcp.restrictNonCmekServices</div>
+      <div class="pl-name">Require CMEK on listed services</div>
+      <div class="pl-body">Forces new GCS buckets, BigQuery datasets, and Persistent Disks in PHI projects to be created with a customer-managed key — never with default encryption. M3L3 covers the KMS keyring design.</div>
+    </div>
+
+    <div class="pol">
+      <div class="pl-id">constraints/compute.requireOsLogin</div>
+      <div class="pl-name">Require OS Login on Compute Engine</div>
+      <div class="pl-body">If you ever use VMs, SSH access goes through IAM — not via local SSH keys you copy around. Audited, revocable, group-scoped.</div>
+    </div>
+
+    <div class="pol">
+      <div class="pl-id">constraints/storage.uniformBucketLevelAccess</div>
+      <div class="pl-name">Uniform bucket-level access</div>
+      <div class="pl-body">Disables per-object ACLs on Cloud Storage. Every bucket's access is governed by IAM bindings only. Auditable; predictable; no "but the object had a public-read ACL we forgot about" incidents.</div>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Applying them — gcloud</h3>
+
+<pre class="code-block"><span class="cm"># Enforce "no external IPs" at the SRL folder</span>
+gcloud resource-manager org-policies enable-enforce \
+  constraints/compute.vmExternalIpAccess \
+  --folder=<span class="am">$SRL_FOLDER_ID</span>
+
+<span class="cm"># Restrict resource locations</span>
+cat &gt; locations-policy.yaml &lt;&lt;EOF
+constraint: constraints/gcp.resourceLocations
+listPolicy:
+  allowedValues:
+    - in:us-west1-locations
+    - in:us-west2-locations
+    - in:us-central1-locations
+EOF
+gcloud resource-manager org-policies set-policy locations-policy.yaml \
+  --folder=<span class="am">$SRL_FOLDER_ID</span></pre>
+
+    <div class="callout">
+      <strong>Test before enforcing.</strong> Some org policies will break workflows you didn't realise depended on the now-forbidden behaviour. Apply each policy at a single dev project first; watch for a week; then escalate to the folder. Especially true for <code class="code-inline">disableServiceAccountKeyCreation</code> — anything still using key files will fail immediately.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Bringing a project in            -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Operating the perimeter</div>
+    <h2 class="section-title">Bringing a project into (and out of) the perimeter</h2>
+    <p style="margin-bottom: 1rem;">A new study spins up; you create <code class="code-inline">srl-newstudy-prod</code>; that project needs to join the SRL-PHI perimeter before it holds PHI. The mechanics:</p>
+
+<pre class="code-block"><span class="cm"># 1. Find the new project's number</span>
+NEW=$(gcloud projects describe srl-newstudy-prod --format=<span class="str">"value(projectNumber)"</span>)
+
+<span class="cm"># 2. Add it to the perimeter</span>
+gcloud access-context-manager perimeters update srl_phi \
+  --policy=<span class="am">$POLICY_ID</span> \
+  --add-resources=projects/<span class="am">$NEW</span></pre>
+
+    <p style="font-size:13.5px;margin-bottom:.75rem;">Removing a project is just as easy — and is the right action when a study closes out:</p>
+
+<pre class="code-block">gcloud access-context-manager perimeters update srl_phi \
+  --policy=<span class="am">$POLICY_ID</span> \
+  --remove-resources=projects/<span class="am">$NEW</span></pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">What to expect after enforcement</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">The first time a workflow breaks because of VPC SC, the error is unmistakable:</p>
+
+<pre class="code-block"><span class="warn">PERMISSION_DENIED: Request is prohibited by organization's policy.
+vpcServiceControlsUniqueIdentifier: 1a2b3c4d5e</span>
+&nbsp;
+<span class="cm"># Look up what was blocked</span>
+gcloud logging read \
+  <span class="str">'protoPayload.metadata.violationReason="vpcServiceControlsRestriction"
+   AND protoPayload.metadata.vpcServiceControlsUniqueIdentifier="1a2b3c4d5e"'</span> \
+  --project=srl-shared-services --limit=1 --format=json</pre>
+
+    <p style="font-size:13px;color:var(--text2);">The unique identifier in the error message is also in the audit log entry — that's how you correlate "this call failed" with "the perimeter said no." From there: either fix the workflow (run inside the perimeter), or add an ingress/egress rule with deliberate scope. Never widen the restricted-services list to "fix" a denial.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 3.1</div>
+    <h2 class="section-title">Build a dry-run perimeter and try to break it</h2>
+
+    <p style="margin-bottom: 1rem; font-size:13.5px;"><strong>Prerequisites:</strong> you need an Access Policy at the org level (UH almost certainly has one — confirm with ITS). For this exercise, use two of the sandbox projects you created in M1L2 (<code class="code-inline">srl-demo-prod</code> and <code class="code-inline">srl-demo-staging</code>, or recreate them).</p>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🧱 Stand it up, observe, switch on</div>
+      <ol class="exercise-steps">
+        <li>Find your org's access policy:<br>
+          <code class="code-inline">gcloud access-context-manager policies list --organization=$ORG</code><br>
+          Save the policy ID as <code class="code-inline">POLICY_ID</code>.
+        </li>
+        <li>Get the project numbers for two sandbox projects:<br>
+          <code class="code-inline">gcloud projects describe srl-demo-prod --format='value(projectNumber)'</code><br>
+          <code class="code-inline">gcloud projects describe srl-demo-staging --format='value(projectNumber)'</code>
+        </li>
+        <li>Enable the Access Context Manager API in any project (only needs to happen once per org):<br>
+          <code class="code-inline">gcloud services enable accesscontextmanager.googleapis.com</code>
+        </li>
+        <li><strong>Create a dry-run perimeter</strong> around the two projects, restricting GCS and BigQuery:<br>
+          <code class="code-inline">gcloud access-context-manager perimeters create demo_perimeter --title="Demo perimeter" --perimeter-type=regular --resources=projects/$PROD_NUM,projects/$STAGING_NUM --restricted-services=storage.googleapis.com,bigquery.googleapis.com --policy=$POLICY_ID --dry-run</code>
+        </li>
+        <li><strong>Try to break it.</strong> From your laptop (outside the perimeter), create a bucket in <code class="code-inline">srl-demo-prod</code>:<br>
+          <code class="code-inline">gcloud storage buckets create gs://srl-demo-prod-test-$(date +%s) --project=srl-demo-prod --location=us-west1</code><br>
+          <strong>This will succeed</strong> — you're in dry-run.
+        </li>
+        <li>Read the dry-run deny log to see it <em>would</em> have blocked you in enforced mode:<br>
+          <code class="code-inline">gcloud logging read 'protoPayload.metadata.violationReason="vpcServiceControlsRestriction"' --project=srl-demo-prod --limit=5 --format=json</code><br>
+          You should see your bucket-create call logged as a would-be-denied event.
+        </li>
+        <li><strong>Flip to enforced:</strong><br>
+          <code class="code-inline">gcloud access-context-manager perimeters update demo_perimeter --policy=$POLICY_ID --no-dry-run</code>
+        </li>
+        <li>Try the same bucket-create again. <strong>It will fail with PERMISSION_DENIED</strong> and a <code class="code-inline">vpcServiceControlsUniqueIdentifier</code> in the error. That's the perimeter working.</li>
+        <li><strong>Apply one org policy</strong> at the folder level (if you have a folder; otherwise skip):<br>
+          <code class="code-inline">gcloud resource-manager org-policies enable-enforce constraints/iam.disableServiceAccountKeyCreation --folder=$FOLDER_ID</code><br>
+          Then try to create an SA key — it should fail.
+        </li>
+        <li><strong>Tear down</strong> when finished:<br>
+          <code class="code-inline">gcloud access-context-manager perimeters delete demo_perimeter --policy=$POLICY_ID</code><br>
+          (Plus disable the org policy if you applied it for testing.)
+        </li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Commands you used</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud access-context-manager policies list</span>
+        <span class="tag">gcloud access-context-manager perimeters create</span>
+        <span class="tag">gcloud access-context-manager perimeters update</span>
+        <span class="tag">gcloud logging read (vpcServiceControlsRestriction)</span>
+        <span class="tag">gcloud resource-manager org-policies enable-enforce</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Your project is BAA-enrolled but you haven't built a VPC SC perimeter. Are you HIPAA compliant?</span>
+        <a href="#" class="check-btn" onclick="alert('No. The BAA is the legal precondition — it permits PHI on GCP. The perimeter, CMEK, audit logging, and least-privilege IAM are the technical controls that actually keep PHI contained. HIPAA compliance is the conjunction of BAA + correctly configured infrastructure + your operational practices. Skipping any one of those is non-compliant.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>A postdoc copies a service-account JSON key from a teammate and uses it from a coffee-shop laptop to query a HALO BigQuery dataset. What stops the read in a well-configured environment?</span>
+        <a href="#" class="check-btn" onclick="alert('Three layers. (1) constraints/iam.disableServiceAccountKeyCreation prevents the key from existing in the first place — they cannot generate one. (2) Even if a key already exists, the VPC SC perimeter denies the BigQuery query from outside the perimeter regardless of valid credentials. (3) An access level on the ingress rule can further require a UH-network IP / corp device. IAM alone — even least-privilege IAM — would have let the read through.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Why is dry-run mode the only reasonable way to introduce a perimeter to an existing lab?</span>
+        <a href="#" class="check-btn" onclick="alert('Because you cannot predict every legitimate cross-perimeter call your existing workflows make. Cloud Build pushing images, Vertex pulling training data from another project, a postdoc running a notebook from a corp-network IP — any of these might break in enforced mode. Dry-run *logs* the denials without enforcing them, giving you a week of evidence to translate into precise ingress/egress rules. Skip dry-run and you spend a week firefighting instead.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>Of the org policies in Section 4, which one would most often be the *first* one a researcher feels the pain of when they try to do something quick?</span>
+        <a href="#" class="check-btn" onclick="alert('constraints/iam.disableServiceAccountKeyCreation. The instinct on day one is to download a JSON key for local dev because it "just works." The policy forces you to use gcloud auth application-default login (M0L1) for local credentials and impersonation for elevated work — slightly more setup, dramatically more secure. Worth the pain.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="../index.html" class="btn">← All modules</a>
+    <a href="m3-lesson2.html" class="btn btn-primary">Lesson 3.2: Network hardening →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

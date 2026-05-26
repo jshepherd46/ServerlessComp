@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M3 · Lesson 3: Keys, secrets, audit — ServerlessComp</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.revealed { opacity: 1; transform: none; }
+.tag {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .05em; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--text3); margin-right: 4px; margin-bottom: 4px;
+  background: var(--bg2);
+}
+pre.code-block {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: .9rem 1.1rem; margin: .75rem 0 1.25rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text); line-height: 1.6;
+}
+pre.code-block .cm { color: var(--text3); }
+pre.code-block .ok { color: var(--teal); }
+pre.code-block .am { color: var(--amber); }
+pre.code-block .kw { color: var(--purple); }
+pre.code-block .str { color: var(--green); }
+pre.code-block .warn { color: var(--coral); }
+
+/* Three layers grid */
+.three-layer {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px; margin: 1rem 0 1.75rem;
+}
+.tl {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1rem 1.15rem;
+  border-top: 3px solid var(--green);
+}
+.tl:nth-child(2) { border-top-color: var(--amber); }
+.tl:nth-child(3) { border-top-color: var(--blue); }
+.tl h3 {
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--text); margin-bottom: .35rem;
+  text-transform: none; letter-spacing: 0;
+}
+.tl .tag-tl {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--green); margin-bottom: .55rem; display: block;
+}
+.tl:nth-child(2) .tag-tl { color: var(--amber); }
+.tl:nth-child(3) .tag-tl { color: var(--blue); }
+.tl p { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+@media (max-width: 720px) { .three-layer { grid-template-columns: 1fr; } }
+
+/* Keyring tree */
+.kring {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.75rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+  color: var(--text2); line-height: 1.7; overflow-x: auto;
+}
+.kring .org { color: var(--purple); }
+.kring .pj { color: var(--blue); }
+.kring .kr { color: var(--green); }
+.kring .ky { color: var(--amber); }
+.kring .ann { color: var(--text3); font-style: italic; }
+
+/* Service log row */
+.svc-log {
+  display: grid; grid-template-columns: 180px 1fr 110px;
+  gap: 10px; align-items: center;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: .75rem 1rem; margin-bottom: 6px;
+}
+.svc-log .sl-svc {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal);
+}
+.svc-log .sl-why { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+.svc-log .sl-on {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  letter-spacing: .06em; text-transform: uppercase;
+  text-align: right;
+}
+.svc-log .sl-on.must { color: var(--coral); }
+.svc-log .sl-on.should { color: var(--amber); }
+.svc-log .sl-on.nice { color: var(--text3); }
+@media (max-width: 640px) {
+  .svc-log { grid-template-columns: 1fr; }
+  .svc-log .sl-on { text-align: left; }
+}
+
+/* IR step */
+.ir {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: .85rem 1.15rem; margin-bottom: 8px;
+}
+.ir .ir-when {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--coral); letter-spacing: .06em; text-transform: uppercase;
+  margin-bottom: .3rem;
+}
+.ir .ir-what {
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--text); margin-bottom: .3rem;
+}
+.ir .ir-body { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.ir .ir-body code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  color: var(--teal); background: rgba(255,255,255,.05);
+  padding: 1px 5px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo"><a href="../index.html" style="color:var(--amber);text-decoration:none">serverless<span style="color:var(--text3)">/</span>comp</a></div>
+    <span class="nav-badge">M3 · Lesson 3 of 3</span>
+    <div class="nav-links">
+      <a href="../index.html">← All modules</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="https://github.com/jshepherd46/ServerlessComp" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<section class="lesson-hero">
+  <div class="container--narrow">
+    <div class="lesson-crumb">
+      <a href="../index.html">Home</a>
+      <span>›</span>
+      <span>Module 3</span>
+      <span>›</span>
+      <span class="lesson-num">Lesson 3</span>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-dot done" title="Lesson 1"></div>
+      <div class="progress-dot done" title="Lesson 2"></div>
+      <div class="progress-dot active" title="Lesson 3"></div>
+      <span class="progress-label">Lesson 3 of 3</span>
+    </div>
+
+    <h1 class="lesson-title">Keys, secrets,<br>and audit</h1>
+    <p class="lesson-sub">Perimeter and network keep PHI from leaving. This lesson is what happens to the data itself: who holds the keys, where the secrets live, what gets logged, and what to do in the first four hours when something goes wrong.</p>
+    <div class="lesson-meta">
+      <span>⏱ ~55 min reading + exercise</span>
+      <span>🔧 Cloud KMS, Secret Manager, Cloud Audit Logs</span>
+      <span>📍 Module 3 of 12</span>
+    </div>
+  </div>
+</section>
+
+<main class="container--narrow lesson-wrap">
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 1: Three layers                     -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">The framing</div>
+    <h2 class="section-title">Three layers of data-side defense</h2>
+    <p style="margin-bottom: 1rem;">M3L1 + L2 built the wall. This lesson is what's inside the wall — and what's behind it. Three independent layers, each protecting against a different failure mode.</p>
+
+    <div class="three-layer">
+      <div class="tl">
+        <span class="tag-tl">Layer A · keys</span>
+        <h3>Encryption you control</h3>
+        <p><a class="g-term" href="../glossary.html#cmek">CMEK</a> means GCP encrypts PHI with keys <em>you</em> own in Cloud KMS. Disable the key → data is unreadable, instantly, lab-wide. Without CMEK, GCP holds the keys; with CMEK, you do.</p>
+      </div>
+      <div class="tl">
+        <span class="tag-tl">Layer B · secrets</span>
+        <h3>Credentials at runtime</h3>
+        <p><a class="g-term" href="../glossary.html#secret-manager">Secret Manager</a> stores API keys, DB passwords, signing keys — versioned, IAM-scoped, audit-logged. No secret ever lives in code, in env vars stored in plain text, or in container images.</p>
+      </div>
+      <div class="tl">
+        <span class="tag-tl">Layer C · audit</span>
+        <h3>What happened, when</h3>
+        <p><a class="g-term" href="../glossary.html#audit-logs">Audit logs</a> answer the auditor's question: who read patient 12345's mammogram, when, from where. Always on for admin actions; you must turn on Data Access for PHI reads.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>The defense-in-depth promise:</strong> if the perimeter fails, encryption keeps PHI unreadable to anyone without key access. If the perimeter and CMEK both fail, audit logs let you reconstruct what happened. Each layer is independent of the others — that's the point.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 2: KMS keyring design               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Layer A — keys</div>
+    <h2 class="section-title">Cloud KMS keyring design</h2>
+    <p style="margin-bottom: 1rem;">A <strong>keyring</strong> in Cloud KMS is a regional grouping of keys. A <strong>key</strong> is the cryptographic material (versioned, rotated). For SRL, the right structure is one keyring per region inside <code class="code-inline">srl-shared-services</code>, with one key per study + per purpose.</p>
+
+    <div class="kring">
+<span class="pj">📦 srl-shared-services</span>
+└── <span class="kr">🔑 keyring: srl-keys-uswest1</span>     <span class="ann"># one per region you operate in</span>
+    ├── <span class="ky">🗝 hipimr-gcs-uswest1</span>          <span class="ann"># encrypts HIPIMR GCS objects</span>
+    ├── <span class="ky">🗝 hipimr-bq-uswest1</span>           <span class="ann"># encrypts HIPIMR BigQuery tables</span>
+    ├── <span class="ky">🗝 makawalu-dicom-uswest1</span>      <span class="ann"># Makawalu DICOM store</span>
+    ├── <span class="ky">🗝 halo-omop-uswest1</span>           <span class="ann"># HALO BigQuery datasets</span>
+    └── <span class="ky">🗝 shared-secrets-uswest1</span>      <span class="ann"># Secret Manager encryption</span>
+    </div>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Why keyrings live in shared-services</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">If a study project gets deleted, its CMEK keys go with it — and any data encrypted with those keys (including in OTHER projects, in your audit sink, in archives) becomes unrecoverable. Keys live in <code class="code-inline">srl-shared-services</code> precisely so their lifecycle is decoupled from any single study.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Create a keyring + key</h3>
+
+<pre class="code-block">gcloud config set project srl-shared-services
+gcloud services enable cloudkms.googleapis.com
+
+<span class="cm"># 1. One keyring per region</span>
+gcloud kms keyrings create srl-keys-uswest1 --location=us-west1
+
+<span class="cm"># 2. One symmetric key per study/purpose, with automatic rotation</span>
+gcloud kms keys create hipimr-gcs-uswest1 \
+  --keyring=srl-keys-uswest1 \
+  --location=us-west1 \
+  --purpose=encryption \
+  --rotation-period=90d \
+  --next-rotation-time=2026-08-22T00:00:00Z</pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Key IAM is separate from data IAM</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">This is the architectural lever that makes CMEK powerful. The roles on the KMS key are <em>separate</em> from the roles on the GCS bucket. Granting <code class="code-inline">roles/storage.objectViewer</code> on the bucket is not enough — the principal also needs <code class="code-inline">roles/cloudkms.cryptoKeyEncrypterDecrypter</code> on the key.</p>
+
+<pre class="code-block"><span class="cm"># Let HIPIMR's GCS service agent use the key (required for the bucket itself)</span>
+GCS_AGENT=$(gcloud projects describe srl-hipimr-prod --format=<span class="str">"value(projectNumber)"</span>)
+gcloud kms keys add-iam-policy-binding hipimr-gcs-uswest1 \
+  --keyring=srl-keys-uswest1 --location=us-west1 \
+  --member=<span class="str">"serviceAccount:service-${GCS_AGENT}@gs-project-accounts.iam.gserviceaccount.com"</span> \
+  --role=roles/cloudkms.cryptoKeyEncrypterDecrypter
+
+<span class="cm"># Workload SA also needs the role to read objects (decryption happens in GCS, but the SA needs decrypt permission too)</span>
+gcloud kms keys add-iam-policy-binding hipimr-gcs-uswest1 \
+  --keyring=srl-keys-uswest1 --location=us-west1 \
+  --member=<span class="str">"serviceAccount:ingest-job-sa@srl-hipimr-prod.iam.gserviceaccount.com"</span> \
+  --role=roles/cloudkms.cryptoKeyEncrypterDecrypter</pre>
+
+    <div class="callout">
+      <strong>The kill-switch property:</strong> disable the key with <code class="code-inline">gcloud kms keys versions disable</code> and within minutes every read of every object encrypted with that key fails. Re-enable to restore. There is no comparable lever without CMEK.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 3: CMEK in practice                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">CMEK in practice</div>
+    <h2 class="section-title">Applying keys to GCS, BigQuery, and disks</h2>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">GCS bucket with CMEK at creation</h3>
+
+<pre class="code-block">KEY=projects/srl-shared-services/locations/us-west1/keyRings/srl-keys-uswest1/cryptoKeys/hipimr-gcs-uswest1
+
+gcloud storage buckets create gs://srl-hipimr-dicom-prod \
+  --project=srl-hipimr-prod \
+  --location=us-west1 \
+  --uniform-bucket-level-access \
+  --default-encryption-key=<span class="am">$KEY</span></pre>
+
+    <p style="margin-bottom:.75rem;font-size:13px;color:var(--text2);">All new objects are encrypted with this key. Objects existing before the change keep their old encryption — you must rewrite them to re-encrypt.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">BigQuery dataset with CMEK</h3>
+
+<pre class="code-block">bq --location=us-west1 mk \
+  --dataset \
+  --default_kms_key=<span class="am">$KEY</span> \
+  srl-halo-prod:omop_cdm</pre>
+
+    <p style="margin-bottom:.75rem;font-size:13px;color:var(--text2);">Tables inherit the default; you can override per-table for cross-key reads. Be aware: BigQuery jobs that materialise to a destination table need encrypt-decrypt rights on both the source and destination keys.</p>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Persistent Disks with CMEK</h3>
+
+<pre class="code-block">gcloud compute disks create makawalu-training-pd \
+  --zone=us-west1-a --size=200GB \
+  --kms-key=<span class="am">$KEY</span></pre>
+
+    <h3 style="margin-top:1rem;margin-bottom:.65rem;color:var(--text);">Enforcing CMEK at the org level</h3>
+    <p style="margin-bottom:.75rem;font-size:13.5px;">From M3L1: <code class="code-inline">constraints/gcp.restrictNonCmekServices</code> forces every new resource of the listed services to use CMEK. Apply at the SRL folder so all studies inherit the requirement:</p>
+
+<pre class="code-block">cat &gt; require-cmek.yaml &lt;&lt;EOF
+constraint: constraints/gcp.restrictNonCmekServices
+listPolicy:
+  allowedValues:
+    - storage.googleapis.com
+    - bigquery.googleapis.com
+    - compute.googleapis.com
+    - healthcare.googleapis.com
+    - secretmanager.googleapis.com
+EOF
+gcloud resource-manager org-policies set-policy require-cmek.yaml \
+  --folder=<span class="am">$SRL_FOLDER_ID</span></pre>
+
+    <div class="callout">
+      <strong>Rotation behaviour:</strong> when a key version rotates, new writes use the new version. Old data stays encrypted with the old version, which remains accessible until you explicitly destroy it. So rotation is non-disruptive — and previous versions are recoverable for 30 days even after destroy if you ever rotate too aggressively.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 4: Secret Manager hardening         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Layer B — secrets</div>
+    <h2 class="section-title">Secret Manager — the discipline</h2>
+    <p style="margin-bottom: 1rem;">From M2L3 you already know how to mount a secret into Cloud Run. The HIPAA-grade discipline tightens four things:</p>
+
+    <div class="principle-grid">
+      <div class="principle-card">
+        <div class="principle-icon">🎯</div>
+        <div class="principle-title">One secret per workload per environment</div>
+        <div class="principle-body">Never share a secret across workloads "for convenience." Naming pattern: <code class="code-inline">&lt;workload&gt;-&lt;purpose&gt;-&lt;env&gt;</code> — e.g., <code class="code-inline">xai-serve-api-key-prod</code>.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🔄</div>
+        <div class="principle-title">Rotation built in</div>
+        <div class="principle-body">Configure a Pub/Sub topic to fire when a secret is due for rotation. A Cloud Function (or a human, depending on the secret) generates the new value and adds a new version.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">📜</div>
+        <div class="principle-title">CMEK on the secret itself</div>
+        <div class="principle-body">Pass <code class="code-inline">--kms-key-name</code> when creating the secret. Now even the secret's stored bytes are encrypted with your key — disabling the key kills access to the secret too.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">📊</div>
+        <div class="principle-title">Audited access on every read</div>
+        <div class="principle-body">Data Access logs on Secret Manager are off by default. Turn them on for every PHI project — see Section 5.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Create a hardened secret</h3>
+
+<pre class="code-block"><span class="cm"># Secret encrypted with your CMEK key, in the right region, with a rotation period</span>
+gcloud secrets create xai-serve-api-key-prod \
+  --project=srl-makawalu-prod \
+  --replication-policy=user-managed \
+  --locations=us-west1 \
+  --kms-key-name=<span class="am">$KEY</span> \
+  --topics=projects/srl-makawalu-prod/topics/secret-rotations \
+  --next-rotation-time=2026-08-22T00:00:00Z \
+  --rotation-period=2592000s   <span class="cm"># 30 days</span>
+
+<span class="cm"># Add the first version</span>
+printf <span class="str">'shhh-real-secret-value'</span> | gcloud secrets versions add xai-serve-api-key-prod \
+  --project=srl-makawalu-prod --data-file=-</pre>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">Mount it into Cloud Run with least privilege</h3>
+
+<pre class="code-block"><span class="cm"># Grant the workload SA accessor only on this specific secret</span>
+gcloud secrets add-iam-policy-binding xai-serve-api-key-prod \
+  --project=srl-makawalu-prod \
+  --member=<span class="str">"serviceAccount:xai-serve-sa@srl-makawalu-prod.iam.gserviceaccount.com"</span> \
+  --role=roles/secretmanager.secretAccessor
+
+<span class="cm"># Mount as env var, latest version</span>
+gcloud run services update xai-serve \
+  --region=us-west1 \
+  --update-secrets=API_KEY=xai-serve-api-key-prod:latest</pre>
+
+    <p style="font-size:13.5px;">The mount reads the current version on each cold start. Add a new version, redeploy (or let the next cold start pick it up), retire the old version — never delete it until you know nothing is still reading it.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 5: Data Access logs                 -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Layer C — audit</div>
+    <h2 class="section-title">Data Access logs — what to enable, per service</h2>
+    <p style="margin-bottom: 1rem;">M1L4 set up the folder-level aggregated sink. M3 adds the HIPAA-specific question: <strong>which services need Data Access logs on, for which projects?</strong></p>
+
+    <h3 style="margin-top:.5rem;margin-bottom:.65rem;color:var(--text);">The PHI-project checklist</h3>
+
+    <div class="svc-log">
+      <div class="sl-svc">storage.googleapis.com</div>
+      <div class="sl-why">Every GCS read (Data Read) and write (Data Write) on PHI buckets. Mandatory if you store DICOM, exports, or anything with PHI.</div>
+      <div class="sl-on must">MUST</div>
+    </div>
+
+    <div class="svc-log">
+      <div class="sl-svc">bigquery.googleapis.com</div>
+      <div class="sl-why">Every query, table read, job. Required for HALO OMOP, ShepBERT EHR work.</div>
+      <div class="sl-on must">MUST</div>
+    </div>
+
+    <div class="svc-log">
+      <div class="sl-svc">healthcare.googleapis.com</div>
+      <div class="sl-why">DICOM and FHIR reads. The most sensitive log — answers "who looked at this study?" Always on for PHI projects.</div>
+      <div class="sl-on must">MUST</div>
+    </div>
+
+    <div class="svc-log">
+      <div class="sl-svc">secretmanager.googleapis.com</div>
+      <div class="sl-why">Every secret access. Lets you correlate "this SA pulled this secret at this time" against the workload's audit trail.</div>
+      <div class="sl-on must">MUST</div>
+    </div>
+
+    <div class="svc-log">
+      <div class="sl-svc">cloudkms.googleapis.com</div>
+      <div class="sl-why">Every encryption/decryption call. Confirms which key versions were used and by whom.</div>
+      <div class="sl-on must">MUST</div>
+    </div>
+
+    <div class="svc-log">
+      <div class="sl-svc">run.googleapis.com</div>
+      <div class="sl-why">Cloud Run service invocations. Useful for tracing request paths through a HIPAA workflow.</div>
+      <div class="sl-on should">SHOULD</div>
+    </div>
+
+    <div class="svc-log">
+      <div class="sl-svc">pubsub.googleapis.com</div>
+      <div class="sl-why">Message publishes and pulls. Helps when reconstructing event-driven pipelines.</div>
+      <div class="sl-on should">SHOULD</div>
+    </div>
+
+    <div class="svc-log">
+      <div class="sl-svc">aiplatform.googleapis.com</div>
+      <div class="sl-why">Vertex AI Endpoint predictions, Training runs. Critical for tracing what data a model touched.</div>
+      <div class="sl-on must">MUST</div>
+    </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:.65rem;color:var(--text);">Enabling Data Access logs</h3>
+
+<pre class="code-block"><span class="cm"># Per-project policy file. Apply to every PHI project.</span>
+cat &gt; data-access-policy.yaml &lt;&lt;EOF
+auditConfigs:
+- service: storage.googleapis.com
+  auditLogConfigs:
+    - logType: DATA_READ
+    - logType: DATA_WRITE
+- service: bigquery.googleapis.com
+  auditLogConfigs:
+    - logType: DATA_READ
+    - logType: DATA_WRITE
+- service: healthcare.googleapis.com
+  auditLogConfigs:
+    - logType: DATA_READ
+    - logType: DATA_WRITE
+- service: secretmanager.googleapis.com
+  auditLogConfigs:
+    - logType: DATA_READ
+- service: cloudkms.googleapis.com
+  auditLogConfigs:
+    - logType: DATA_READ
+    - logType: DATA_WRITE
+EOF
+
+gcloud projects set-iam-policy srl-hipimr-prod data-access-policy.yaml</pre>
+
+    <h3 style="margin-top:1.25rem;margin-bottom:.65rem;color:var(--text);">The aggregated sink from M1L4 already exists</h3>
+    <p style="margin-bottom:.5rem;font-size:13.5px;">All these new Data Access events flow through the folder-level sink into <code class="code-inline">srl-shared-services.audit.logs</code>. The query for the IRB question becomes:</p>
+
+<pre class="code-block"><span class="kw">SELECT</span>
+  timestamp,
+  protoPayload.authenticationInfo.principalEmail <span class="kw">AS</span> who,
+  protoPayload.methodName <span class="kw">AS</span> what,
+  protoPayload.resourceName <span class="kw">AS</span> resource
+<span class="kw">FROM</span> `srl-shared-services.audit.cloudaudit_googleapis_com_data_access`
+<span class="kw">WHERE</span> protoPayload.serviceName = <span class="str">"healthcare.googleapis.com"</span>
+  <span class="kw">AND</span> protoPayload.resourceName <span class="kw">LIKE</span> <span class="str">"%studies/1.2.840.113619.2.55.3.604688.2.0.42%"</span>
+  <span class="kw">AND</span> timestamp <span class="kw">BETWEEN</span> <span class="str">'2026-02-01'</span> <span class="kw">AND</span> <span class="str">'2026-05-01'</span>
+<span class="kw">ORDER BY</span> timestamp;</pre>
+
+    <p style="font-size:13.5px;">That's the answer to "show me every person who read DICOM study 0042 in the past 90 days." Without Data Access logs enabled on the day that study landed, this query returns nothing.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 6: Breach response                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">When something goes wrong</div>
+    <h2 class="section-title">The first four hours of an incident</h2>
+    <p style="margin-bottom: 1rem;">A postdoc emails: <em>"I think I accidentally shared a HIPIMR bucket with my personal email last night, and the link works."</em> What you do in the first four hours is what determines whether this is a contained mistake or a reportable breach. The runbook section from M1L4 has nine headings; this is the contents of "Incident response."</p>
+
+    <div class="ir">
+      <div class="ir-when">0–15 min · Stop the leak</div>
+      <div class="ir-what">Revoke the wrong binding right now</div>
+      <div class="ir-body">Find and remove the bad IAM grant. <code>gcloud projects remove-iam-policy-binding srl-hipimr-prod --member="user:postdoc@gmail.com" --role="roles/storage.objectViewer"</code>. Disable the SA if the leak was via a key. If unsure of scope, disable the CMEK key with <code>gcloud kms keys versions disable</code> — every read fails instantly, lab-wide. You can re-enable in 15 minutes once you've contained.</div>
+    </div>
+
+    <div class="ir">
+      <div class="ir-when">15–60 min · Scope the damage</div>
+      <div class="ir-what">Query the audit logs</div>
+      <div class="ir-body">From the aggregated sink — was the bucket actually accessed by the unintended principal during the window of exposure? What objects were read? <code>SELECT timestamp, protoPayload.resourceName FROM `…audit.cloudaudit_googleapis_com_data_access` WHERE protoPayload.authenticationInfo.principalEmail = "postdoc@gmail.com" AND timestamp &gt; "[exposure_start]" ORDER BY timestamp</code>. Save the query result. Take screenshots of the IAM history.</div>
+    </div>
+
+    <div class="ir">
+      <div class="ir-when">60–120 min · Notify</div>
+      <div class="ir-what">Page UH ITS Security and the PI</div>
+      <div class="ir-body">By policy, suspected PHI exposure must be reported to UH ITS Security and the IRB within a defined window (institution-specific — typically same-day for any unauthorised access). Have the audit-log evidence ready. Be precise: what was exposed, what was actually accessed, what was contained, when. The audit trail does the talking.</div>
+    </div>
+
+    <div class="ir">
+      <div class="ir-when">2–4 hours · Document &amp; preserve</div>
+      <div class="ir-what">Snapshot, freeze, write the timeline</div>
+      <div class="ir-body">Export the relevant audit logs to a new BigQuery dataset with restricted access so the evidence is not subject to retention rotation. Don't delete anything related to the incident. Write a chronological timeline: time exposed, time discovered, time contained, time reported. This is what ends up attached to the breach review.</div>
+    </div>
+
+    <div class="ir">
+      <div class="ir-when">Day 1–3 · Root cause &amp; close</div>
+      <div class="ir-what">Why was this possible, and what changes so it isn't next time</div>
+      <div class="ir-body">A single mistaken IAM grant should not be able to leak PHI. Common after-action items: tighten <code>constraints/iam.allowedPolicyMemberDomains</code> to disallow personal emails, add IAM Conditions for time-bound grants, enable Sensitive Action protection on the bucket, audit every existing binding for similar risk. Update the runbook.</div>
+    </div>
+
+    <div class="callout">
+      <strong>The pre-condition for all of this:</strong> Data Access logs on, aggregated sink writing to BigQuery, IAM policy history retained, runbook in the lab's private repo with phone numbers. If those are not in place <em>before</em> the incident, the first four hours are a scramble instead of a procedure.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 7: Exercise                         -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Hands-on exercise 3.3</div>
+    <h2 class="section-title">CMEK-encrypted bucket + audited secret</h2>
+
+    <div class="exercise-block">
+      <div class="exercise-header">🔐 Stand up the data layer in your sandbox</div>
+      <ol class="exercise-steps">
+        <li>In your sandbox project, enable KMS + Secret Manager APIs:<br>
+          <code class="code-inline">gcloud services enable cloudkms.googleapis.com secretmanager.googleapis.com</code>
+        </li>
+        <li>Create a keyring and a 90-day-rotating key:<br>
+          <code class="code-inline">gcloud kms keyrings create demo-keys --location=us-west1</code><br>
+          <code class="code-inline">gcloud kms keys create demo-gcs --keyring=demo-keys --location=us-west1 --purpose=encryption --rotation-period=90d --next-rotation-time=2026-08-22T00:00:00Z</code>
+        </li>
+        <li>Grant the GCS service agent decrypt rights on the key:<br>
+          <code class="code-inline">PNUM=$(gcloud projects describe $PROJECT --format='value(projectNumber)')</code><br>
+          <code class="code-inline">gcloud kms keys add-iam-policy-binding demo-gcs --keyring=demo-keys --location=us-west1 --member="serviceAccount:service-${PNUM}@gs-project-accounts.iam.gserviceaccount.com" --role=roles/cloudkms.cryptoKeyEncrypterDecrypter</code>
+        </li>
+        <li>Create a CMEK-encrypted bucket:<br>
+          <code class="code-inline">KEY=projects/$PROJECT/locations/us-west1/keyRings/demo-keys/cryptoKeys/demo-gcs</code><br>
+          <code class="code-inline">gcloud storage buckets create gs://$PROJECT-demo-cmek-$(date +%s) --location=us-west1 --uniform-bucket-level-access --default-encryption-key=$KEY</code><br>
+          Upload any file to it. Inspect the object: <code class="code-inline">gcloud storage objects describe gs://&lt;bucket&gt;/&lt;file&gt;</code> — the metadata shows your KMS key.
+        </li>
+        <li>Create a Secret Manager secret encrypted with the same key:<br>
+          <code class="code-inline">gcloud secrets create demo-key --replication-policy=user-managed --locations=us-west1 --kms-key-name=$KEY</code><br>
+          <code class="code-inline">printf 'test-value' | gcloud secrets versions add demo-key --data-file=-</code><br>
+          Add a second version with a different value to see versioning.
+        </li>
+        <li><strong>Enable Data Access logs</strong> on the sandbox project for storage, secretmanager, and cloudkms — use the YAML policy from Section 5 (trim to those three services).</li>
+        <li>Trigger some logged actions: <code class="code-inline">gcloud storage ls gs://&lt;your-bucket&gt;</code>, <code class="code-inline">gcloud secrets versions access latest --secret=demo-key</code>.</li>
+        <li>Read the Data Access logs from Cloud Logging:<br>
+          <code class="code-inline">gcloud logging read 'logName:"data_access" AND resource.type="audited_resource" AND protoPayload.serviceName="secretmanager.googleapis.com"' --project=$PROJECT --limit=5 --format=json</code><br>
+          Confirm you see your <code class="code-inline">AccessSecretVersion</code> call.
+        </li>
+        <li><strong>Simulate the kill-switch.</strong> Disable the current key version:<br>
+          <code class="code-inline">gcloud kms keys versions disable 1 --key=demo-gcs --keyring=demo-keys --location=us-west1</code><br>
+          Try to read the bucket object again — <strong>it fails immediately</strong>. Re-enable: <code class="code-inline">gcloud kms keys versions enable 1 --key=demo-gcs --keyring=demo-keys --location=us-west1</code>.
+        </li>
+        <li><strong>Tear down</strong>: delete the bucket, the secret, the key (note: KMS keys cannot be hard-deleted, only "destroyed," and even destroyed they have a 30-day recovery window — by design).</li>
+      </ol>
+    </div>
+
+    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.25rem; margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: .75rem;">Commands you used</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="tag">gcloud kms keyrings create</span>
+        <span class="tag">gcloud kms keys create --rotation-period</span>
+        <span class="tag">gcloud kms keys add-iam-policy-binding</span>
+        <span class="tag">gcloud storage buckets create --default-encryption-key</span>
+        <span class="tag">gcloud secrets create --kms-key-name</span>
+        <span class="tag">gcloud projects set-iam-policy (audit config)</span>
+        <span class="tag">gcloud kms keys versions disable / enable</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- Section 8: Knowledge check                  -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Knowledge check</div>
+    <h2 class="section-title">Questions to sit with</h2>
+    <ul class="check-list">
+      <li class="check-item">
+        <span>Why do CMEK keys live in <code class="code-inline">srl-shared-services</code> rather than in each study project?</span>
+        <a href="#" class="check-btn" onclick="alert('Lifecycle decoupling. If a study project is deleted (grant ends, study closes), keys living in that project go with it — and any data encrypted with those keys becomes unrecoverable, including archives, audit logs, and cross-project references. Centralising in srl-shared-services means key lifetime is independent of any single study\'s lifecycle, and you can rotate / disable / inspect them in one place.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>A workload SA has <code class="code-inline">roles/storage.objectViewer</code> on a CMEK-encrypted GCS bucket but reads are failing with KMS errors. What did you forget?</span>
+        <a href="#" class="check-btn" onclick="alert('roles/cloudkms.cryptoKeyEncrypterDecrypter on the key itself. Bucket IAM lets the SA see the object metadata; KMS IAM lets it decrypt the ciphertext. CMEK keeps these two surfaces separate on purpose — you can grant bucket access without granting decrypt access, useful for auditors who should see resource structure but not contents.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>You forgot to enable Data Access logs on <code class="code-inline">healthcare.googleapis.com</code> when HIPIMR-prod launched six months ago. An IRB audit asks "who read DICOM study 0042?" What do you tell them?</span>
+        <a href="#" class="check-btn" onclick="alert('The honest answer: you cannot answer the question for the period before logging was enabled. Admin Activity logs would show grants and bucket creates but not reads. This is the single most consequential mistake in a HIPAA project, which is why M3L1 puts Data Access logging in the per-project enrollment checklist. Going forward: enable logging immediately, document the gap in the IRB response, propose compensating controls (perimeter audit, IAM history) for the missing window.');return false;">Hint</a>
+      </li>
+      <li class="check-item">
+        <span>In a real incident response, why is disabling the CMEK key a useful first move even when you don't yet know the scope of the leak?</span>
+        <a href="#" class="check-btn" onclick="alert('Because it stops further reads instantly across every resource using that key, lab-wide — buying you time to investigate scope without continued exposure. The downside is that legitimate workloads also stop. So you take a 15-minute service interruption to enforce containment, then re-enable once you have confirmed and remediated the actual root cause. Cheaper than a continued leak.');return false;">Hint</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- M3 close                                    -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="content-section reveal">
+    <div class="section-eyebrow">Closing Module 3</div>
+    <h2 class="section-title">You have a HIPAA-grade environment</h2>
+    <div class="callout">
+      <strong>The arc of M3:</strong> L1 — the boundary (BAA + perimeter + org policies). L2 — the network (private paths, no public IPs, internal-only services, edge protection). L3 — the data (CMEK, Secret Manager, Data Access logs, breach response). Together: an environment where PHI can land, be processed by ephemeral compute, and never escape — with an audit trail that answers any question an IRB or NIH auditor asks.
+    </div>
+    <p style="margin-top: 1rem;">Module 4 takes you back to the compute layer. With M1's topology, M2's containers, and M3's HIPAA controls in place, M4 is where you actually build the serverless services that run inside all of it — Cloud Run and Cloud Functions, deeply.</p>
+  </div>
+
+  <!-- Lesson nav -->
+  <div class="lesson-nav">
+    <a href="m3-lesson2.html" class="btn">← Lesson 3.2: Network hardening</a>
+    <a href="m4.html" class="btn btn-primary">M4: Serverless fundamentals →</a>
+  </div>
+
+</main>
+
+<footer>
+  Shepherd Research Lab · University of Hawaiʻi Cancer Center ·
+  <a href="https://github.com/jshepherd46/ServerlessComp" style="color:var(--text3)">GitHub</a> ·
+  <a href="../index.html" style="color:var(--text3)">Course home</a>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
